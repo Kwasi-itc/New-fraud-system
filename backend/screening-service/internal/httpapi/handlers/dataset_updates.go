@@ -25,12 +25,12 @@ type createDatasetUpdateJobRequest struct {
 func (h DatasetUpdateHandler) Create(c *gin.Context) {
 	var body createDatasetUpdateJobRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	item, err := h.service.CreateDatasetUpdateJob(c.Request.Context(), c.Param("tenantId"), body.Provider, body.JobType, body.Cursor)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, item)
@@ -57,7 +57,7 @@ func (h DatasetUpdateHandler) Get(c *gin.Context) {
 func (h DatasetUpdateHandler) Retry(c *gin.Context) {
 	item, err := h.service.RetryDatasetUpdateJob(c.Request.Context(), c.Param("tenantId"), c.Param("jobId"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, item)

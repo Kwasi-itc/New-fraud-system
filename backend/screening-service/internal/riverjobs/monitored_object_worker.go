@@ -2,6 +2,7 @@ package riverjobs
 
 import (
 	"context"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"time"
 
 	"github.com/riverqueue/river"
@@ -22,6 +23,7 @@ func NewMonitoredObjectWorker(runner MonitoredObjectRunner) MonitoredObjectWorke
 }
 
 func (w *MonitoredObjectWorker) Work(ctx context.Context, job *river.Job[MonitoredObjectArgs]) error {
+	ctx = platformauth.WithOrigin(ctx, job.Args.Origin)
 	return w.runner.RunMonitoredObject(ctx, job.Args.TenantID, job.Args.MonitoredObjectID)
 }
 

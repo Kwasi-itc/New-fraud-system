@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"io"
 	"log/slog"
 	"net/http"
@@ -22,10 +24,13 @@ func TestPostgresWorkflowHTTPIntake(t *testing.T) {
 	db := testDatabase(t, true)
 	_, tenant, inbox, _ := fixture(t, db)
 	decision := seedDecision(t, db, tenant)
-	const token = "test-case-integration-token-at-least-32-characters"
-	router := httpapi.NewRouter(slog.New(slog.NewTextHandler(io.Discard, nil)), db, httpapi.RouterConfig{
-		AuthMode: "token", AuthToken: token, ServiceTenantIDs: []uuid.UUID{tenant},
-	})
+	signer := authtest.ServiceSigner(t, "decision-engine-service")
+	verifier := authtest.ServiceVerifier(t, signer, "urn:fraud:case-manager-service")
+	token, err := signer.Sign(tenant, "urn:fraud:case-manager-service", []string{"workflows:execute"}, auth.Principal{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := httpapi.NewRouter(slog.New(slog.NewTextHandler(io.Discard, nil)), db, httpapi.RouterConfig{Verifier: verifier})
 	server := httptest.NewServer(router)
 	defer server.Close()
 	payload := map[string]any{
@@ -153,7 +158,7 @@ func TestPostgresWorkflowIntakeRetryAndGrouping(t *testing.T) {
 	if count(t, db, "case_events") != before {
 		t.Fatal("unexpected logical action count")
 	}
-	if _, err := s.CloseCase(adminContext(tenant), tenant, first, casepkg.OutcomeFalsePositive, "Investigation completed"); err != nil {
+	if _, err := s.CloseCase(adminContext(t, db, tenant), tenant, first, casepkg.OutcomeFalsePositive, "Investigation completed"); err != nil {
 		t.Fatal(err)
 	}
 	next := in
@@ -221,7 +226,7 @@ func TestPostgresScreeningIntakePreservesMatchesAndDeduplicates(t *testing.T) {
 	if err := s.ReceiveScreeningReview(ctx, in); err != nil {
 		t.Fatal(err)
 	}
-	got, err := s.GetCase(adminContext(tenant), tenant, c.ID)
+	got, err := s.GetCase(adminContext(t, db, tenant), tenant, c.ID)
 	if err != nil || len(got.Screenings) != 2 {
 		t.Fatalf("lost match history: %+v %v", got.Screenings, err)
 	}

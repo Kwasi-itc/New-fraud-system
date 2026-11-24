@@ -1,11 +1,16 @@
 package riverjobs
 
+import (
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+)
+
 import "github.com/google/uuid"
 
 const DeferredIngestQueueName = "deferred_ingests"
 
 type DeferredIngestArgs struct {
-	DeferredIngestID uuid.UUID `json:"deferred_ingest_id"`
+	Origin           platformauth.Origin `json:"originator"`
+	DeferredIngestID uuid.UUID           `json:"deferred_ingest_id"`
 }
 
 func (DeferredIngestArgs) Kind() string {

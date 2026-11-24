@@ -1,7 +1,4 @@
 x-backend-common: &backend-common
-  SERVICE_AUTH_MODE: disabled
-  SERVICE_AUTH_TOKEN: ""
-  CASE_SERVICE_AUTH_TOKEN: ${CASE_SERVICE_AUTH_TOKEN:-}
   LOG_LEVEL: info
   GIN_MODE: debug
   HTTP_CLIENT_TIMEOUT: 10s
@@ -24,7 +21,9 @@ x-depends-on-migrations: &depends-on-migrations
 
 services:
   auth-migrate:
-    build: ./backend/auth-service
+    build:
+      context: ./backend
+      dockerfile: auth-service/Dockerfile
     entrypoint: ["/app/admin"]
     command: ["-action", "migrate"]
     environment:
@@ -35,7 +34,9 @@ services:
     restart: "no"
 
   auth-service:
-    build: ./backend/auth-service
+    build:
+      context: ./backend
+      dockerfile: auth-service/Dockerfile
     env_file:
       - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/auth.env
       - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/platform.env
@@ -46,6 +47,7 @@ services:
       AUTH_DEFAULT_TENANT_ID: ${NEXT_PUBLIC_DATA_MODEL_TENANT_ID:-}
       DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
     volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
       - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/platform-private.pem:/run/secrets/platform-private.pem:ro
     depends_on:
       auth-migrate:
@@ -119,8 +121,8 @@ services:
 
   ingestion-migrate:
     build:
-      context: ./backend/ingestion-service
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: ingestion-service/Dockerfile
     entrypoint: ["/app/migrate"]
     command: ["up"]
     environment:
@@ -144,6 +146,8 @@ services:
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
       INGESTION_SERVICE_URL: http://ingestion-service:8081
     depends_on:
+      auth-migrate:
+        condition: service_completed_successfully
       ingestion-migrate:
         condition: service_completed_successfully
     restart: "no"
@@ -158,6 +162,8 @@ services:
       <<: *backend-common
       DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
     depends_on:
+      auth-migrate:
+        condition: service_completed_successfully
       decision-engine-migrate:
         condition: service_completed_successfully
     restart: "no"
@@ -172,22 +178,20 @@ services:
       <<: *backend-common
       DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
     depends_on:
+      auth-migrate:
+        condition: service_completed_successfully
       screening-migrate:
         condition: service_completed_successfully
     restart: "no"
 
   data-model-service:
     env_file:
-      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/data-model.env
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/data-model-service.env
     build:
       context: ./backend
       dockerfile: data-model-service/Dockerfile
     environment:
       <<: *backend-common
-      SERVICE_AUTH_MODE: token
-      USER_JWT_KEYS_FILE: /run/secrets/platform-public.json
-      USER_JWT_ISSUER: ${CASE_USER_JWT_ISSUER:?Configure platform issuer}
-      USER_JWT_AUDIENCE: ${CASE_USER_JWT_AUDIENCE:-case-manager}
       PORT: 8080
       DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
       INDEX_WORKER_POLL_INTERVAL: 2s
@@ -196,16 +200,17 @@ services:
       INDEX_WORKER_RETRY_MAX_DELAY: 2m
     depends_on: *depends-on-migrations
     volumes:
-      - ${CASE_USER_JWT_KEYS_FILE:-./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/platform-public.json}:/run/secrets/platform-public.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/data-model-service-private.pem:/run/secrets/data-model-service-private.pem:ro
     ports:
       - "${DATA_MODEL_FORWARDED_PORT:-8080}:8080"
 
   ingestion-service:
     env_file:
-      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/data-model.env
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/ingestion-service.env
     build:
-      context: ./backend/ingestion-service
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: ingestion-service/Dockerfile
     environment:
       <<: *backend-common
       PORT: 8081
@@ -231,18 +236,18 @@ services:
     ports:
       - "${INGESTION_FORWARDED_PORT:-8081}:8081"
 
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/ingestion-service-private.pem:/run/secrets/ingestion-service-private.pem:ro
+
   decision-engine-service:
     env_file:
-      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/data-model.env
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/decision-engine-service.env
     build:
       context: ./backend
       dockerfile: decision-engine-service/Dockerfile
     environment:
       <<: *backend-common
-      USER_JWT_KEYS_FILE: /run/secrets/case-user-public-keys.json
-      USER_JWT_ISSUER: ${CASE_USER_JWT_ISSUER:?Set the trusted case user JWT issuer}
-      USER_JWT_AUDIENCE: ${CASE_USER_JWT_AUDIENCE:-case-manager}
-      USER_REQUIRE_SESSION: "true"
       PORT: 8082
       DATABASE_MAX_CONNS: ${DECISION_DATABASE_MAX_CONNS:-0}
       DATABASE_MIN_CONNS: ${DECISION_DATABASE_MIN_CONNS:-0}
@@ -252,7 +257,6 @@ services:
       SCREENING_SERVICE_URL: http://screening-service:8085
       LOG_LEVEL: ${DECISION_ENGINE_LOG_LEVEL:-debug}
       WORKFLOW_ACTION_URL: http://case-manager-service:8086/internal/v1/workflow-actions
-      WORKFLOW_AUTHORING_TOKEN: ${WORKFLOW_AUTHORING_TOKEN:-}
       WORKER_MODE: poll
       WORKER_POLL_INTERVAL: 15s
       WORKER_BATCH_LIMIT: 100
@@ -268,7 +272,8 @@ services:
       SCENARIO_EVALUATION_CONCURRENCY: ${SCENARIO_EVALUATION_CONCURRENCY:-0}
       AGGREGATE_REMOTE_CONCURRENCY_LIMIT: ${AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-0}
     volumes:
-      - ${CASE_USER_JWT_KEYS_FILE:-./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/platform-public.json}:/run/secrets/case-user-public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/decision-engine-service-private.pem:/run/secrets/decision-engine-service-private.pem:ro
       - type: bind
         source: ${GEOIP_MMDB_HOST_PATH:-./dbip-city-lite-2026-08.mmdb}
         target: /data/geoip/dbip-city-lite.mmdb
@@ -278,15 +283,13 @@ services:
       - "${DECISION_ENGINE_FORWARDED_PORT:-8082}:8082"
 
   screening-service:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/screening-service.env
     build:
       context: ./backend
       dockerfile: screening-service/Dockerfile
     environment:
       <<: *backend-common
-      USER_JWT_KEYS_FILE: /run/secrets/case-user-public-keys.json
-      USER_JWT_ISSUER: ${CASE_USER_JWT_ISSUER:?Set the trusted case user JWT issuer}
-      USER_JWT_AUDIENCE: ${CASE_USER_JWT_AUDIENCE:-case-manager}
-      USER_REQUIRE_SESSION: "true"
       PORT: 8085
       DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
       INGESTION_SERVICE_URL: http://ingestion-service:8081
@@ -297,12 +300,15 @@ services:
       WORKER_POLL_INTERVAL: 15s
       WORKER_BATCH_LIMIT: 100
     volumes:
-      - ${CASE_USER_JWT_KEYS_FILE:-./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/platform-public.json}:/run/secrets/case-user-public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/screening-service-private.pem:/run/secrets/screening-service-private.pem:ro
     depends_on: *depends-on-migrations
     ports:
       - "${SCREENING_FORWARDED_PORT:-8085}:8085"
 
   case-manager-service:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/case-manager-service.env
     build:
       context: ./backend
       dockerfile: case-manager-service/Dockerfile
@@ -311,17 +317,11 @@ services:
       LOG_LEVEL: ${CASE_LOG_LEVEL:-info}
       PORT: 8086
       DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
-      SERVICE_AUTH_MODE: token
-      SERVICE_AUTH_TOKEN: ${CASE_SERVICE_AUTH_TOKEN:?Set CASE_SERVICE_AUTH_TOKEN to a secret of at least 32 bytes}
-      SERVICE_AUTH_TENANT_IDS: ${CASE_SERVICE_TENANT_IDS:?Set the allowed case integration tenant UUIDs}
-      USER_JWT_KEYS_FILE: /run/secrets/case-user-public-keys.json
-      USER_JWT_ISSUER: ${CASE_USER_JWT_ISSUER:?Set the trusted case user JWT issuer}
-      USER_JWT_AUDIENCE: ${CASE_USER_JWT_AUDIENCE:-case-manager}
-      USER_REQUIRE_SESSION: "true"
       DB_POOL_MAX_CONNS: ${CASE_DB_POOL_MAX_CONNS:-8}
       GIN_MODE: release
     volumes:
-      - ${CASE_USER_JWT_KEYS_FILE:-./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/platform-public.json}:/run/secrets/case-user-public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/case-manager-service-private.pem:/run/secrets/case-manager-service-private.pem:ro
     depends_on: *depends-on-migrations
     healthcheck:
       test: ["CMD", "/app/server", "healthcheck"]
@@ -332,6 +332,8 @@ services:
       - "${CASE_MANAGER_FORWARDED_PORT:-8086}:8086"
 
   screening-case-delivery-worker:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/screening-case-delivery-worker.env
     build:
       context: ./backend
       dockerfile: screening-service/Dockerfile
@@ -349,7 +351,13 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/screening-case-delivery-worker-private.pem:/run/secrets/screening-case-delivery-worker-private.pem:ro
+
   data-model-worker:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/data-model-worker.env
     build:
       context: ./backend
       dockerfile: data-model-service/Dockerfile
@@ -363,12 +371,16 @@ services:
       INDEX_WORKER_RETRY_MAX_DELAY: 2m
     depends_on: *depends-on-migrations
 
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/data-model-worker-private.pem:/run/secrets/data-model-worker-private.pem:ro
+
   ingestion-worker:
     env_file:
-      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/data-model.env
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/ingestion-worker.env
     build:
-      context: ./backend/ingestion-service
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: ingestion-service/Dockerfile
     entrypoint: ["/app/worker"]
     environment:
       <<: *backend-common
@@ -393,9 +405,13 @@ services:
       data-model-service:
         condition: service_started
 
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/ingestion-worker-private.pem:/run/secrets/ingestion-worker-private.pem:ro
+
   decision-engine-worker:
     env_file:
-      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/data-model.env
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/decision-engine-worker.env
     build:
       context: ./backend
       dockerfile: decision-engine-service/Dockerfile
@@ -427,6 +443,8 @@ services:
       SCENARIO_EVALUATION_CONCURRENCY: ${SCENARIO_EVALUATION_CONCURRENCY:-0}
       AGGREGATE_REMOTE_CONCURRENCY_LIMIT: ${AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-0}
     volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/decision-engine-worker-private.pem:/run/secrets/decision-engine-worker-private.pem:ro
       - type: bind
         source: ${GEOIP_MMDB_HOST_PATH:-./dbip-city-lite-2026-08.mmdb}
         target: /data/geoip/dbip-city-lite.mmdb
@@ -443,6 +461,8 @@ services:
         condition: service_healthy
 
   screening-worker:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/screening-worker.env
     profiles:
       - screening-worker
     build:
@@ -468,13 +488,18 @@ services:
       case-manager-service:
         condition: service_healthy
 
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/screening-worker-private.pem:/run/secrets/screening-worker-private.pem:ro
+
   case-manager-worker:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/case-manager-worker.env
     build:
       context: ./backend
       dockerfile: case-manager-service/Dockerfile
     entrypoint: ["/app/worker"]
     environment:
-      USER_REQUIRE_SESSION: "true"
       LOG_LEVEL: ${CASE_LOG_LEVEL:-info}
       DATABASE_URL: ${DATABASE_URL:?Configure RDS DATABASE_URL}
       DB_POOL_MAX_CONNS: 4
@@ -487,9 +512,13 @@ services:
       <<: *depends-on-migrations
     restart: unless-stopped
 
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/case-manager-worker-private.pem:/run/secrets/case-manager-worker-private.pem:ro
+
   frontend:
     env_file:
-      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/proxy.env
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/frontend-bff.env
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -504,9 +533,6 @@ services:
       CASE_MANAGER_SERVICE_URL: http://case-manager-service:8086
       DECISION_ENGINE_SERVICE_URL: http://decision-engine-service:8082
       SCREENING_SERVICE_URL: http://screening-service:8085
-      DECISION_ENGINE_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
-      WORKFLOW_AUTHORING_TOKEN: ${WORKFLOW_AUTHORING_TOKEN:-}
-      SCREENING_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
       CASE_DEFAULT_TENANT_ID: ${NEXT_PUBLIC_DATA_MODEL_TENANT_ID:-}
       CASE_SESSION_COOKIE: ${CASE_SESSION_COOKIE:-__Host-fraud_session}
       APP_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
@@ -523,6 +549,10 @@ services:
         condition: service_started
     ports:
       - "${FRONTEND_FORWARDED_PORT:-3000}:3000"
+
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/frontend-bff-private.pem:/run/secrets/frontend-bff-private.pem:ro
 
 networks:
   # Keep this stack's service DNS namespace private. Set a different value

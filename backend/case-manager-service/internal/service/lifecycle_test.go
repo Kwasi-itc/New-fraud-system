@@ -39,7 +39,7 @@ func TestClosingFindingsValidation(t *testing.T) {
 func TestLifecycleRejectsUntrustedActorsAndPatchBypass(t *testing.T) {
 	tenant := uuid.New()
 	s := NewCaseService(nil, nil, ports.Repositories{}, &testUOW{})
-	for _, ctx := range []context.Context{context.Background(), access.WithPrincipal(context.Background(), access.Principal{Kind: access.Service, Subject: "integration", ServiceTenants: []uuid.UUID{tenant}})} {
+	for _, ctx := range []context.Context{context.Background(), access.WithPrincipal(context.Background(), access.Principal{Kind: access.Service, Subject: "integration", TenantID: tenant})} {
 		if _, err := s.CloseCase(ctx, tenant, uuid.New(), casepkg.OutcomeConfirmedRisk, "findings"); !errors.Is(err, casepkg.ErrForbidden) {
 			t.Fatalf("untrusted close: %v", err)
 		}

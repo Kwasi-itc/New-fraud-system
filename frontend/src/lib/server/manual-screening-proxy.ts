@@ -21,7 +21,7 @@ export async function manualScreeningProxy(request: Request, id?: string, matchI
   try {
     const session = await platformSession();
     if (!session) return failure("Sign in to screen entities.", 401);
-    if (!session.session.roles.some(role => ["case_investigator", "case_manager_admin"].includes(role))) return failure("An investigator role is required.", 403);
+    if (!session.session.capabilities.includes("screening:search")) return failure("An investigator role is required.", 403);
     const base = process.env.SCREENING_SERVICE_URL;
     if (!base) return failure("Screening is not configured.", 503);
     const query = request.method === "GET" && (!id || action === "monitor") ? new URL(request.url).search : "";

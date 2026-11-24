@@ -3,11 +3,7 @@ package postgres_test
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	legacyclient "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/provider"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/provideraccess"
@@ -18,12 +14,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/riverqueue/river/rivermigrate"
@@ -83,29 +77,10 @@ func TestInternalProviderScenarioAuthoringThroughRealWorkers(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]any{"data_model": map[string]any{"revision_id": "controlled-phase2", "tables": map[string]any{"transaction": map[string]any{"name": "transaction", "fields": map[string]any{"beneficiary_name": map[string]any{"name": "beneficiary_name", "data_type": "string", "nullable": false}}, "links_to_single": map[string]any{}}}}})
 	}))
 	defer model.Close()
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatal(err)
-	}
-	public, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
-	if err != nil {
-		t.Fatal(err)
-	}
-	keyJSON, _ := json.Marshal(map[string]string{"phase2": string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: public}))})
-	keyFile := filepath.Join(t.TempDir(), "keys.json")
-	if err = os.WriteFile(keyFile, keyJSON, 0600); err != nil {
-		t.Fatal(err)
-	}
-	claims := jwt.MapClaims{"sub": principal.Subject, "tenant_id": tenant, "sid": principal.SessionID.String(), "authz_version": 1, "roles": []string{"case_investigator"}, "iss": "intake-test", "aud": "intake-test", "iat": time.Now().Unix(), "exp": time.Now().Add(time.Hour).Unix()}
-	signed := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	signed.Header["kid"] = "phase2"
-	humanToken, err := signed.SignedString(key)
-	if err != nil {
-		t.Fatal(err)
-	}
-	sourceURL, token, _ := startInvestigatorServer(t, db, binaries["SCREENING_INTEGRATION_BINARY"], tenant, "SCREENING_PROVIDER_URL="+legacy.URL, "SCREENING_PROVIDER_URLS=", "OPENSANCTIONS_API_HOST=", "OPENSANCTIONS_API_KEY=", "USER_JWT_KEYS_FILE="+keyFile, "USER_REQUIRE_SESSION=true")
-	const authoring = "controlled-phase2-authoring-private-token-32"
-	decisionURL, _, _ := startInvestigatorServer(t, db, binaries["DECISION_INTEGRATION_BINARY"], tenant, "SCREENING_AUTHORING_TOKEN="+authoring, "DATA_MODEL_SERVICE_URL="+model.URL, "DATA_MODEL_SERVICE_TOKEN="+token, "SCREENING_SERVICE_URL="+sourceURL)
+	humanToken := journeySignHuman(t, principal, "case_investigator")
+	sourceURL, _, _ := startInvestigatorServer(t, db, binaries["SCREENING_INTEGRATION_BINARY"], tenant, "SCREENING_PROVIDER_URL="+legacy.URL, "SCREENING_PROVIDER_URLS=", "OPENSANCTIONS_API_HOST=", "OPENSANCTIONS_API_KEY=")
+	authoring := journeySignHuman(t, principal, "platform_admin", "case_investigator")
+	decisionURL, _, _ := startInvestigatorServer(t, db, binaries["DECISION_INTEGRATION_BINARY"], tenant, "DATA_MODEL_SERVICE_URL="+model.URL, "SCREENING_SERVICE_URL="+sourceURL)
 	caseURL, _ := startCaseServer(t, db, binaries["CASE_MANAGER_INTEGRATION_BINARY"], tenant)
 	client := &http.Client{Timeout: 10 * time.Second}
 	request := func(base, method, path, bearer string, body any, want int) map[string]any {
@@ -117,9 +92,6 @@ func TestInternalProviderScenarioAuthoringThroughRealWorkers(t *testing.T) {
 		}
 		r.Header.Set("Authorization", "Bearer "+bearer)
 		r.Header.Set("Content-Type", "application/json")
-		r.Header.Set("X-Screening-User", principal.Subject)
-		r.Header.Set("X-Screening-Session", principal.SessionID.String())
-		r.Header.Set("X-Screening-Version", "1")
 		resp, e := client.Do(r)
 		if e != nil {
 			t.Fatal(e)
@@ -156,10 +128,10 @@ func TestInternalProviderScenarioAuthoringThroughRealWorkers(t *testing.T) {
 		t.Fatal("saved discovery/reopen", page)
 	}
 	request(decisionURL, "GET", "/internal/screening-authoring/tenants/"+f.b.Tenant().String()+"/scenarios/"+scenario, authoring, nil, 403)
-	startJourneyWorker(t, db, binaries["SCREENING_WORKER_INTEGRATION_BINARY"], "SCREENING_PROVIDER_URL="+legacy.URL, "CASE_SERVICE_URL="+caseURL, "CASE_SERVICE_AUTH_TOKEN="+token, "DECISION_ENGINE_URL="+decisionURL)
+	startJourneyWorker(t, db, binaries["SCREENING_WORKER_INTEGRATION_BINARY"], "SCREENING_PROVIDER_URL="+legacy.URL, "CASE_SERVICE_URL="+caseURL, "DECISION_ENGINE_URL="+decisionURL)
 	startJourneyWorker(t, db, binaries["DECISION_WORKER_INTEGRATION_BINARY"], "SCREENING_SERVICE_URL="+sourceURL)
 	for _, name := range []string{"Ama Testpreson", "Fixture Paymnts"} {
-		out := request(decisionURL, "POST", "/v1/tenants/"+tenant+"/scenarios/"+scenario+"/evaluate", token, map[string]any{"object_id": uuid.NewString(), "object_type": "transaction", "fields": map[string]any{"beneficiary_name": name}}, 200)
+		out := request(decisionURL, "POST", "/v1/tenants/"+tenant+"/scenarios/"+scenario+"/evaluate", authoring, map[string]any{"object_id": uuid.NewString(), "object_type": "transaction", "fields": map[string]any{"beneficiary_name": name}}, 200)
 		decision := out["result"].(map[string]any)["decision"].(map[string]any)["id"].(string)
 		waitFor(t, func() bool {
 			var n int
@@ -226,8 +198,8 @@ func TestInternalProviderScenarioAuthoringThroughRealWorkers(t *testing.T) {
 		var forged map[string]any
 		json.Unmarshal(original, &forged)
 		forged["queries"] = []map[string]string{{"name": "Forged Name", "type": "Person"}}
-		request(sourceURL, "POST", "/internal/v1/tenants/"+tenant+"/decision-screenings", testIntakeToken, forged, 400)
-		request(sourceURL, "POST", "/internal/v1/tenants/"+f.b.Tenant().String()+"/decision-screenings", testIntakeToken, json.RawMessage(original), 400)
+		request(sourceURL, "POST", "/internal/v1/tenants/"+tenant+"/decision-screenings", journeyToken(t, tenant, "decision-engine-service", "screening-service", "screening:intake"), forged, 400)
+		request(sourceURL, "POST", "/internal/v1/tenants/"+f.b.Tenant().String()+"/decision-screenings", journeyToken(t, f.b.Tenant().String(), "decision-engine-service", "screening-service", "screening:intake"), json.RawMessage(original), 400)
 		request(sourceURL, "POST", "/internal/v1/tenants/"+tenant+"/decision-screenings", "invalid-token", json.RawMessage(original), 401)
 	}
 	if legacyCalls.Load() != 0 {
@@ -235,7 +207,7 @@ func TestInternalProviderScenarioAuthoringThroughRealWorkers(t *testing.T) {
 	}
 	// Revoked private grants fail at intake/execution, without a false no-hit.
 	execSQL(`DELETE FROM screening.source_grants WHERE tenant_id=$1 AND owner_scope=$1 AND dataset_id=$2`, tenant, f.private.Dataset)
-	out := request(decisionURL, "POST", "/v1/tenants/"+tenant+"/scenarios/"+scenario+"/evaluate", token, map[string]any{"object_id": uuid.NewString(), "object_type": "transaction", "fields": map[string]any{"beneficiary_name": "Ama Testperson"}}, 200)
+	out := request(decisionURL, "POST", "/v1/tenants/"+tenant+"/scenarios/"+scenario+"/evaluate", authoring, map[string]any{"object_id": uuid.NewString(), "object_type": "transaction", "fields": map[string]any{"beneficiary_name": "Ama Testperson"}}, 200)
 	decision := out["result"].(map[string]any)["decision"].(map[string]any)["id"].(string)
 	waitFor(t, func() bool {
 		var n int

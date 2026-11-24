@@ -9,14 +9,9 @@ import (
 )
 
 type Config struct {
-	UserJWTKeysFile     string
-	UserJWTIssuer       string
-	UserJWTAudience     string
-	ServiceTenantIDs    string
-	Port                string
-	DatabaseURL         string
-	ServiceAuthMode     string
-	ServiceAuthToken    string
+	Port        string
+	DatabaseURL string
+
 	DecisionEngineURL   string
 	ScreeningServiceURL string
 	IngestionServiceURL string
@@ -48,14 +43,10 @@ func LoadConfig() (Config, error) {
 	}
 
 	cfg := Config{
-		UserJWTKeysFile:     os.Getenv("USER_JWT_KEYS_FILE"),
-		UserJWTIssuer:       os.Getenv("USER_JWT_ISSUER"),
-		UserJWTAudience:     os.Getenv("USER_JWT_AUDIENCE"),
-		ServiceTenantIDs:    os.Getenv("SERVICE_AUTH_TENANT_IDS"),
-		Port:                getEnv("PORT", "8086"),
-		DatabaseURL:         os.Getenv("DATABASE_URL"),
-		ServiceAuthMode:     strings.ToLower(getEnv("SERVICE_AUTH_MODE", "disabled")),
-		ServiceAuthToken:    os.Getenv("SERVICE_AUTH_TOKEN"),
+
+		Port:        getEnv("PORT", "8086"),
+		DatabaseURL: os.Getenv("DATABASE_URL"),
+
 		DecisionEngineURL:   strings.TrimRight(os.Getenv("DECISION_ENGINE_URL"), "/"),
 		ScreeningServiceURL: strings.TrimRight(os.Getenv("SCREENING_SERVICE_URL"), "/"),
 		IngestionServiceURL: strings.TrimRight(os.Getenv("INGESTION_SERVICE_URL"), "/"),
@@ -72,9 +63,6 @@ func LoadConfig() (Config, error) {
 
 	if cfg.DatabaseURL == "" {
 		return Config{}, fmt.Errorf("DATABASE_URL is required")
-	}
-	if cfg.ServiceAuthMode == "token" && cfg.ServiceAuthToken == "" {
-		return Config{}, fmt.Errorf("SERVICE_AUTH_TOKEN is required when SERVICE_AUTH_MODE=token")
 	}
 	if cfg.WorkerMode != "batch" && cfg.WorkerMode != "poll" {
 		return Config{}, fmt.Errorf("WORKER_MODE must be either batch or poll")

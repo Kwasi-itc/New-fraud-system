@@ -7,12 +7,12 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"io"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -22,8 +22,13 @@ type ScreeningAuthoringHandler struct {
 
 func (h ScreeningAuthoringHandler) Handle(c *gin.Context) {
 	c.Header("Cache-Control", "private, no-store")
-	a := workflow.AuthoringActor{UserID: c.GetHeader("X-Screening-User"), SessionID: c.GetHeader("X-Screening-Session")}
-	a.Version, _ = strconv.ParseInt(c.GetHeader("X-Screening-Version"), 10, 64)
+	p := platformauth.PrincipalFromContext(c)
+	if p == nil || !p.IsHuman() {
+		c.JSON(403, gin.H{"error": "Human operator required."})
+		return
+	}
+	a := workflow.AuthoringActor{UserID: p.Subject, SessionID: p.SessionID.String(), Version: p.AuthzVersion}
+
 	t, sc := c.Param("tenantId"), c.Param("scenarioId")
 	for _, raw := range []string{t, sc, a.UserID, a.SessionID} {
 		if id, err := uuid.Parse(raw); err != nil || id == uuid.Nil {
@@ -63,6 +68,12 @@ func (h ScreeningAuthoringHandler) Handle(c *gin.Context) {
 		status, message := 500, "Screening configuration is unavailable. Refresh before retrying."
 		if errors.Is(err, screening.ErrInlineUnavailable) || errors.Is(err, screening.ErrRecognitionUnavailable) || errors.Is(err, screening.ErrMatchingUnavailable) || errors.Is(err, screening.ErrAddressUnavailable) || errors.Is(err, screening.ErrBirthDateUnavailable) || errors.Is(err, screening.ErrNationalityUnavailable) || errors.Is(err, screening.ErrCountryUnavailable) || errors.Is(err, screening.ErrRegistrationUnavailable) {
 			status, message = 422, err.Error()
+		}
+		var denied *platformauth.Error
+		if errors.As(err, &denied) {
+			status, message := platformauth.HTTPError(err)
+			c.JSON(status, gin.H{"error": message})
+			return
 		}
 		if errors.Is(err, workflow.ErrAuthoringDenied) {
 			status, message = 403, "Scenario or inbox access denied."

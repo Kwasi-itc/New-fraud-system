@@ -10,7 +10,7 @@ import (
 func TestConfiguredLoginTenant(t *testing.T) {
 	s, oldTenant := fixture(t)
 	ctx := context.Background()
-	user, oldRaw := provision(t, s, oldTenant, "operator", "tenant_admin", "case_manager_admin", "platform_admin")
+	user, oldRaw := provision(t, s, oldTenant, "operator", "tenant_admin")
 	target := uuid.New()
 	if _, err := s.DB.Exec(ctx, `INSERT INTO core.tenants(id,name,schema_name,status,created_at,updated_at) VALUES($1,'Target','target_login_test','active',now(),now())`, target); err != nil {
 		t.Fatal(err)
@@ -33,7 +33,7 @@ func TestConfiguredLoginTenant(t *testing.T) {
 	}
 	assertDenied(target) // Existing membership in another tenant cannot authorize this one.
 	assertDenied(uuid.New())
-	same, err := s.Provision(ctx, target, "https://provider.test", "operator", "Operator", []string{"tenant_admin", "case_manager_admin", "platform_admin"})
+	same, err := s.Provision(ctx, target, "https://provider.test", "operator", "Operator", []string{"tenant_admin"})
 	if err != nil || same != user {
 		t.Fatal("existing user membership", same, err)
 	}

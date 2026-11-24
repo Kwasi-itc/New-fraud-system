@@ -2,6 +2,7 @@ package riverjobs
 
 import (
 	"context"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,6 +24,7 @@ func NewDeferredIngestWorker(runner DeferredIngestRunner) DeferredIngestWorker {
 }
 
 func (w *DeferredIngestWorker) Work(ctx context.Context, job *river.Job[DeferredIngestArgs]) error {
+	ctx = platformauth.WithOrigin(ctx, job.Args.Origin)
 	return w.runner.RunDeferredIngest(ctx, job.Args.DeferredIngestID)
 }
 

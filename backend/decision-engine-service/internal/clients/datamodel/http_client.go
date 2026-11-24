@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	"github.com/google/uuid"
 	"io"
 	"net/http"
 	"strings"
@@ -20,22 +22,30 @@ const tenantModelCacheTTL = 30 * time.Second
 const requestIDHeader = "X-Request-ID"
 
 type HTTPClient struct {
-	authToken string
-	baseURL   string
-	client    *http.Client
-	now       func() time.Time
+	Signer *platformauth.Signer
+
+	baseURL string
+	client  *http.Client
+	now     func() time.Time
 
 	mu               sync.RWMutex
 	tenantModelCache map[string]cachedTenantModel
 	tenantModelGroup singleflight.Group
 }
 
-// WithAuthToken must be called during wiring, before the client is shared.
-func (c *HTTPClient) WithAuthToken(token string) *HTTPClient { c.authToken = token; return c }
 
 func (c *HTTPClient) do(req *http.Request) (*http.Response, error) {
-	if c.authToken != "" {
-		req.Header.Set("Authorization", "Bearer "+c.authToken)
+
+	tenant, err := platformauth.RequestTenant(req)
+	if err != nil {
+		return nil, err
+	}
+	capability := "models:read"
+	if req.Method != "GET" {
+		capability = "models:index-write"
+	}
+	if err = platformauth.AuthorizeServiceRequest(req, tenant, "urn:fraud:data-model-service", []string{capability}, c.Signer); err != nil {
+		return nil, err
 	}
 	return c.client.Do(req)
 }
@@ -254,14 +264,21 @@ func (c *HTTPClient) ListIndexJobs(ctx context.Context, tenantID string) ([]port
 	return items, nil
 }
 
-func (c *HTTPClient) RetryIndexJob(ctx context.Context, jobID string) error {
+func (c *HTTPClient) RetryIndexJob(ctx context.Context, tenantID, jobID string) error {
 	url := fmt.Sprintf("%s/v1/index-jobs/%s/retry", c.baseURL, jobID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
 	}
 
-	resp, err := c.do(req)
+	tenant, err := uuid.Parse(tenantID)
+	if err != nil {
+		return fmt.Errorf("invalid retry tenant: %w", err)
+	}
+	if err = platformauth.AuthorizeServiceRequest(req, tenant, "urn:fraud:data-model-service", []string{"models:index-write"}, c.Signer); err != nil {
+		return err
+	}
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("perform request: %w", err)
 	}
@@ -335,3 +352,5 @@ func attachRequestID(req *http.Request) {
 		req.Header.Set(requestIDHeader, requestID)
 	}
 }
+
+func (c *HTTPClient) WithSigner(signer *platformauth.Signer) *HTTPClient { c.Signer = signer; return c }

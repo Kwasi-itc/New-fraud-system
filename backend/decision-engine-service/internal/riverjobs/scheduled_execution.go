@@ -1,9 +1,14 @@
 package riverjobs
 
+import (
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+)
+
 const ScheduledExecutionQueueName = "scheduled_executions"
 
 type ScheduledExecutionArgs struct {
-	ExecutionID string `json:"execution_id"`
+	Origin      platformauth.Origin `json:"originator"`
+	ExecutionID string              `json:"execution_id"`
 }
 
 func (ScheduledExecutionArgs) Kind() string {

@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"testing"
 	"time"
 
@@ -23,8 +24,9 @@ func TestVerifiedIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	subject := uuid.NewString()
 	base := func() Claims {
-		return Claims{RegisteredClaims: jwt.RegisteredClaims{Issuer: "test-issuer", Subject: "user-1", Audience: jwt.ClaimStrings{"case-manager"}, ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)), IssuedAt: jwt.NewNumericDate(time.Now())}, TenantID: uuid.NewString(), Roles: []string{"case_investigator"}}
+		return Claims{RegisteredClaims: jwt.RegisteredClaims{Issuer: "test-issuer", Subject: subject, Audience: jwt.ClaimStrings{"case-manager"}, ID: uuid.NewString(), ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)), IssuedAt: jwt.NewNumericDate(time.Now())}, PrincipalType: auth.PrincipalUser, SessionID: uuid.New(), AuthzVersion: 1, Capabilities: []string{"cases:read"}, TenantID: uuid.New(), Roles: []string{"case_investigator"}}
 	}
 	for _, tt := range []struct {
 		name   string
@@ -41,10 +43,11 @@ func TestVerifiedIdentity(t *testing.T) {
 		{"future not before", func(c *Claims) { c.NotBefore = jwt.NewNumericDate(time.Now().Add(time.Hour)) }, "current", false},
 		{"wrong issuer", func(c *Claims) { c.Issuer = "attacker" }, "current", false},
 		{"wrong audience", func(c *Claims) { c.Audience = jwt.ClaimStrings{"other-service"} }, "current", false},
-		{"missing role", func(c *Claims) { c.Roles = nil }, "current", false},
+		{"role metadata optional", func(c *Claims) { c.Roles = nil }, "current", true},
+		{"missing capability", func(c *Claims) { c.Capabilities = nil }, "current", false},
 		{"missing subject", func(c *Claims) { c.Subject = "" }, "current", false},
-		{"missing tenant", func(c *Claims) { c.TenantID = "" }, "current", false},
-		{"zero tenant", func(c *Claims) { c.TenantID = uuid.Nil.String() }, "current", false},
+		{"missing tenant", func(c *Claims) { c.TenantID = uuid.Nil }, "current", false},
+		{"zero tenant", func(c *Claims) { c.TenantID = uuid.Nil }, "current", false},
 		{"unknown key", func(*Claims) {}, "untrusted", false},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -52,6 +55,7 @@ func TestVerifiedIdentity(t *testing.T) {
 			tt.change(&c)
 			token := jwt.NewWithClaims(jwt.SigningMethodRS256, c)
 			token.Header["kid"] = tt.kid
+			token.Header["typ"] = "at+jwt"
 			raw, err := token.SignedString(key)
 			if err != nil {
 				t.Fatal(err)
@@ -60,7 +64,7 @@ func TestVerifiedIdentity(t *testing.T) {
 			if (err == nil) != tt.valid {
 				t.Fatalf("verification: %v", err)
 			}
-			if tt.valid && (p.Subject != "user-1" || p.Kind != User || p.Admin) {
+			if tt.valid && (p.Subject != subject || p.Kind != User || p.Admin) {
 				t.Fatalf("wrong principal: %+v", p)
 			}
 		})
@@ -88,7 +92,7 @@ func TestVerifiedIdentity(t *testing.T) {
 
 func TestTenantBoundary(t *testing.T) {
 	a, b := uuid.New(), uuid.New()
-	for _, p := range []Principal{{Kind: User, Subject: "u", TenantID: a}, {Kind: Service, Subject: "s", ServiceTenants: []uuid.UUID{a}}} {
+	for _, p := range []Principal{{Kind: User, Subject: "u", TenantID: a}, {Kind: Service, Subject: "s", TenantID: a}} {
 		ctx := WithPrincipal(context.Background(), p)
 		if _, err := Tenant(ctx, a); err != nil {
 			t.Fatal(err)
@@ -100,7 +104,7 @@ func TestTenantBoundary(t *testing.T) {
 	if _, err := Tenant(context.Background(), a); err == nil {
 		t.Fatal("missing principal accepted")
 	}
-	if err := Administrator(WithPrincipal(context.Background(), Principal{Kind: Service, Subject: "s", Admin: true, ServiceTenants: []uuid.UUID{a}}), a); err == nil {
+	if err := Administrator(WithPrincipal(context.Background(), Principal{Kind: Service, Subject: "s", Admin: true, TenantID: a}), a); err == nil {
 		t.Fatal("service bypassed admin boundary")
 	}
 }

@@ -1,0 +1,107 @@
+Local PostgreSQL measurements, 2026-11-20. Warm disposable fixtures; no throughput claim.
+
+Client case page: 256 inboxes, 25,600 cases
+Limit  (cost=24264.25..24264.50 rows=101 width=75) (actual time=19.314..19.331 rows=101 loops=1)
+  Buffers: shared hit=14805
+  ->  Sort  (cost=24264.25..24296.25 rows=12800 width=75) (actual time=19.313..19.320 rows=101 loops=1)
+        Sort Key: cases.id
+        Sort Method: top-N heapsort  Memory: 46kB
+        Buffers: shared hit=14805
+        ->  Nested Loop  (cost=0.41..23774.12 rows=12800 width=75) (actual time=0.019..14.839 rows=25600 loops=1)
+              Buffers: shared hit=14805
+              ->  Seq Scan on client_inbox_access a  (cost=0.00..7.84 rows=256 width=32) (actual time=0.006..0.048 rows=256 loops=1)
+                    Filter: ((tenant_id = '7b5b4863-16f9-4751-8ef0-baa8d7f42504'::uuid) AND (client_id = '9a7f58f4-aa1e-4e4e-9a87-de36fc178b94'::uuid))
+                    Buffers: shared hit=4
+              ->  Limit  (cost=0.41..91.84 rows=50 width=75) (actual time=0.005..0.045 rows=100 loops=256)
+                    Buffers: shared hit=14801
+                    ->  Index Scan using cases_client_inbox_page_idx on cases  (cost=0.41..91.84 rows=50 width=75) (actual time=0.004..0.035 rows=100 loops=256)
+                          Index Cond: ((tenant_id = a.tenant_id) AND (inbox_id = a.inbox_id) AND (id > '00000000-0000-0000-0000-000000000000'::uuid))
+                          Buffers: shared hit=14801
+Planning:
+  Buffers: shared hit=155
+Planning Time: 0.712 ms
+Execution Time: 19.363 ms
+
+Historical pre-v6 capability resolution: 5,001 members, target actor assigned 32 roles
+Aggregate  (cost=58.31..58.32 rows=1 width=32) (actual time=0.186..0.187 rows=1 loops=1)
+  Buffers: shared hit=6
+  ->  Nested Loop  (cost=3.27..57.51 rows=320 width=32) (actual time=0.106..0.163 rows=64 loops=1)
+        Buffers: shared hit=6
+        ->  Hash Join  (cost=3.26..52.24 rows=32 width=127) (actual time=0.099..0.132 rows=32 loops=1)
+              Hash Cond: (mr.role_id = r.id)
+              Buffers: shared hit=6
+              ->  Index Only Scan using member_roles_pkey on member_roles mr  (cost=0.28..49.17 rows=32 width=32) (actual time=0.037..0.046 rows=32 loops=1)
+                    Index Cond: ((tenant_id = '9e3cb37b-b4cb-4fc1-a0f0-577cdb2d716c'::uuid) AND (user_id = 'feac7690-cf68-4d95-9842-043f80a64707'::uuid))
+                    Heap Fetches: 33
+                    Buffers: shared hit=4
+              ->  Hash  (cost=2.49..2.49 rows=39 width=180) (actual time=0.025..0.026 rows=39 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 17kB
+                    Buffers: shared hit=2
+                    ->  Seq Scan on roles r  (cost=0.00..2.49 rows=39 width=180) (actual time=0.006..0.012 rows=39 loops=1)
+                          Filter: (tenant_id = '9e3cb37b-b4cb-4fc1-a0f0-577cdb2d716c'::uuid)
+                          Buffers: shared hit=2
+        ->  Memoize  (cost=0.01..0.11 rows=10 width=32) (actual time=0.000..0.001 rows=2 loops=32)
+              Cache Key: r.capabilities
+              Cache Mode: binary
+              Hits: 31  Misses: 1  Evictions: 0  Overflows: 0  Memory Usage: 1kB
+              ->  Function Scan on unnest cap  (cost=0.00..0.10 rows=10 width=32) (actual time=0.005..0.005 rows=2 loops=1)
+Planning:
+  Buffers: shared hit=112
+Planning Time: 0.445 ms
+Execution Time: 0.235 ms
+
+
+Account directory query plans — schema v6, 21 November 2026
+Disposable PostgreSQL; 10,000 members and 10,000 clients. Production query builders, escaped prefix filters, tenant isolation and keyset paging exercised by account_directory_test.go.
+=== RUN   TestAccountDirectoryIndexesAndTenantBoundaries
+    account_directory_test.go:100: 10,000-member tenant prefix query
+        Limit  (cost=18.24..18.24 rows=1 width=105) (actual time=0.033..0.034 rows=1 loops=1)
+          Buffers: shared hit=12
+          ->  Sort  (cost=18.24..18.24 rows=1 width=105) (actual time=0.032..0.033 rows=1 loops=1)
+                Sort Key: u.id
+                Sort Method: quicksort  Memory: 25kB
+                Buffers: shared hit=12
+                ->  Nested Loop  (cost=0.86..18.23 rows=1 width=105) (actual time=0.024..0.029 rows=1 loops=1)
+                      Buffers: shared hit=12
+                      ->  Nested Loop  (cost=0.86..17.01 rows=1 width=119) (actual time=0.019..0.023 rows=1 loops=1)
+                            Join Filter: (u.id = mr.user_id)
+                            Buffers: shared hit=11
+                            ->  Nested Loop  (cost=0.57..16.62 rows=1 width=120) (actual time=0.011..0.016 rows=1 loops=1)
+                                  Buffers: shared hit=8
+                                  ->  Index Scan using users_display_name_prefix_idx on users u  (cost=0.29..8.31 rows=1 width=39) (actual time=0.007..0.008 rows=2 loops=1)
+                                        Index Cond: ((lower(display_name) ~>=~ 'target_'::text) AND (lower(display_name) ~<~ 'target`'::text) AND (id > '00000000-0000-0000-0000-000000000000'::uuid))
+                                        Filter: (lower(display_name) ~~ 'target\_%'::text)
+                                        Buffers: shared hit=3
+                                  ->  Index Scan using memberships_pkey on memberships m  (cost=0.29..8.30 rows=1 width=81) (actual time=0.003..0.003 rows=0 loops=2)
+                                        Index Cond: ((tenant_id = '05c8df55-8b0c-4d65-9ce3-fbd3a6bb16fb'::uuid) AND (user_id = u.id))
+                                        Buffers: shared hit=5
+                            ->  Index Scan using member_roles_one_role_idx on member_roles mr  (cost=0.29..0.38 rows=1 width=47) (actual time=0.006..0.006 rows=1 loops=1)
+                                  Index Cond: ((tenant_id = '05c8df55-8b0c-4d65-9ce3-fbd3a6bb16fb'::uuid) AND (user_id = m.user_id))
+                                  Filter: (role_id = 'platform_viewer'::text)
+                                  Buffers: shared hit=3
+                      ->  Seq Scan on roles r  (cost=0.00..1.21 rows=1 width=50) (actual time=0.004..0.005 rows=1 loops=1)
+                            Filter: ((tenant_id = '05c8df55-8b0c-4d65-9ce3-fbd3a6bb16fb'::uuid) AND (id = 'platform_viewer'::text))
+                            Rows Removed by Filter: 14
+                            Buffers: shared hit=1
+        Planning:
+          Buffers: shared hit=27
+        Planning Time: 0.456 ms
+        Execution Time: 0.064 ms
+    account_directory_test.go:102: 10,000-client tenant prefix query
+        Limit  (cost=8.33..8.33 rows=1 width=91) (actual time=0.010..0.010 rows=1 loops=1)
+          Buffers: shared hit=3
+          ->  Sort  (cost=8.33..8.33 rows=1 width=91) (actual time=0.009..0.010 rows=1 loops=1)
+                Sort Key: id
+                Sort Method: quicksort  Memory: 25kB
+                Buffers: shared hit=3
+                ->  Index Scan using clients_name_prefix_idx on clients  (cost=0.29..8.32 rows=1 width=91) (actual time=0.007..0.007 rows=1 loops=1)
+                      Index Cond: ((tenant_id = '05c8df55-8b0c-4d65-9ce3-fbd3a6bb16fb'::uuid) AND (lower(name) ~>=~ 'target_'::text) AND (lower(name) ~<~ 'target`'::text) AND (id > '00000000-0000-0000-0000-000000000000'::uuid))
+                      Filter: (lower(name) ~~ 'target\_%'::text)
+                      Buffers: shared hit=3
+        Planning:
+          Buffers: shared hit=3
+        Planning Time: 0.079 ms
+        Execution Time: 0.019 ms
+--- PASS: TestAccountDirectoryIndexesAndTenantBoundaries (2.56s)
+PASS
+ok  	github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/platform	3.178s

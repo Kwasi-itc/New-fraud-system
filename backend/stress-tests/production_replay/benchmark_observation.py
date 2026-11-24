@@ -424,7 +424,7 @@ async def async_main(argv: list[str] | None = None) -> int:
     parser.add_argument("--timeout", type=float, default=5.0)
     parser.add_argument("--decision-engine-url")
     parser.add_argument("--ingestion-url")
-    parser.add_argument("--auth-token-env", default="SERVICE_AUTH_TOKEN")
+    parser.add_argument("--auth-token-env", default="PLATFORM_ACCESS_TOKEN")
     args = parser.parse_args(argv)
     if args.samples <= 0:
         parser.error("--samples must be positive")

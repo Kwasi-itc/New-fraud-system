@@ -10,7 +10,8 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	legacy "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/provider"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/httpapi"
@@ -62,6 +63,11 @@ func newInternalFixture(t *testing.T, deterministicTenant ...uuid.UUID) internal
 		}
 	}
 	for _, owner := range []string{"data-model-service", "ingestion-service", "decision-engine-service", "case-manager-service"} {
+		if owner == "case-manager-service" {
+			if err := authtest.ApplyIdentity(ctx, db, "../../../../auth-service/internal/platform"); err != nil {
+				t.Fatal(err)
+			}
+		}
 		paths, err := filepath.Glob(filepath.Join("../../../..", owner, "internal/migrations/metadata/*.up.sql"))
 		if err != nil || len(paths) == 0 {
 			t.Fatal(owner, err)
@@ -382,9 +388,10 @@ func TestInternalProviderThroughAuthenticatedAPIWorkerAndReview(t *testing.T) {
 	}
 	token := func(scope provideraccess.Scope) string {
 		p := scope.Principal()
-		claims := identity.Claims{RegisteredClaims: jwt.RegisteredClaims{Subject: p.Subject, Issuer: "controlled-test", Audience: jwt.ClaimStrings{"controlled-test"}, IssuedAt: jwt.NewNumericDate(time.Now()), ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour))}, TenantID: p.TenantID.String(), SessionID: p.SessionID.String(), AuthzVersion: p.AuthzVersion, Roles: []string{"case_investigator"}}
+		claims := identity.Claims{RegisteredClaims: jwt.RegisteredClaims{ID: uuid.NewString(), Subject: p.Subject, Issuer: "controlled-test", Audience: jwt.ClaimStrings{"controlled-test"}, IssuedAt: jwt.NewNumericDate(time.Now()), ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute))}, PrincipalType: identity.PrincipalUser, Capabilities: []string{"screening:search", "cases:read", "cases:review"}, TenantID: p.TenantID, SessionID: p.SessionID, AuthzVersion: p.AuthzVersion, Roles: []string{"case_investigator"}}
 		signed := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 		signed.Header["kid"] = "controlled"
+		signed.Header["typ"] = "at+jwt"
 		raw, e := signed.SignedString(key)
 		if e != nil {
 			t.Fatal(e)
@@ -392,7 +399,7 @@ func TestInternalProviderThroughAuthenticatedAPIWorkerAndReview(t *testing.T) {
 		return raw
 	}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	api := httptest.NewUnstartedServer(httpapi.NewRouter(logger, f.db, httpapi.RouterConfig{InvestigatorVerifier: verifier, AuthMode: "token", AuthToken: "controlled-service-token-32-bytes", HTTPClientTimeout: time.Second}))
+	api := httptest.NewUnstartedServer(httpapi.NewRouter(logger, f.db, httpapi.RouterConfig{InvestigatorVerifier: verifier, HTTPClientTimeout: time.Second}))
 	if os.Getenv("CONTROLLED_BROWSER_STATE_FILE") != "" {
 		listener, e := net.Listen("tcp4", "0.0.0.0:18095")
 		if e != nil {

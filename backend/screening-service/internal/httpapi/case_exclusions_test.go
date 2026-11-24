@@ -3,12 +3,13 @@ package httpapi
 import (
 	"context"
 	"errors"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	store "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -30,7 +31,7 @@ func TestCaseExclusionHTTPContract(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			calls := 0
 			router := gin.New()
-			registerCaseExclusionRoutes(router, func(*http.Request) (identity.Principal, error) {
+			registerCaseExclusionRoutes(authtest.DomainRouter(router), func(*http.Request) (identity.Principal, error) {
 				if test.denied {
 					return identity.Principal{}, identity.Forbidden()
 				}

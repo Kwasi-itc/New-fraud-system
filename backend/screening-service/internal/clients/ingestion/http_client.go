@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"net/http"
 	"net/url"
 	"strings"
@@ -13,6 +14,7 @@ import (
 )
 
 type HTTPClient struct {
+	Signer  *platformauth.Signer
 	baseURL string
 	client  *http.Client
 }
@@ -35,7 +37,7 @@ func (c HTTPClient) GetRecord(ctx context.Context, tenantID, objectType, objectI
 	if err != nil {
 		return ports.TenantRecord{}, fmt.Errorf("could not create ingestion record request")
 	}
-	resp, err := c.client.Do(req)
+	resp, err := c.do(req)
 	if err != nil {
 		return ports.TenantRecord{}, fmt.Errorf("ingestion record request failed")
 	}
@@ -66,3 +68,16 @@ type recordEnvelope struct {
 	ObjectType string         `json:"object_type"`
 	Fields     map[string]any `json:"fields"`
 }
+
+func (c HTTPClient) do(req *http.Request) (*http.Response, error) {
+	tenant, err := platformauth.RequestTenant(req)
+	if err != nil {
+		return nil, err
+	}
+	if err = platformauth.AuthorizeServiceRequest(req, tenant, "urn:fraud:ingestion-service", []string{"records:read"}, c.Signer); err != nil {
+		return nil, err
+	}
+	return c.client.Do(req)
+}
+
+func (c HTTPClient) WithSigner(signer *platformauth.Signer) HTTPClient { c.Signer = signer; return c }

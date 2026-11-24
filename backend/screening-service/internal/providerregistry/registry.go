@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	legacy "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/provider"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/internalprovider"
@@ -182,7 +182,7 @@ func (r Registry) ForRun(ctx context.Context, item screening.Screening) (context
 	if err != nil {
 		return ctx, err
 	}
-	if err = identity.CheckIdentity(ctx, r.DB, principal, false); err != nil {
+	if err = identity.CheckCapability(ctx, r.DB, principal, "screening:search", false); err != nil {
 		return ctx, err
 	}
 	return provideraccess.WithScope(ctx, s), nil

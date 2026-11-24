@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"time"
 
 	casepkg "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/domain/case"
@@ -28,12 +27,6 @@ func (r MembershipRepository) RecordChange(ctx context.Context, tenantID, inboxI
 	return err
 }
 func (r MembershipRepository) Has(ctx context.Context, tenantID, inboxID uuid.UUID, userID string) (bool, error) {
-	if os.Getenv("USER_REQUIRE_SESSION") == "true" {
-		active, err := r.activeIdentity(ctx, tenantID, userID)
-		if err != nil || !active {
-			return false, err
-		}
-	}
 	var exists bool
 	err := r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM case_manager.inbox_users WHERE tenant_id=$1 AND inbox_id=$2 AND user_id=$3)`, tenantID, inboxID, userID).Scan(&exists)
 	return exists, err
@@ -55,7 +48,7 @@ func (r MembershipRepository) List(ctx context.Context, tenantID, inboxID uuid.U
 	return out, rows.Err()
 }
 func (r MembershipRepository) Put(ctx context.Context, m casepkg.InboxUser) (casepkg.InboxUser, error) {
-	if os.Getenv("USER_REQUIRE_SESSION") == "true" {
+	{
 		active, err := r.activeIdentity(ctx, m.TenantID, m.UserID)
 		if err != nil {
 			return m, err
@@ -92,7 +85,7 @@ func (r MembershipRepository) activeIdentity(ctx context.Context, tenant uuid.UU
 		return false, nil
 	}
 	var active bool
-	err = r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM identity.memberships m JOIN identity.users u ON u.id=m.user_id WHERE m.tenant_id=$1 AND m.user_id=$2 AND m.active AND u.active AND m.roles && ARRAY['case_investigator','case_manager_admin']::text[])`, tenant, id).Scan(&active)
+	err = r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM identity.case_actors_v1 WHERE tenant_id=$1 AND user_id=$2)`, tenant, id).Scan(&active)
 	return active, err
 }
 
@@ -125,14 +118,17 @@ func (r ContributorRepository) ResolveNames(ctx context.Context, tenantID uuid.U
 	if len(userIDs) == 0 {
 		return out, nil
 	}
-	rows, err := r.db.Query(ctx, `SELECT u.id::text,COALESCE(u.display_name,'') FROM identity.users u WHERE u.id::text = ANY($1)`, userIDs)
+	rows, err := r.db.Query(ctx, `SELECT u.id::text,COALESCE(u.display_name,'') FROM identity.memberships m JOIN identity.users u ON u.id=m.user_id WHERE m.tenant_id=$1 AND u.id::text = ANY($2)`, tenantID, userIDs)
 	if err != nil {
-		return out, nil // Graceful fallback if identity schema isn't present in isolated test setups
+		return out, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var uid, name string
-		if err := rows.Scan(&uid, &name); err == nil && name != "" {
+		if err := rows.Scan(&uid, &name); err != nil {
+			return nil, err
+		}
+		if name != "" {
 			out[uid] = name
 		}
 	}

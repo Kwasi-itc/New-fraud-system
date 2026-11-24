@@ -62,7 +62,7 @@ func TestDecisionSelectionsBoundedQueryPlan(t *testing.T) {
 	s := service.NewCaseService(ids{}, clock{}, store.NewRepositories(pool), store.NewUnitOfWork(pool))
 	for _, n := range []int{1, 25, 100} {
 		trace.queries = 0
-		got, err := s.DecisionSelections(userContext(tenant, "analyst-1"), tenant, selected[:n])
+		got, err := s.DecisionSelections(userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76"), tenant, selected[:n])
 		if err != nil || len(got) != n || trace.queries != 1 {
 			t.Fatalf("batch %d: %d queries, %d rows, %v", n, trace.queries, len(got), err)
 		}

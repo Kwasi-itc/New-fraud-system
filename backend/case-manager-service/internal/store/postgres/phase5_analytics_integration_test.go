@@ -15,10 +15,10 @@ func TestPhase5AnalyticsReconciliationAndAuthorization(t *testing.T) {
 	db := testDatabase(t, true)
 	applyMigration(t, db, "000010_analytics.up.sql")
 	s, tenant, inbox, c := fixture(t, db)
-	ctx := userContext(tenant, "analyst-1")
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
 	from := time.Now().UTC().Truncate(24 * time.Hour).Add(-10 * 24 * time.Hour)
 	to := from.Add(5 * 24 * time.Hour)
-	if _, err := db.Exec(ctx, `UPDATE case_manager.cases SET created_at=$2,assigned_to='analyst-1',status='pending',snoozed_until=now()+interval '1 day' WHERE id=$1`, c.ID, from); err != nil {
+	if _, err := db.Exec(ctx, `UPDATE case_manager.cases SET created_at=$2,assigned_to='2f2e747e-27db-57e8-b365-d06520fe4a76',status='pending',snoozed_until=now()+interval '1 day' WHERE id=$1`, c.ID, from); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(ctx, `UPDATE case_manager.inboxes SET sla_days=1 WHERE id=$1`, inbox.ID); err != nil {
@@ -55,7 +55,7 @@ func TestPhase5AnalyticsReconciliationAndAuthorization(t *testing.T) {
 	addEvent(c.ID, "case_snoozed", "", from.Add(time.Hour))
 	addEvent(c.ID, "case_snoozed", "", to) // event upper bound
 	addEvent(c.ID, "case_escalated", "", from.Add(2*time.Hour))
-	hidden, err := s.CreateInbox(adminContext(tenant), service.CreateInboxInput{TenantID: tenant, Name: "Private analytics"})
+	hidden, err := s.CreateInbox(adminContext(t, db, tenant), service.CreateInboxInput{TenantID: tenant, Name: "Private analytics"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestPhase5AnalyticsReconciliationAndAuthorization(t *testing.T) {
 	if len(result.Inboxes) != 1 || result.Inboxes[0].Total != 5 || len(result.Daily) != 2 || result.Daily[0].Total != 3 || result.Daily[1].Total != 2 || len(result.Assignments) != 2 {
 		t.Fatal("group reconciliation", result)
 	}
-	admin, err := s.CaseAnalytics(adminContext(tenant), tenant, f)
+	admin, err := s.CaseAnalytics(adminContext(t, db, tenant), tenant, f)
 	if err != nil || admin.Totals.Total != 6 {
 		t.Fatal("admin scope", admin, err)
 	}
@@ -88,15 +88,15 @@ func TestPhase5AnalyticsReconciliationAndAuthorization(t *testing.T) {
 		t.Fatal("private inbox leak", err)
 	}
 	f.InboxID = nil
-	f.AccessUserID = "admin" // service must override client-supplied authorization scope
+	f.AccessUserID = "ae6c10d0-0b13-554c-b976-a05d8a18f0cc" // service must override client-supplied authorization scope
 	again, err := s.CaseAnalytics(ctx, tenant, f)
 	if err != nil || again.Totals.Total != 5 {
 		t.Fatal("access scope override", again, err)
 	}
-	if _, err := s.CaseAnalytics(userContext(uuid.New(), "analyst-1"), tenant, f); !errors.Is(err, casepkg.ErrForbidden) {
+	if _, err := s.CaseAnalytics(userContext(t, db, uuid.New(), "2f2e747e-27db-57e8-b365-d06520fe4a76"), tenant, f); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatal("tenant leak", err)
 	}
-	empty, err := s.CaseAnalytics(userContext(tenant, "outsider"), tenant, f)
+	empty, err := s.CaseAnalytics(userContext(t, db, tenant, "be50d326-8955-5631-93ad-aba09b86faa0"), tenant, f)
 	if err != nil || empty.Totals.Total != 0 || len(empty.Inboxes) != 0 || empty.Totals.AverageCloseSeconds != nil {
 		t.Fatal("empty authorized scope", empty, err)
 	}
@@ -110,7 +110,7 @@ func TestPhase5AnalyticsReconciliationAndAuthorization(t *testing.T) {
 	if err != nil || moved.Totals.Total != 4 || moved.Totals.SnoozeEvents != 0 || moved.Totals.Escalations != 0 {
 		t.Fatal("moved case leaked through historical inbox", moved, err)
 	}
-	if err := s.RemoveInboxUser(adminContext(tenant), tenant, inbox.ID, "analyst-1"); err != nil {
+	if err := s.RemoveInboxUser(adminContext(t, db, tenant), tenant, inbox.ID, "2f2e747e-27db-57e8-b365-d06520fe4a76"); err != nil {
 		t.Fatal(err)
 	}
 	revoked, err := s.CaseAnalytics(ctx, tenant, f)
@@ -130,7 +130,7 @@ func TestPhase5AnalyticsBacklogPlanAndGroupLimit(t *testing.T) {
 	db := testDatabase(t, true)
 	applyMigration(t, db, "000010_analytics.up.sql")
 	s, tenant, inbox, _ := fixture(t, db)
-	ctx := adminContext(tenant)
+	ctx := adminContext(t, db, tenant)
 	from := time.Now().UTC().Truncate(24 * time.Hour)
 	to := from.Add(24 * time.Hour)
 	if _, err := db.Exec(ctx, `INSERT INTO case_manager.cases(id,tenant_id,inbox_id,name,status,outcome,type,created_at,updated_at) SELECT gen_random_uuid(),$1,$2,'Old backlog','pending','unset','decision',$3::timestamptz-interval '400 days',now() FROM generate_series(1,10000)`, tenant, inbox.ID, from); err != nil {

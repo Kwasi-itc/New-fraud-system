@@ -2,13 +2,21 @@ package httpapi
 
 import (
 	"encoding/json"
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
+	"github.com/google/uuid"
 	"log/slog"
 	"net/http/httptest"
 	"testing"
 )
 
 func TestScenarioAddressCapabilities(t *testing.T) {
-	const secret = "synthetic-intake-private-token-32bytes"
+	signer := authtest.ServiceSigner(t, "decision-engine-service")
+	verifier := authtest.ServiceVerifier(t, signer, "urn:fraud:screening-service")
+	secret, err := signer.Sign(uuid.New(), "urn:fraud:screening-service", []string{"screening:intake"}, auth.Principal{})
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, tc := range []struct {
 		name, host, base, auth string
 		want                   bool
@@ -16,7 +24,7 @@ func TestScenarioAddressCapabilities(t *testing.T) {
 		{"direct", "http://private.invalid", "", "", true}, {"generic", "", "http://private.invalid", "", false}, {"missing", "", "", "", false}, {"unconfigured", "http://private.invalid", "", "bearer", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			r := NewRouter(slog.Default(), nil, RouterConfig{AuthMode: "disabled", ScreeningIntakeToken: secret, OpenSanctionsAPIHost: tc.host, ScreeningProviderURL: tc.base, OpenSanctionsAuthMode: tc.auth})
+			r := NewRouter(slog.Default(), nil, RouterConfig{Verifier: verifier, OpenSanctionsAPIHost: tc.host, ScreeningProviderURL: tc.base, OpenSanctionsAuthMode: tc.auth})
 			for _, token := range []string{"general", secret} {
 				req := httptest.NewRequest("GET", "/internal/screening-capabilities", nil)
 				req.Header.Set("Authorization", "Bearer "+token)

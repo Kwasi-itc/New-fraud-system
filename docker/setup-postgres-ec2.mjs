@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { provisionPlatformKeys } from '../backend/auth-service/scripts/platform-keys.mjs';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
@@ -80,10 +80,8 @@ const legacyAuthDir = path.join(root, '.local/auth-provider');
 const requiredAuthFiles = [
   'auth.env',
   'platform.env',
-  'proxy.env',
   'keycloak.env',
   'database.env',
-  'data-model.env',
   'platform-private.pem',
   'platform-public.json',
 ];
@@ -108,18 +106,6 @@ for (const file of optionalAuthFiles) {
   }
 }
 
-// Scope CASE_USER_JWT_KEYS_FILE to this project's directory unless a custom path was set.
-const defaultProjectKeys = `./.local/${project}/platform-public.json`;
-if (!config.CASE_USER_JWT_KEYS_FILE || config.CASE_USER_JWT_KEYS_FILE.includes('.local/auth-provider/')) {
-  config.CASE_USER_JWT_KEYS_FILE = defaultProjectKeys;
-}
-
-for (const key of ['CASE_USER_JWT_KEYS_FILE', 'CASE_USER_JWT_ISSUER']) {
-  if (!config[key]) {
-    throw new Error(`Configure ${key} in ${path.relative(root, sourceEnvPath)} or .local/${project}/compose.env before starting the system.`);
-  }
-}
-
 if (!config.DATABASE_URL) {
   throw new Error(`Configure RDS DATABASE_URL in ${path.relative(root, sourceEnvPath)} or .local/${project}/compose.env before starting the system.`);
 }
@@ -141,10 +127,8 @@ config.RDS_USER ||= decodeURIComponent(parsedDb.username);
 config.RDS_PASSWORD ||= decodeURIComponent(parsedDb.password);
 config.RDS_SSLMODE ||= parsedDb.searchParams.get('sslmode') || 'require';
 
-for (const key of ['SERVICE_AUTH_TOKEN', 'CASE_SERVICE_AUTH_TOKEN', 'WORKFLOW_AUTHORING_TOKEN', 'SCREENING_AUTHORING_TOKEN', 'SCREENING_INTAKE_TOKEN', 'SCREENING_CALLBACK_TOKEN', 'SCREENING_OPERATOR_TOKEN']) {
-  config[key] ||= randomBytes(32).toString('hex');
-}
-
+provisionPlatformKeys(directory,{tokenEndpointURL:`${config.GATEWAY_PUBLIC_ORIGIN || `http://localhost:${port}`}/oauth/token`});
+for (const key of ['SERVICE_AUTH_TOKEN','CASE_SERVICE_AUTH_TOKEN','CASE_SERVICE_TENANT_IDS','WORKFLOW_AUTHORING_TOKEN','SCREENING_AUTHORING_TOKEN','SCREENING_INTAKE_TOKEN','SCREENING_CALLBACK_TOKEN','SCREENING_OPERATOR_TOKEN']) delete config[key];
 const profiles = new Set((config.COMPOSE_PROFILES ?? '').split(',').filter(Boolean));
 profiles.add('local-idp');
 profiles.add('screening-worker');
@@ -152,16 +136,10 @@ config.COMPOSE_PROFILES = [...profiles].join(',');
 config.COMPOSE_PROJECT_NAME = project;
 config.POSTGRES_GATEWAY_PORT = String(port);
 
-// Preserve any real tenant UUID already stored in .local/<project>/compose.env if source .env had NIL_UUID.
-if (config.CASE_SERVICE_TENANT_IDS === NIL_UUID && existingComposeEnv.CASE_SERVICE_TENANT_IDS && existingComposeEnv.CASE_SERVICE_TENANT_IDS !== NIL_UUID) {
-  config.CASE_SERVICE_TENANT_IDS = existingComposeEnv.CASE_SERVICE_TENANT_IDS;
-}
 if (config.NEXT_PUBLIC_DATA_MODEL_TENANT_ID === NIL_UUID && existingComposeEnv.NEXT_PUBLIC_DATA_MODEL_TENANT_ID && existingComposeEnv.NEXT_PUBLIC_DATA_MODEL_TENANT_ID !== NIL_UUID) {
   config.NEXT_PUBLIC_DATA_MODEL_TENANT_ID = existingComposeEnv.NEXT_PUBLIC_DATA_MODEL_TENANT_ID;
 }
 
-// Temporary placeholder so `docker compose config` succeeds prior to tenant discovery.
-config.CASE_SERVICE_TENANT_IDS ||= NIL_UUID;
 
 const quote = value => `'${String(value).replaceAll("'", "\\'")}'`;
 function writeComposeEnv() {
@@ -241,8 +219,8 @@ for (const service of migrateServices) {
   }
 }
 
-// 2. Resolve an active tenant UUID from core.tenants if CASE_SERVICE_TENANT_IDS is missing or nil.
-if (!config.CASE_SERVICE_TENANT_IDS || config.CASE_SERVICE_TENANT_IDS === NIL_UUID) {
+// 2. Resolve the frontend login tenant; this is not a service authorization allowlist.
+if (!config.NEXT_PUBLIC_DATA_MODEL_TENANT_ID || config.NEXT_PUBLIC_DATA_MODEL_TENANT_ID === NIL_UUID) {
   let tenantId = queryRds("SELECT id FROM core.tenants WHERE status = 'active' ORDER BY created_at ASC LIMIT 1;");
   if (!tenantId || tenantId === NIL_UUID) {
     console.log('No active tenant found on RDS; creating and provisioning the root tenant.');
@@ -253,7 +231,6 @@ if (!config.CASE_SERVICE_TENANT_IDS || config.CASE_SERVICE_TENANT_IDS === NIL_UU
   if (!tenantId || tenantId === NIL_UUID) {
     throw new Error(`No active tenant exists in core.tenants on RDS (${config.RDS_DATABASE}) after root tenant setup.`);
   }
-  config.CASE_SERVICE_TENANT_IDS = tenantId;
   let frontendNeedsRebuild = false;
   if (!config.NEXT_PUBLIC_DATA_MODEL_TENANT_ID || config.NEXT_PUBLIC_DATA_MODEL_TENANT_ID === NIL_UUID) {
     config.NEXT_PUBLIC_DATA_MODEL_TENANT_ID = tenantId;

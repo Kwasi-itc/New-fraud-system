@@ -7,7 +7,7 @@ import (
 	"errors"
 	"time"
 
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -72,7 +72,7 @@ func encodeHistoryCursor(at time.Time, id string) string {
 // calls or owner mutations occur in this transaction.
 func ReadCaseExclusions(ctx context.Context, db *pgxpool.Pool, p identity.Principal, tenant, caseID uuid.UUID, operation, cursor string, limit int) (CaseExclusionPage, error) {
 	out := CaseExclusionPage{Events: []CaseExclusionEvent{}, Applications: []ExclusionApplication{}}
-	if p.Subject == "" || p.TenantID != tenant || tenant == uuid.Nil || caseID == uuid.Nil {
+	if !p.IsHuman() || !p.Can("cases:read") || p.Subject == "" || p.TenantID != tenant || tenant == uuid.Nil || caseID == uuid.Nil {
 		return out, identity.Forbidden()
 	}
 	if limit < 1 || limit > 50 {
@@ -96,9 +96,6 @@ func ReadCaseExclusions(ctx context.Context, db *pgxpool.Pool, p identity.Princi
 		return out, err
 	}
 	defer tx.Rollback(ctx)
-	if err := identity.CheckIdentity(ctx, tx, p, true); err != nil {
-		return out, err
-	}
 	var inbox uuid.UUID
 	if err := tx.QueryRow(ctx, `SELECT inbox_id FROM case_manager.cases WHERE tenant_id=$1 AND id=$2 FOR SHARE`, tenant, caseID).Scan(&inbox); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

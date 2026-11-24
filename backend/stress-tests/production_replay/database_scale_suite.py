@@ -258,7 +258,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--decision-engine-url",
         default=os.getenv("DECISION_ENGINE_URL", "http://127.0.0.1:8082"),
     )
-    parser.add_argument("--auth-token", default=os.getenv("SERVICE_AUTH_TOKEN"))
+    parser.add_argument("--auth-token", default=os.getenv("PLATFORM_ACCESS_TOKEN"))
     parser.add_argument("--request-timeout", type=float, default=60.0)
     parser.add_argument("--publication-timeout", type=float, default=1800.0)
     parser.add_argument("--pipeline-timeout", type=float, default=86400.0,

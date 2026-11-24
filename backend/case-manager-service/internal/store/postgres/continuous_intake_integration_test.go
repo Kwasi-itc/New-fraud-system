@@ -119,7 +119,7 @@ func TestContinuousArrivalRoutingRollbackAndPartialZero(t *testing.T) {
 	s, tenant, inbox, _ := fixture(t, db)
 	ctx := serviceContext(tenant)
 	in, config := seedContinuousArrival(t, db, tenant, inbox.ID, true, 0)
-	if err := s.ReceiveScreeningArrival(userContext(tenant, "analyst-1"), in); !errors.Is(err, casepkg.ErrForbidden) {
+	if err := s.ReceiveScreeningArrival(userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76"), in); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatal("human callback authorized", err)
 	}
 	if err := s.ReceiveScreeningArrival(serviceContext(uuid.New()), in); !errors.Is(err, casepkg.ErrForbidden) {
@@ -134,7 +134,7 @@ func TestContinuousArrivalRoutingRollbackAndPartialZero(t *testing.T) {
 	if count(t, db, "cases") != 1 || count(t, db, "intake_receipts") != 0 {
 		t.Fatal("failed route escaped rollback")
 	}
-	next, err := s.CreateInbox(adminContext(tenant), service.CreateInboxInput{TenantID: tenant, Name: "Current route"})
+	next, err := s.CreateInbox(adminContext(t, db, tenant), service.CreateInboxInput{TenantID: tenant, Name: "Current route"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +184,7 @@ func TestContinuousArrivalProvenanceAndAmbiguousHistory(t *testing.T) {
 	applyMigration(t, db, "000011_continuous_intake.up.sql")
 	s, tenant, inbox, existing := fixture(t, db)
 	ctx := serviceContext(tenant)
-	other, err := s.CreateInbox(adminContext(tenant), service.CreateInboxInput{TenantID: tenant, Name: "Other config destination"})
+	other, err := s.CreateInbox(adminContext(t, db, tenant), service.CreateInboxInput{TenantID: tenant, Name: "Other config destination"})
 	if err != nil {
 		t.Fatal(err)
 	}

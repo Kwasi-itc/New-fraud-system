@@ -2,7 +2,7 @@ package access
 
 import (
 	"errors"
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 )
 
 type Claims = identity.Claims
@@ -23,5 +23,8 @@ func (v *Verifier) Verify(raw string) (Principal, error) {
 	if err != nil {
 		return Principal{}, err
 	}
-	return Principal{Kind: User, Subject: p.Subject, TenantID: p.TenantID, Admin: p.Admin, SessionID: p.SessionID, AuthzVersion: p.AuthzVersion}, nil
+	return FromPlatform(p), nil
 }
+
+func NewPlatformVerifier(v *identity.Verifier) *Verifier { return &Verifier{inner: v} }
+func (v *Verifier) Platform() *identity.Verifier         { return v.inner }

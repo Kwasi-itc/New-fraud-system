@@ -46,7 +46,9 @@ func (r TestRunRepository) ListByScenario(ctx context.Context, tenantID, scenari
 		order by created_at desc
 	`
 	rows, err := r.q.Query(ctx, stmt, tenantID, scenarioID)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
 	var items []scenario.TestRun
 	for rows.Next() {

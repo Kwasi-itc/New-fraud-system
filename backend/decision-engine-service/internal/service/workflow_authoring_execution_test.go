@@ -7,9 +7,11 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow"
 	asteval "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"github.com/google/uuid"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -28,6 +30,8 @@ func TestConfiguredCaseRuleExecutionAndDispatch(t *testing.T) {
 	if execution.WorkflowRuleID == nil || *execution.WorkflowRuleID != rule || execution.WorkflowActionID == nil || *execution.WorkflowActionID != action || execution.DecisionID != decisionID {
 		t.Fatal("missing provenance", execution)
 	}
+	signer := authtest.ServiceSigner(t, "decision-engine-service")
+	verifier := authtest.ServiceVerifier(t, signer, "urn:fraud:case-manager-service")
 	var received struct {
 		Tenant   string `json:"tenant_id"`
 		Decision string `json:"decision_id"`
@@ -38,7 +42,8 @@ func TestConfiguredCaseRuleExecutionAndDispatch(t *testing.T) {
 		} `json:"action_config"`
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") != "Bearer case-intake-secret" {
+		p, err := verifier.Verify(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
+		if err != nil || !p.Can("workflows:execute") || p.TenantID.String() != tenant {
 			t.Error("missing intake credential")
 		}
 		if err := json.NewDecoder(r.Body).Decode(&received); err != nil {
@@ -47,7 +52,7 @@ func TestConfiguredCaseRuleExecutionAndDispatch(t *testing.T) {
 		w.WriteHeader(200)
 	}))
 	defer server.Close()
-	client := dispatch.NewHTTPClient(time.Second, "disabled", "", server.URL, "", "", "").WithCaseAuthToken("case-intake-secret")
+	client := dispatch.NewHTTPClient(time.Second, server.URL, "", "", "").WithSigner(signer)
 	if err = client.DispatchWorkflowExecution(context.Background(), execution); err != nil {
 		t.Fatal(err)
 	}

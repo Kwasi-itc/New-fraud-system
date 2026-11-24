@@ -32,7 +32,7 @@ func TestRouterIntegrationMainV1Flow(t *testing.T) {
 
 	resetRouterIntegrationDatabase(t, ctx, pool, databaseURL)
 
-	router := NewRouter(slog.Default(), pool, RouterConfig{AuthMode: "disabled"})
+	router := NewRouter(slog.Default(), pool, RouterConfig{})
 
 	createTenantRec := doJSONRequest(t, router, http.MethodPost, "/v1/tenants", map[string]any{
 		"name":         "Router Tenant",
@@ -362,7 +362,7 @@ func TestRouterIntegrationPortableDataModelExportImportRoundTrip(t *testing.T) {
 
 	resetRouterIntegrationDatabase(t, ctx, pool, databaseURL)
 
-	router := NewRouter(slog.Default(), pool, RouterConfig{AuthMode: "disabled"})
+	router := NewRouter(slog.Default(), pool, RouterConfig{})
 
 	sourceTenantID := createAndProvisionRouterTenant(t, router, "Source Tenant")
 	targetTenantID := createAndProvisionRouterTenant(t, router, "Target Tenant")

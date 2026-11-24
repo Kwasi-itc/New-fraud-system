@@ -2,6 +2,7 @@ package riverjobs
 
 import (
 	"context"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -125,14 +126,14 @@ func (e RiverAsyncDecisionExecutionCallbackEnqueuer) Enqueue(ctx context.Context
 	if e.client == nil {
 		return nil
 	}
-	return enqueue(ctx, e.client, nil, AsyncDecisionExecutionCallbackArgs{TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
+	return enqueue(ctx, e.client, nil, AsyncDecisionExecutionCallbackArgs{Origin: platformauth.CaptureOrigin(ctx), TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
 }
 
 func (e RiverAsyncDecisionExecutionCallbackEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, tenantID, executionID string, scheduledAt *time.Time) error {
 	if e.client == nil || tx == nil {
 		return nil
 	}
-	return enqueue(ctx, e.client, tx, AsyncDecisionExecutionCallbackArgs{TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
+	return enqueue(ctx, e.client, tx, AsyncDecisionExecutionCallbackArgs{Origin: platformauth.CaptureOrigin(ctx), TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
 }
 
 func NewRiverAsyncDecisionExecutionEnqueuer(client *river.Client[pgx.Tx], maxAttempts int, queueName string) RiverAsyncDecisionExecutionEnqueuer {
@@ -173,10 +174,10 @@ func (e RiverAsyncDecisionExecutionEnqueuer) enqueue(ctx context.Context, tx pgx
 	}
 	var err error
 	if tx != nil {
-		_, err = e.client.InsertTx(ctx, tx, AsyncDecisionExecutionArgs{ExecutionID: executionID}, opts)
+		_, err = e.client.InsertTx(ctx, tx, AsyncDecisionExecutionArgs{Origin: platformauth.CaptureOrigin(ctx), ExecutionID: executionID}, opts)
 		return err
 	}
-	_, err = e.client.Insert(ctx, AsyncDecisionExecutionArgs{ExecutionID: executionID}, opts)
+	_, err = e.client.Insert(ctx, AsyncDecisionExecutionArgs{Origin: platformauth.CaptureOrigin(ctx), ExecutionID: executionID}, opts)
 	return err
 }
 
@@ -224,10 +225,10 @@ func (e RiverScheduledExecutionEnqueuer) enqueue(ctx context.Context, tx pgx.Tx,
 	}
 	var err error
 	if tx != nil {
-		_, err = e.client.InsertTx(ctx, tx, ScheduledExecutionArgs{ExecutionID: executionID}, opts)
+		_, err = e.client.InsertTx(ctx, tx, ScheduledExecutionArgs{Origin: platformauth.CaptureOrigin(ctx), ExecutionID: executionID}, opts)
 		return err
 	}
-	_, err = e.client.Insert(ctx, ScheduledExecutionArgs{ExecutionID: executionID}, opts)
+	_, err = e.client.Insert(ctx, ScheduledExecutionArgs{Origin: platformauth.CaptureOrigin(ctx), ExecutionID: executionID}, opts)
 	return err
 }
 
@@ -248,14 +249,14 @@ func (e RiverWorkflowExecutionEnqueuer) Enqueue(ctx context.Context, tenantID, e
 	if e.client == nil {
 		return nil
 	}
-	return enqueue(ctx, e.client, nil, WorkflowExecutionArgs{TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
+	return enqueue(ctx, e.client, nil, WorkflowExecutionArgs{Origin: platformauth.CaptureOrigin(ctx), TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
 }
 
 func (e RiverWorkflowExecutionEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, tenantID, executionID string, scheduledAt *time.Time) error {
 	if e.client == nil || tx == nil {
 		return nil
 	}
-	return enqueue(ctx, e.client, tx, WorkflowExecutionArgs{TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
+	return enqueue(ctx, e.client, tx, WorkflowExecutionArgs{Origin: platformauth.CaptureOrigin(ctx), TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
 }
 
 type RiverScreeningExecutionEnqueuer struct {
@@ -275,14 +276,14 @@ func (e RiverScreeningExecutionEnqueuer) Enqueue(ctx context.Context, tenantID, 
 	if e.client == nil {
 		return nil
 	}
-	return enqueue(ctx, e.client, nil, ScreeningExecutionArgs{TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
+	return enqueue(ctx, e.client, nil, ScreeningExecutionArgs{Origin: platformauth.CaptureOrigin(ctx), TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
 }
 
 func (e RiverScreeningExecutionEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, tenantID, executionID string, scheduledAt *time.Time) error {
 	if e.client == nil || tx == nil {
 		return nil
 	}
-	return enqueue(ctx, e.client, tx, ScreeningExecutionArgs{TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
+	return enqueue(ctx, e.client, tx, ScreeningExecutionArgs{Origin: platformauth.CaptureOrigin(ctx), TenantID: tenantID, ExecutionID: executionID}, e.maxAttempts, e.queueName, scheduledAt)
 }
 
 type RiverScoringRequestEnqueuer struct {
@@ -302,14 +303,14 @@ func (e RiverScoringRequestEnqueuer) Enqueue(ctx context.Context, tenantID, requ
 	if e.client == nil {
 		return nil
 	}
-	return enqueue(ctx, e.client, nil, ScoringRequestArgs{TenantID: tenantID, RequestID: requestID}, e.maxAttempts, e.queueName, scheduledAt)
+	return enqueue(ctx, e.client, nil, ScoringRequestArgs{Origin: platformauth.CaptureOrigin(ctx), TenantID: tenantID, RequestID: requestID}, e.maxAttempts, e.queueName, scheduledAt)
 }
 
 func (e RiverScoringRequestEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, tenantID, requestID string, scheduledAt *time.Time) error {
 	if e.client == nil || tx == nil {
 		return nil
 	}
-	return enqueue(ctx, e.client, tx, ScoringRequestArgs{TenantID: tenantID, RequestID: requestID}, e.maxAttempts, e.queueName, scheduledAt)
+	return enqueue(ctx, e.client, tx, ScoringRequestArgs{Origin: platformauth.CaptureOrigin(ctx), TenantID: tenantID, RequestID: requestID}, e.maxAttempts, e.queueName, scheduledAt)
 }
 
 type RiverOutboxEventEnqueuer struct {
@@ -329,14 +330,14 @@ func (e RiverOutboxEventEnqueuer) Enqueue(ctx context.Context, tenantID, eventID
 	if e.client == nil {
 		return nil
 	}
-	return enqueue(ctx, e.client, nil, OutboxEventArgs{TenantID: tenantID, EventID: eventID}, e.maxAttempts, e.queueName, scheduledAt)
+	return enqueue(ctx, e.client, nil, OutboxEventArgs{Origin: platformauth.CaptureOrigin(ctx), TenantID: tenantID, EventID: eventID}, e.maxAttempts, e.queueName, scheduledAt)
 }
 
 func (e RiverOutboxEventEnqueuer) EnqueueTx(ctx context.Context, tx pgx.Tx, tenantID, eventID string, scheduledAt *time.Time) error {
 	if e.client == nil || tx == nil {
 		return nil
 	}
-	return enqueue(ctx, e.client, tx, OutboxEventArgs{TenantID: tenantID, EventID: eventID}, e.maxAttempts, e.queueName, scheduledAt)
+	return enqueue(ctx, e.client, tx, OutboxEventArgs{Origin: platformauth.CaptureOrigin(ctx), TenantID: tenantID, EventID: eventID}, e.maxAttempts, e.queueName, scheduledAt)
 }
 
 func max(a, b int) int {

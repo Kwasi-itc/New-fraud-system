@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/namerecognition"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/lookup"
 	"log/slog"
 	"os"
@@ -88,6 +89,10 @@ func main() {
 		logger.Error("failed to load config", "error", err)
 		os.Exit(1)
 	}
+	if err := platformauth.ValidateEnvironment(); err != nil {
+		slog.Error("platform auth configuration invalid", "error", err)
+		os.Exit(1)
+	}
 
 	logger := app.NewLogger(os.Stdout, cfg.LogLevel)
 	slog.SetDefault(logger)
@@ -140,7 +145,7 @@ func main() {
 	var scoringConfigRepo ports.ScoringConfigRepository = storepostgres.NewScoringConfigRepository(db)
 	var scoringRequestRepo ports.ScoringRequestRepository = storepostgres.NewScoringRequestRepository(db)
 
-	dataModelReader := datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout).WithAuthToken(os.Getenv("DATA_MODEL_SERVICE_TOKEN"))
+	dataModelReader := datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
 	tenantDataReader := tenantdata.NewReader(cfg.TenantDataReadMode, db, dataModelReader, cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
 	_ = service.NewValidationService(dataModelReader, scenarioRepo, iterationRepo, ruleRepo)
 	workers := river.NewWorkers()
@@ -264,13 +269,12 @@ func main() {
 	river.AddWorker(workers, &asyncCallbackWorker)
 	dispatchClient := dispatchclient.NewHTTPClient(
 		cfg.HTTPClientTimeout,
-		cfg.ServiceAuthMode,
-		cfg.ServiceAuthToken,
+
 		cfg.WorkflowActionURL,
 		firstNonEmpty(cfg.ScreeningServiceURL, cfg.ScreeningProviderURL),
 		cfg.ScoringProviderURL,
 		cfg.OutboxPublisherURL,
-	).WithCaseAuthToken(cfg.CaseServiceAuthToken).WithScreeningAuthToken(cfg.ScreeningIntakeToken)
+	)
 	dispatchService := service.NewDispatchService(
 		workflowExecutionRepo,
 		screeningExecutionRepo,

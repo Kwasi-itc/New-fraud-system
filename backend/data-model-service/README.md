@@ -1,3 +1,5 @@
+> Authentication configuration has changed. Follow the [current platform authentication guide](../../docs/authentication/README.md); static-token and auth-opt-out examples below are historical and no longer work.
+
 # Data Model Service
 
 Standalone Go service for tenant-aware data model management, extracted from Marble and rebuilt as an independent module.

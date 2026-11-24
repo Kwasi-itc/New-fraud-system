@@ -3,10 +3,11 @@ package httpapi
 import (
 	"encoding/json"
 	"errors"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"io"
 	"net/http"
 
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/service"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourcemonitor"
 	"github.com/gin-gonic/gin"
@@ -15,7 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func registerSourceMonitor(router *gin.Engine, db *pgxpool.Pool, verifier *identity.Verifier, svc service.ScreeningService, ready bool) {
+func registerSourceMonitor(router *platformauth.Router, db *pgxpool.Pool, verifier *identity.Verifier, svc service.ScreeningService, ready bool) {
 	authorize := manualAuthorization(db, verifier, ready && db != nil)
 	monitors := sourcemonitor.Service{DB: db}
 	handle := func(c *gin.Context) {
@@ -97,6 +98,6 @@ func registerSourceMonitor(router *gin.Engine, db *pgxpool.Pool, verifier *ident
 		}
 		c.JSON(200, view)
 	}
-	router.GET("/v1/manual-screenings/:id/monitor", handle)
-	router.POST("/v1/manual-screenings/:id/monitor", handle)
+	router.GET("/v1/manual-screenings/:id/monitor", platformauth.Policy{Capability: "screening:search", PrincipalType: platformauth.PrincipalUser}, handle)
+	router.POST("/v1/manual-screenings/:id/monitor", platformauth.Policy{Capability: "screening:search", PrincipalType: platformauth.PrincipalUser}, handle)
 }

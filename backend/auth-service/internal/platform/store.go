@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/oidcprovider"
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -30,7 +32,16 @@ var schemaV3 string
 //go:embed schema_v4.sql
 var schemaV4 string
 
-const SchemaVersion = 4
+//go:embed schema_v5.sql
+var schemaV5 string
+
+//go:embed schema_v5_seed.sql
+var schemaV5Seed string
+
+//go:embed schema_v6.sql
+var schemaV6 string
+
+const SchemaVersion = 6
 
 var ErrDenied = errors.New("identity or permission denied")
 var ErrConflict = errors.New("account changed or last active tenant administrator would be removed")
@@ -58,6 +69,15 @@ func (s Store) Migrate(ctx context.Context) error {
 	if _, err = tx.Exec(ctx, schemaV4); err != nil {
 		return err
 	}
+	if _, err = tx.Exec(ctx, schemaV5); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, schemaV5Seed); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, schemaV6); err != nil {
+		return err
+	}
 	return tx.Commit(ctx)
 }
 func secret() string {
@@ -73,12 +93,12 @@ func validSecret(v string) bool {
 	return e == nil && len(b) == 32
 }
 func validRoles(roles []string) bool {
-	if len(roles) == 0 || len(roles) > 7 {
+	if len(roles) != 1 {
 		return false
 	}
 	seen := map[string]bool{}
 	for _, r := range roles {
-		if seen[r] || !slices.Contains([]string{"tenant_admin", "case_manager_admin", "case_investigator", "platform_viewer", "platform_builder", "platform_publisher", "platform_admin"}, r) {
+		if seen[r] || !validRoleID(r) {
 			return false
 		}
 		seen[r] = true
@@ -218,13 +238,14 @@ func describeLoginConsumeFailure(stateExists, bindingMatches, issuerMatches, une
 }
 
 type Session struct {
-	ID       uuid.UUID `json:"id"`
-	UserID   uuid.UUID `json:"user_id"`
-	TenantID uuid.UUID `json:"tenant_id"`
-	Name     string    `json:"name"`
-	Roles    []string  `json:"roles"`
-	Version  int64     `json:"version"`
-	Expires  time.Time `json:"expires_at"`
+	ID           uuid.UUID `json:"id"`
+	UserID       uuid.UUID `json:"user_id"`
+	TenantID     uuid.UUID `json:"tenant_id"`
+	Name         string    `json:"name"`
+	Roles        []string  `json:"roles"`
+	Capabilities []string  `json:"capabilities"`
+	Version      int64     `json:"version"`
+	Expires      time.Time `json:"expires_at"`
 }
 
 func session(ctx context.Context, q interface {
@@ -234,9 +255,9 @@ func session(ctx context.Context, q interface {
 		return Session{}, ErrDenied
 	}
 	var s Session
-	err := q.QueryRow(ctx, `SELECT s.id,s.user_id,s.tenant_id,u.display_name,m.roles,m.version,s.expires_at
+	err := q.QueryRow(ctx, `SELECT s.id,s.user_id,s.tenant_id,u.display_name,m.roles,identity.member_capabilities_v1(m.tenant_id,m.user_id),m.version,s.expires_at
  FROM identity.sessions s JOIN identity.users u ON u.id=s.user_id JOIN identity.memberships m ON m.user_id=s.user_id AND m.tenant_id=s.tenant_id
- JOIN core.tenants t ON t.id=s.tenant_id WHERE s.digest=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND s.idle_until>now() AND u.active AND m.active AND t.status='active'`, digest(raw)).Scan(&s.ID, &s.UserID, &s.TenantID, &s.Name, &s.Roles, &s.Version, &s.Expires)
+ JOIN core.tenants t ON t.id=s.tenant_id WHERE s.digest=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND s.idle_until>now() AND u.active AND m.active AND t.status='active'`, digest(raw)).Scan(&s.ID, &s.UserID, &s.TenantID, &s.Name, &s.Roles, &s.Capabilities, &s.Version, &s.Expires)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Session{}, ErrDenied
 	}
@@ -250,6 +271,54 @@ func (s Store) Resolve(ctx context.Context, raw string) (Session, error) {
 	_, err = s.DB.Exec(ctx, `UPDATE identity.sessions SET idle_until=LEAST(expires_at,now()+interval '30 minutes') WHERE id=$1 AND revoked_at IS NULL AND idle_until>now() AND idle_until<now()+interval '25 minutes'`, v.ID)
 	return v, err
 }
+
+func (s Store) ValidatePrincipal(ctx context.Context, p auth.Principal) error {
+	if s.DB == nil {
+		return &auth.Error{Code: 503, Message: "Current identity authority is unavailable."}
+	}
+	return validatePrincipal(ctx, s.DB, p)
+}
+
+func validatePrincipal(ctx context.Context, q auth.Queryer, p auth.Principal) error {
+	userID, err := uuid.Parse(p.Subject)
+	if !p.IsHuman() || err != nil || userID == uuid.Nil || p.TenantID == uuid.Nil || p.SessionID == uuid.Nil || p.AuthzVersion < 1 {
+		return ErrDenied
+	}
+	var active bool
+	err = q.QueryRow(ctx, `SELECT EXISTS(
+ SELECT 1 FROM identity.users u
+ JOIN identity.memberships m ON m.user_id=u.id AND m.tenant_id=$2
+ JOIN core.tenants t ON t.id=m.tenant_id
+ JOIN identity.sessions sess ON sess.id=$3 AND sess.user_id=u.id AND sess.tenant_id=m.tenant_id
+ WHERE u.id=$1 AND u.active AND m.active AND m.version=$4 AND t.status='active'
+ AND sess.revoked_at IS NULL AND sess.expires_at>clock_timestamp() AND sess.idle_until>clock_timestamp()
+)`, userID, p.TenantID, p.SessionID, p.AuthzVersion).Scan(&active)
+	if err != nil {
+		return &auth.Error{Code: 503, Message: "Current identity authority is unavailable."}
+	}
+	if !active {
+		return ErrDenied
+	}
+	return nil
+}
+
+func (s Store) principalForSession(ctx context.Context, raw string) (auth.Principal, error) {
+	current, err := s.Resolve(ctx, raw)
+	if err != nil {
+		return auth.Principal{}, err
+	}
+	return principal(current), nil
+}
+
+func checkCurrentCapability(ctx context.Context, q auth.Queryer, p auth.Principal, capability string, lock bool) error {
+	err := auth.CheckCapability(ctx, q, p, capability, lock)
+	var authErr *auth.Error
+	if errors.As(err, &authErr) && authErr.Code == 403 {
+		return ErrDenied
+	}
+	return err
+}
+
 func (s Store) CreateSession(ctx context.Context, issuer, subject string) (string, error) {
 	return s.CreateSessionForTenant(ctx, issuer, subject, uuid.Nil)
 }
@@ -258,6 +327,14 @@ func (s Store) CreateSession(ctx context.Context, issuer, subject string) (strin
 // A nonzero tenant requires an active membership; it never falls back to another tenant.
 // Existing sessions and invitation-selected tenants are unaffected.
 func (s Store) CreateSessionForTenant(ctx context.Context, issuer, subject string, requestedTenant uuid.UUID) (string, error) {
+	return s.createSessionForTenant(ctx, issuer, subject, requestedTenant, nil)
+}
+
+func (s Store) CreateSessionForIdentity(ctx context.Context, id oidcprovider.Identity, requestedTenant uuid.UUID) (string, error) {
+	return s.createSessionForTenant(ctx, id.Issuer, id.Subject, requestedTenant, &id)
+}
+
+func (s Store) createSessionForTenant(ctx context.Context, issuer, subject string, requestedTenant uuid.UUID, identity *oidcprovider.Identity) (string, error) {
 	raw := secret()
 	tx, err := s.DB.Begin(ctx)
 	if err != nil {
@@ -285,7 +362,12 @@ func (s Store) CreateSessionForTenant(ctx context.Context, issuer, subject strin
 		return "", err
 	}
 	id := uuid.New()
-	if _, err = tx.Exec(ctx, `INSERT INTO identity.sessions(id,digest,user_id,tenant_id,expires_at,idle_until) VALUES($1,$2,$3,$4,now()+interval '8 hours',now()+interval '30 minutes')`, id, digest(raw), user, tenant); err != nil {
+	if identity != nil {
+		if err = captureProviderIdentity(ctx, tx, *identity); err != nil {
+			return "", err
+		}
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO identity.sessions(id,digest,user_id,tenant_id,expires_at,idle_until,identity_issuer,identity_subject) VALUES($1,$2,$3,$4,now()+interval '8 hours',now()+interval '30 minutes',$5,$6)`, id, digest(raw), user, tenant, issuer, subject); err != nil {
 		return "", err
 	}
 	if err = audit(ctx, tx, tenant, user.String(), "session.created", id, struct{}{}); err != nil {
@@ -317,22 +399,36 @@ func (s Store) Logout(ctx context.Context, raw string) error {
 }
 
 type Member struct {
-	UserID  uuid.UUID `json:"user_id"`
-	Name    string    `json:"name"`
-	Roles   []string  `json:"roles"`
-	Active  bool      `json:"active"`
-	Version int64     `json:"version"`
+	UserID   uuid.UUID `json:"user_id"`
+	Name     string    `json:"name"`
+	Roles    []string  `json:"roles"`
+	Active   bool      `json:"active"`
+	Version  int64     `json:"version"`
+	RoleName string    `json:"role_name"`
 }
 
 func (s Store) Members(ctx context.Context, raw string, after uuid.UUID) ([]Member, error) {
-	caller, err := s.Resolve(ctx, raw)
+	return s.FilteredMembers(ctx, raw, after, "", "")
+}
+
+func (s Store) FilteredMembers(ctx context.Context, raw string, after uuid.UUID, query, role string) ([]Member, error) {
+	p, err := s.principalForSession(ctx, raw)
 	if err != nil {
 		return nil, err
 	}
-	if !slices.Contains(caller.Roles, "tenant_admin") {
+	return s.FilteredMembersForPrincipal(ctx, p, after, query, role)
+}
+
+func (s Store) FilteredMembersForPrincipal(ctx context.Context, p auth.Principal, after uuid.UUID, query, role string) ([]Member, error) {
+	query = strings.TrimSpace(query)
+	if len(query) > 100 || (role != "" && !validRoleID(role)) {
 		return nil, ErrDenied
 	}
-	rows, err := s.DB.Query(ctx, `SELECT u.id,u.display_name,m.roles,m.active AND u.active,m.version FROM identity.memberships m JOIN identity.users u ON u.id=m.user_id WHERE m.tenant_id=$1 AND u.id>$2 ORDER BY u.id LIMIT 101`, caller.TenantID, after)
+	if err := checkCurrentCapability(ctx, s.DB, p, "members:read", false); err != nil {
+		return nil, err
+	}
+	statement, args := memberDirectoryQuery(p.TenantID, after, query, role)
+	rows, err := s.DB.Query(ctx, statement, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -340,7 +436,7 @@ func (s Store) Members(ctx context.Context, raw string, after uuid.UUID) ([]Memb
 	out := []Member{}
 	for rows.Next() {
 		var m Member
-		if err = rows.Scan(&m.UserID, &m.Name, &m.Roles, &m.Active, &m.Version); err != nil {
+		if err = rows.Scan(&m.UserID, &m.Name, &m.Roles, &m.Active, &m.Version, &m.RoleName); err != nil {
 			return nil, err
 		}
 		out = append(out, m)
@@ -348,7 +444,19 @@ func (s Store) Members(ctx context.Context, raw string, after uuid.UUID) ([]Memb
 	return out, rows.Err()
 }
 func (s Store) ChangeMember(ctx context.Context, raw string, target uuid.UUID, version int64, roles []string, active bool) error {
+	p, err := s.principalForSession(ctx, raw)
+	if err != nil {
+		return err
+	}
+	return s.ChangeMemberForPrincipal(ctx, p, target, version, roles, active)
+}
+
+func (s Store) ChangeMemberForPrincipal(ctx context.Context, p auth.Principal, target uuid.UUID, version int64, roles []string, active bool) error {
 	if target == uuid.Nil || version < 1 || !validRoles(roles) {
+		return ErrDenied
+	}
+	userID, parseErr := uuid.Parse(p.Subject)
+	if !p.IsHuman() || parseErr != nil || userID == uuid.Nil || p.TenantID == uuid.Nil {
 		return ErrDenied
 	}
 	tx, err := s.DB.Begin(ctx)
@@ -356,25 +464,24 @@ func (s Store) ChangeMember(ctx context.Context, raw string, target uuid.UUID, v
 		return err
 	}
 	defer tx.Rollback(context.Background())
-	caller, err := session(ctx, tx, raw)
-	if err != nil {
-		return err
-	}
 	// Only administrative membership changes serialize per tenant; case writes do not.
-	if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, "identity-admin:"+caller.TenantID.String()); err != nil {
+	if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, "identity-admin:"+p.TenantID.String()); err != nil {
 		return err
 	}
-	caller, err = session(ctx, tx, raw)
-	if err != nil {
+	if err = checkCurrentCapability(ctx, tx, p, "roles:assign", true); err != nil {
 		return err
 	}
-	if !slices.Contains(caller.Roles, "tenant_admin") {
+	var tenantAdmin bool
+	if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM identity.member_roles WHERE tenant_id=$1 AND user_id=$2 AND role_id='tenant_admin')`, p.TenantID, userID).Scan(&tenantAdmin); err != nil {
+		return err
+	}
+	if !tenantAdmin {
 		return ErrDenied
 	}
 	var enabled bool
 	var current []string
 	var currentVersion int64
-	err = tx.QueryRow(ctx, `SELECT active,roles,version FROM identity.memberships WHERE tenant_id=$1 AND user_id=$2 FOR UPDATE`, caller.TenantID, target).Scan(&enabled, &current, &currentVersion)
+	err = tx.QueryRow(ctx, `SELECT active,roles,version FROM identity.memberships WHERE tenant_id=$1 AND user_id=$2 FOR UPDATE`, p.TenantID, target).Scan(&enabled, &current, &currentVersion)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrDenied
 	}
@@ -384,30 +491,41 @@ func (s Store) ChangeMember(ctx context.Context, raw string, target uuid.UUID, v
 	if currentVersion != version {
 		return ErrConflict
 	}
-	var revoked bool
-	if err = tx.QueryRow(ctx, `SELECT revoked_at IS NOT NULL OR expires_at<=now() OR idle_until<=now() FROM identity.sessions WHERE id=$1 FOR SHARE`, caller.ID).Scan(&revoked); err != nil {
-		return err
-	}
-	if revoked {
-		return ErrDenied
-	}
 	if enabled && slices.Contains(current, "tenant_admin") && (!active || !slices.Contains(roles, "tenant_admin")) {
 		var count int
-		if err = tx.QueryRow(ctx, `SELECT count(*) FROM (SELECT 1 FROM identity.memberships m JOIN identity.users u ON u.id=m.user_id WHERE m.tenant_id=$1 AND m.active AND u.active AND 'tenant_admin'=ANY(m.roles) LIMIT 2) admins`, caller.TenantID).Scan(&count); err != nil {
+		if err = tx.QueryRow(ctx, `SELECT count(*) FROM (SELECT 1 FROM identity.memberships m JOIN identity.users u ON u.id=m.user_id WHERE m.tenant_id=$1 AND m.active AND u.active AND 'tenant_admin'=ANY(m.roles) LIMIT 2) admins`, p.TenantID).Scan(&count); err != nil {
 			return err
 		}
 		if count <= 1 {
 			return ErrConflict
 		}
 	}
-	if _, err = tx.Exec(ctx, `UPDATE identity.memberships SET roles=$3,active=$4,version=version+1 WHERE tenant_id=$1 AND user_id=$2`, caller.TenantID, target, roles, active); err != nil {
+	if _, err = tx.Exec(ctx, `UPDATE identity.memberships SET roles=$3,active=$4,version=version+1 WHERE tenant_id=$1 AND user_id=$2`, p.TenantID, target, roles, active); err != nil {
 		return err
 	}
-	if _, err = tx.Exec(ctx, `UPDATE identity.sessions SET revoked_at=now() WHERE tenant_id=$1 AND user_id=$2 AND revoked_at IS NULL`, caller.TenantID, target); err != nil {
+	if _, err = tx.Exec(ctx, `UPDATE identity.sessions SET revoked_at=now() WHERE tenant_id=$1 AND user_id=$2 AND revoked_at IS NULL`, p.TenantID, target); err != nil {
 		return err
 	}
-	if err = audit(ctx, tx, caller.TenantID, caller.UserID.String(), "membership.changed", target, map[string]any{"roles": roles, "active": active, "previous_roles": current, "previous_active": enabled}); err != nil {
+	if err = audit(ctx, tx, p.TenantID, p.Subject, "membership.changed", target, map[string]any{"roles": roles, "active": active, "previous_roles": current, "previous_active": enabled}); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
+}
+
+func memberDirectoryQuery(tenant, after uuid.UUID, query, role string) (string, []any) {
+	statement := `SELECT u.id,u.display_name,m.roles,m.active AND u.active,m.version,r.name
+ FROM identity.memberships m JOIN identity.users u ON u.id=m.user_id
+ JOIN identity.member_roles mr ON mr.tenant_id=m.tenant_id AND mr.user_id=m.user_id
+ JOIN identity.roles r ON r.tenant_id=mr.tenant_id AND r.id=mr.role_id
+ WHERE m.tenant_id=$1 AND u.id>$2`
+	args := []any{tenant, after}
+	if query != "" {
+		statement += ` AND lower(u.display_name) LIKE $3`
+		args = append(args, strings.NewReplacer("\\", "\\\\", "%", "\\%", "_", "\\_").Replace(strings.ToLower(query))+"%")
+	}
+	if role != "" {
+		statement += fmt.Sprintf(" AND mr.role_id=$%d", len(args)+1)
+		args = append(args, role)
+	}
+	return statement + ` ORDER BY u.id LIMIT 101`, args
 }

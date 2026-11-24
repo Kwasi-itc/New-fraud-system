@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 
 	domainast "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/ast"
@@ -37,7 +38,7 @@ func (s *publicationDataModelReader) ListIndexJobs(context.Context, string) ([]p
 	return append([]ports.ManagedIndexJob(nil), s.jobs...), nil
 }
 
-func (s *publicationDataModelReader) RetryIndexJob(context.Context, string) error {
+func (s *publicationDataModelReader) RetryIndexJob(context.Context, string, string) error {
 	return nil
 }
 
@@ -126,3 +127,34 @@ func tableNameByID(model ports.TenantModel, tableID string) string {
 }
 
 var _ ports.DataModelReader = (*publicationDataModelReader)(nil)
+
+type preparationProbe struct {
+	*publicationDataModelReader
+	prepared *bool
+}
+
+func (p preparationProbe) GetTenantModel(ctx context.Context, tenant string) (ports.TenantModel, error) {
+	*p.prepared = true
+	return p.publicationDataModelReader.GetTenantModel(ctx, tenant)
+}
+
+type publicationAuthorityBoundary struct {
+	t        *testing.T
+	prepared *bool
+	denied   error
+}
+
+func (p publicationAuthorityBoundary) Run(context.Context, func(ports.MutationStore) error) error {
+	if !*p.prepared {
+		p.t.Error("publication opened its transaction before remote preparation")
+	}
+	return p.denied
+}
+func TestPublicationPreparationFinishesBeforeCurrentAuthorityTransaction(t *testing.T) {
+	prepared := false
+	denied := errors.New("current authority revoked")
+	svc := PublicationService{txManager: publicationAuthorityBoundary{t, &prepared, denied}, scenarioRepo: scenarioRepoStub{item: scenario.Scenario{ID: "scenario", TenantID: "tenant", TriggerObjectType: "transactions"}}, iterationRepo: scenarioIterationRepoStub{iteration: scenario.Iteration{ID: "iteration", ScenarioID: "scenario", TenantID: "tenant"}}, ruleRepo: ruleRepoStub{}, dataModelReader: preparationProbe{&publicationDataModelReader{model: ports.TenantModel{Tables: map[string]ports.TenantModelTable{}}}, &prepared}}
+	if _, err := svc.Publish(context.Background(), "tenant", "scenario", "iteration"); !errors.Is(err, denied) || !prepared {
+		t.Fatal("publication bypassed preparation/current-authority boundary", err)
+	}
+}

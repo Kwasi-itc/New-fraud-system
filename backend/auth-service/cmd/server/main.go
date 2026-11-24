@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"log/slog"
 	"net/http"
 	"os"
@@ -45,8 +46,8 @@ func run() error {
 		return errors.New("database unavailable")
 	}
 	defer db.Close()
-	if len(os.Getenv("AUTH_PROXY_TOKEN")) < 32 || os.Getenv("PLATFORM_JWT_ISSUER") == "" || os.Getenv("PLATFORM_JWT_AUDIENCE") == "" || os.Getenv("PLATFORM_JWT_KEY_ID") == "" {
-		return errors.New("proxy and platform JWT settings required")
+	if os.Getenv("PLATFORM_JWT_ISSUER") == "" || os.Getenv("PLATFORM_JWT_AUDIENCE") == "" || os.Getenv("PLATFORM_JWT_KEY_ID") == "" {
+		return errors.New("platform JWT settings required")
 	}
 	key, err := platform.SigningKey(os.Getenv("PLATFORM_JWT_PRIVATE_KEY_FILE"))
 	if err != nil {
@@ -56,8 +57,19 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	verifier, err := auth.FromEnvironment()
+	if err != nil {
+		return err
+	}
+	tokenEndpoint := os.Getenv("AUTH_TOKEN_ENDPOINT_URL")
+	if tokenEndpoint == "" {
+		return errors.New("AUTH_TOKEN_ENDPOINT_URL is required")
+	}
+	if err := verifier.ValidatePlatformSigner(key, os.Getenv("PLATFORM_JWT_KEY_ID"), os.Getenv("PLATFORM_JWT_ISSUER"), os.Getenv("PLATFORM_JWT_AUDIENCE"), auth.ClientAudience); err != nil {
+		return err
+	}
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	app := platform.Server{Store: platform.Store{DB: db}, Provider: provider, ProxyToken: os.Getenv("AUTH_PROXY_TOKEN"), Key: key, KeyID: os.Getenv("PLATFORM_JWT_KEY_ID"), Issuer: os.Getenv("PLATFORM_JWT_ISSUER"), Audience: os.Getenv("PLATFORM_JWT_AUDIENCE"), Logger: logger, DebugLoginErrors: os.Getenv("AUTH_DEBUG_LOGIN_ERRORS") == "true"}
+	app := platform.Server{Store: platform.Store{DB: db}, Provider: provider, Verifier: verifier, Replay: auth.NewReplayCache(100000), TokenEndpointURL: tokenEndpoint, Key: key, KeyID: os.Getenv("PLATFORM_JWT_KEY_ID"), Issuer: os.Getenv("PLATFORM_JWT_ISSUER"), Audience: os.Getenv("PLATFORM_JWT_AUDIENCE"), Logger: logger, DebugLoginErrors: os.Getenv("AUTH_DEBUG_LOGIN_ERRORS") == "true"}
 	app.DefaultTenantID = defaultTenant
 	if os.Getenv("AUTH_INVITATIONS_ENABLED") == "true" {
 		invitations, e := platform.NewInvitations(app.Store, provider.Issuer(), os.Getenv("AUTH_APP_ORIGIN"), os.Getenv("AUTH_INVITATION_KEY"))

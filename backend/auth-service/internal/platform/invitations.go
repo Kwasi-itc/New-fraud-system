@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/oidcprovider"
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
@@ -64,12 +65,12 @@ func NewInvitations(s Store, issuer, origin, key string) (*InvitationService, er
 // the domain is case-insensitive; never apply provider-specific dot/plus aliases.
 func invitationEmail(v string) (string, error) {
 	if len(v) > 254 || strings.ContainsAny(v, "\r\n") {
-		return "", ErrDenied
+		return "", auth.Invalid("Enter a valid email address.")
 	}
 	v = strings.TrimSpace(v)
 	a, err := mail.ParseAddress(v)
 	if err != nil || a.Address != v || a.Name != "" {
-		return "", ErrDenied
+		return "", auth.Invalid("Enter a valid email address.")
 	}
 	at := strings.LastIndexByte(v, '@')
 	if at < 1 {
@@ -105,43 +106,38 @@ func lockInvitationTenant(ctx context.Context, tx pgx.Tx, tenant uuid.UUID) erro
 	_, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, "identity-admin:"+tenant.String())
 	return err
 }
-func invitationAdmin(ctx context.Context, tx pgx.Tx, raw string) (Session, error) {
-	c, err := session(ctx, tx, raw)
-	if err != nil {
-		return c, err
+func invitationAdmin(ctx context.Context, tx pgx.Tx, p auth.Principal) error {
+	userID, err := uuid.Parse(p.Subject)
+	if !p.IsHuman() || err != nil || userID == uuid.Nil || p.TenantID == uuid.Nil {
+		return ErrDenied
 	}
-	if err = lockInvitationTenant(ctx, tx, c.TenantID); err != nil {
-		return c, err
+	if err = lockInvitationTenant(ctx, tx, p.TenantID); err != nil {
+		return err
 	}
-	var enabled bool
-	if err = tx.QueryRow(ctx, `SELECT active FROM identity.users WHERE id=$1 FOR SHARE`, c.UserID).Scan(&enabled); err != nil {
-		return c, err
+	if err = checkCurrentCapability(ctx, tx, p, "invitations:manage", true); err != nil {
+		return err
 	}
-	if !enabled {
-		return c, ErrDenied
+	if err = checkCurrentCapability(ctx, tx, p, "roles:assign", true); err != nil {
+		return err
 	}
-	if err = tx.QueryRow(ctx, `SELECT active AND 'tenant_admin'=ANY(roles) FROM identity.memberships WHERE tenant_id=$1 AND user_id=$2 FOR SHARE`, c.TenantID, c.UserID).Scan(&enabled); err != nil {
-		return c, err
+	var tenantAdmin bool
+	if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM identity.member_roles WHERE tenant_id=$1 AND user_id=$2 AND role_id='tenant_admin')`, p.TenantID, userID).Scan(&tenantAdmin); err != nil {
+		return err
 	}
-	if !enabled {
-		return c, ErrDenied
+	if !tenantAdmin {
+		return ErrDenied
 	}
-	if err = tx.QueryRow(ctx, `SELECT revoked_at IS NULL AND expires_at>clock_timestamp() AND idle_until>clock_timestamp() FROM identity.sessions WHERE id=$1 FOR SHARE`, c.ID).Scan(&enabled); err != nil {
-		return c, err
-	}
-	if !enabled {
-		return c, ErrDenied
-	}
-	c, err = session(ctx, tx, raw)
-	if err != nil {
-		return c, err
-	}
-	if !slices.Contains(c.Roles, "tenant_admin") {
-		return c, ErrDenied
-	}
-	return c, nil
+	return nil
 }
 func (i *InvitationService) Create(ctx context.Context, raw string, id uuid.UUID, email string, roles []string) (uuid.UUID, error) {
+	p, err := i.Store.principalForSession(ctx, raw)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return i.CreateForPrincipal(ctx, p, id, email, roles)
+}
+
+func (i *InvitationService) CreateForPrincipal(ctx context.Context, p auth.Principal, id uuid.UUID, email string, roles []string) (uuid.UUID, error) {
 	email, err := invitationEmail(email)
 	if err != nil || id == uuid.Nil || !validRoles(roles) {
 		return uuid.Nil, ErrDenied
@@ -151,9 +147,12 @@ func (i *InvitationService) Create(ctx context.Context, raw string, id uuid.UUID
 		return uuid.Nil, err
 	}
 	defer tx.Rollback(context.Background())
-	c, err := invitationAdmin(ctx, tx, raw)
-	if err != nil {
+	if err = invitationAdmin(ctx, tx, p); err != nil {
 		return uuid.Nil, err
+	}
+	inviter, err := uuid.Parse(p.Subject)
+	if err != nil {
+		return uuid.Nil, ErrDenied
 	}
 	// Request UUID is an idempotency key. Replays never enqueue a second email.
 	var priorEmail, priorIssuer string
@@ -164,7 +163,7 @@ func (i *InvitationService) Create(ctx context.Context, raw string, id uuid.UUID
 		a, b := slices.Clone(roles), slices.Clone(priorRoles)
 		slices.Sort(a)
 		slices.Sort(b)
-		if priorTenant != c.TenantID || priorEmail != email || priorIssuer != i.Issuer || !slices.Equal(a, b) {
+		if priorTenant != p.TenantID || priorEmail != email || priorIssuer != i.Issuer || !slices.Equal(a, b) {
 			return uuid.Nil, ErrConflict
 		}
 		return id, tx.Commit(ctx)
@@ -173,7 +172,7 @@ func (i *InvitationService) Create(ctx context.Context, raw string, id uuid.UUID
 		return uuid.Nil, err
 	}
 	var duplicate bool
-	if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM identity.invitations WHERE tenant_id=$1 AND email=$2 AND status='pending')`, c.TenantID, email).Scan(&duplicate); err != nil {
+	if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM identity.invitations WHERE tenant_id=$1 AND email=$2 AND status='pending')`, p.TenantID, email).Scan(&duplicate); err != nil {
 		return uuid.Nil, err
 	}
 	if duplicate {
@@ -181,7 +180,7 @@ func (i *InvitationService) Create(ctx context.Context, raw string, id uuid.UUID
 	}
 	// Bound mail amplification per tenant, including multi-replica creation.
 	var count int
-	if err = tx.QueryRow(ctx, `SELECT count(*) FROM (SELECT 1 FROM identity.invitations WHERE tenant_id=$1 AND created_at>now()-interval '1 hour' LIMIT 100) q`, c.TenantID).Scan(&count); err != nil {
+	if err = tx.QueryRow(ctx, `SELECT count(*) FROM (SELECT 1 FROM identity.invitations WHERE tenant_id=$1 AND created_at>now()-interval '1 hour' LIMIT 100) q`, p.TenantID).Scan(&count); err != nil {
 		return uuid.Nil, err
 	}
 	if count >= 100 {
@@ -192,19 +191,27 @@ func (i *InvitationService) Create(ctx context.Context, raw string, id uuid.UUID
 	if err != nil {
 		return uuid.Nil, err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO identity.invitations(id,tenant_id,email,issuer,roles,inviter_id,inviter_version,digest,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,now()+interval '48 hours')`, id, c.TenantID, email, i.Issuer, roles, c.UserID, c.Version, digest(token))
+	_, err = tx.Exec(ctx, `INSERT INTO identity.invitations(id,tenant_id,email,issuer,roles,inviter_id,inviter_version,digest,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,now()+interval '48 hours')`, id, p.TenantID, email, i.Issuer, roles, inviter, p.AuthzVersion, digest(token))
 	if err != nil {
 		return uuid.Nil, err
 	}
 	if _, err = tx.Exec(ctx, `INSERT INTO identity.invitation_delivery(invitation_id,generation,payload,state) VALUES($1,1,$2,'queued')`, id, payload); err != nil {
 		return uuid.Nil, err
 	}
-	if err = audit(ctx, tx, c.TenantID, c.UserID.String(), "invitation.created", id, map[string]any{"roles": roles}); err != nil {
+	if err = audit(ctx, tx, p.TenantID, inviter.String(), "invitation.created", id, map[string]any{"roles": roles}); err != nil {
 		return uuid.Nil, err
 	}
 	return id, tx.Commit(ctx)
 }
 func (i *InvitationService) Change(ctx context.Context, raw string, id uuid.UUID, version int64, action string) error {
+	p, err := i.Store.principalForSession(ctx, raw)
+	if err != nil {
+		return err
+	}
+	return i.ChangeForPrincipal(ctx, p, id, version, action)
+}
+
+func (i *InvitationService) ChangeForPrincipal(ctx context.Context, p auth.Principal, id uuid.UUID, version int64, action string) error {
 	if action != "cancel" && action != "resend" {
 		return ErrDenied
 	}
@@ -213,13 +220,16 @@ func (i *InvitationService) Change(ctx context.Context, raw string, id uuid.UUID
 		return err
 	}
 	defer tx.Rollback(context.Background())
-	c, err := invitationAdmin(ctx, tx, raw)
-	if err != nil {
+	if err = invitationAdmin(ctx, tx, p); err != nil {
 		return err
+	}
+	inviter, err := uuid.Parse(p.Subject)
+	if err != nil {
+		return ErrDenied
 	}
 	var email, status string
 	var v int64
-	err = tx.QueryRow(ctx, `SELECT email,status,version FROM identity.invitations WHERE id=$1 AND tenant_id=$2 FOR UPDATE`, id, c.TenantID).Scan(&email, &status, &v)
+	err = tx.QueryRow(ctx, `SELECT email,status,version FROM identity.invitations WHERE id=$1 AND tenant_id=$2 FOR UPDATE`, id, p.TenantID).Scan(&email, &status, &v)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrDenied
 	}
@@ -247,7 +257,7 @@ func (i *InvitationService) Change(ctx context.Context, raw string, id uuid.UUID
 		if e != nil {
 			return e
 		}
-		if _, err = tx.Exec(ctx, `UPDATE identity.invitations SET digest=$2,version=version+1,expires_at=now()+interval '48 hours',inviter_id=$3,inviter_version=$4 WHERE id=$1`, id, digest(token), c.UserID, c.Version); err != nil {
+		if _, err = tx.Exec(ctx, `UPDATE identity.invitations SET digest=$2,version=version+1,expires_at=now()+interval '48 hours',inviter_id=$3,inviter_version=$4 WHERE id=$1`, id, digest(token), inviter, p.AuthzVersion); err != nil {
 			return err
 		}
 		_, err = tx.Exec(ctx, `UPDATE identity.invitation_delivery SET generation=$2,payload=$3,state='queued',attempts=0,next_attempt=now(),requested_at=now(),lease_id=NULL,lease_until=NULL,sent_at=NULL WHERE invitation_id=$1`, id, v+1, payload)
@@ -255,20 +265,27 @@ func (i *InvitationService) Change(ctx context.Context, raw string, id uuid.UUID
 	if err != nil {
 		return err
 	}
-	if err = audit(ctx, tx, c.TenantID, c.UserID.String(), "invitation."+action, id, struct{}{}); err != nil {
+	if err = audit(ctx, tx, p.TenantID, inviter.String(), "invitation."+action, id, struct{}{}); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
 }
 func (i *InvitationService) List(ctx context.Context, raw string, after uuid.UUID) ([]Invitation, error) {
-	c, err := i.Store.Resolve(ctx, raw)
+	p, err := i.Store.principalForSession(ctx, raw)
 	if err != nil {
 		return nil, err
 	}
-	if !slices.Contains(c.Roles, "tenant_admin") {
-		return nil, ErrDenied
+	return i.ListForPrincipal(ctx, p, after)
+}
+
+func (i *InvitationService) ListForPrincipal(ctx context.Context, p auth.Principal, after uuid.UUID) ([]Invitation, error) {
+	if err := checkCurrentCapability(ctx, i.Store.DB, p, "invitations:manage", false); err != nil {
+		return nil, err
 	}
-	rows, err := i.Store.DB.Query(ctx, `SELECT i.id,i.email,i.roles,i.version,CASE WHEN i.status='pending' AND i.expires_at<=now() THEN 'expired' ELSE i.status END,i.expires_at,d.state FROM identity.invitations i JOIN identity.invitation_delivery d ON d.invitation_id=i.id WHERE i.tenant_id=$1 AND i.id>$2 ORDER BY i.id LIMIT 101`, c.TenantID, after)
+	if err := checkCurrentCapability(ctx, i.Store.DB, p, "roles:assign", false); err != nil {
+		return nil, err
+	}
+	rows, err := i.Store.DB.Query(ctx, `SELECT i.id,i.email,i.roles,i.version,CASE WHEN i.status='pending' AND i.expires_at<=now() THEN 'expired' ELSE i.status END,i.expires_at,d.state FROM identity.invitations i JOIN identity.invitation_delivery d ON d.invitation_id=i.id WHERE i.tenant_id=$1 AND i.id>$2 ORDER BY i.id LIMIT 101`, p.TenantID, after)
 	if err != nil {
 		return nil, err
 	}
@@ -391,7 +408,10 @@ func (i *InvitationService) Accept(ctx context.Context, hash []byte, id oidcprov
 	}
 	raw := secret()
 	sid := uuid.New()
-	if _, err = tx.Exec(ctx, `INSERT INTO identity.sessions(id,digest,user_id,tenant_id,expires_at,idle_until) VALUES($1,$2,$3,$4,now()+interval '8 hours',now()+interval '30 minutes')`, sid, digest(raw), user, tenant); err != nil {
+	if err = captureProviderIdentity(ctx, tx, id); err != nil {
+		return "", err
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO identity.sessions(id,digest,user_id,tenant_id,expires_at,idle_until,identity_issuer,identity_subject) VALUES($1,$2,$3,$4,now()+interval '8 hours',now()+interval '30 minutes',$5,$6)`, sid, digest(raw), user, tenant, id.Issuer, id.Subject); err != nil {
 		return "", err
 	}
 	if err = audit(ctx, tx, tenant, user.String(), "invitation.accepted", invite, map[string]any{"roles": roles, "inviter_id": inviter}); err != nil {

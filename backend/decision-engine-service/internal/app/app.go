@@ -3,7 +3,8 @@ package app
 import (
 	"context"
 	"fmt"
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"log/slog"
 	"net/http"
 	"time"
@@ -26,6 +27,9 @@ type App struct {
 
 func New(cfg Config, logger *slog.Logger) (*App, error) {
 	gin.SetMode(cfg.GinMode)
+	if err := platformauth.ValidateEnvironment(); err != nil {
+		return nil, err
+	}
 
 	db, err := storepostgres.NewPoolWithConfig(context.Background(), cfg.DatabaseURL, storepostgres.PoolConfig{
 		MaxConns: int32(cfg.DatabaseMaxConns), MinConns: int32(cfg.DatabaseMinConns),
@@ -49,18 +53,15 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		return nil, err
 	}
 	router := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
-		ProviderTransport:                   cfg.ProviderTransport,
-		InternalScreeningPolicy:             cfg.InternalScreeningPolicy,
-		NameRecognitionURL:                  cfg.NameRecognitionURL,
-		NameRecognitionToken:                cfg.NameRecognitionToken,
-		ScreeningServiceURL:                 cfg.ScreeningServiceURL,
-		ScreeningIntakeToken:                cfg.ScreeningIntakeToken,
-		ScreeningCallbackToken:              cfg.ScreeningCallbackToken,
-		WorkflowAuthoringToken:              cfg.WorkflowAuthoringToken,
-		ScreeningAuthoringToken:             cfg.ScreeningAuthoringToken,
-		InvestigatorVerifier:                verifier,
-		AuthMode:                            cfg.ServiceAuthMode,
-		AuthToken:                           cfg.ServiceAuthToken,
+		Verifier:                verifier,
+		ProviderTransport:       cfg.ProviderTransport,
+		InternalScreeningPolicy: cfg.InternalScreeningPolicy,
+		NameRecognitionURL:      cfg.NameRecognitionURL,
+		NameRecognitionToken:    cfg.NameRecognitionToken,
+		ScreeningServiceURL:     cfg.ScreeningServiceURL,
+
+		InvestigatorVerifier: verifier,
+
 		AllowedOrigins:                      cfg.ServiceAllowedOrigins,
 		DataModelServiceURL:                 cfg.DataModelServiceURL,
 		IngestionServiceURL:                 cfg.IngestionServiceURL,

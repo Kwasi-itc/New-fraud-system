@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -35,6 +36,11 @@ func (h DeferredIngestHandler) Get(c *gin.Context) {
 	execution, err := h.service.Get(c.Request.Context(), id)
 	if err != nil {
 		writeServiceError(c, err)
+		return
+	}
+	p := platformauth.PrincipalFromContext(c)
+	if p == nil || p.TenantID.String() != execution.TenantID {
+		c.AbortWithStatusJSON(403, gin.H{"error": "tenant_access_denied"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"deferred_ingest": dto.AdaptDeferredIngest(execution)})

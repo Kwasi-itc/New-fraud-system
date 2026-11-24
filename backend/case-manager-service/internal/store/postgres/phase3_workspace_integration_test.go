@@ -16,7 +16,7 @@ func TestPostgresWorkspacePaginationFiltersAndPermissions(t *testing.T) {
 	db := testDatabase(t, true)
 	applyMigration(t, db, "000005_workspace_indexes.up.sql")
 	s, tenant, inbox, c := fixture(t, db)
-	ctx := userContext(tenant, "analyst-1")
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
 	if _, err := db.Exec(ctx, `INSERT INTO case_manager.cases(id,tenant_id,inbox_id,name,status,outcome,type,boost_reason,review_level,created_at,updated_at)
  SELECT gen_random_uuid(),$1,$2,'Queue '||n,'pending','unset','decision',CASE WHEN n%2=0 THEN 'escalated' END,'investigate','2026-01-01'::timestamptz,now() FROM generate_series(1,620)n`, tenant, inbox.ID); err != nil {
 		t.Fatal(err)
@@ -60,7 +60,7 @@ func TestPostgresWorkspacePaginationFiltersAndPermissions(t *testing.T) {
 	if err != nil || len(result.Cases) != 0 {
 		t.Fatal("date filter", result, err)
 	}
-	private, err := s.CreateInbox(adminContext(tenant), service.CreateInboxInput{TenantID: tenant, Name: "Private"})
+	private, err := s.CreateInbox(adminContext(t, db, tenant), service.CreateInboxInput{TenantID: tenant, Name: "Private"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestPostgresWorkspacePaginationFiltersAndPermissions(t *testing.T) {
 	if _, err := s.WorkspaceQueue(ctx, tenant, casepkg.WorkspaceFilters{RelatedTo: &hidden.ID}, 50); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatal("private related lookup", err)
 	}
-	if _, err := s.WorkspaceOverview(userContext(uuid.New(), "analyst-1"), tenant, c.ID); !errors.Is(err, casepkg.ErrForbidden) {
+	if _, err := s.WorkspaceOverview(userContext(t, db, uuid.New(), "2f2e747e-27db-57e8-b365-d06520fe4a76"), tenant, c.ID); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatal("tenant bypass", err)
 	}
 	if _, err := db.Exec(ctx, `INSERT INTO case_manager.case_events(id,tenant_id,case_id,event_type,created_at) SELECT gen_random_uuid(),$1,$2,'test','2026-01-01'::timestamptz FROM generate_series(1,620)`, tenant, c.ID); err != nil {
@@ -140,8 +140,8 @@ func TestPostgresWorkspacePaginationFiltersAndPermissions(t *testing.T) {
 func TestPostgresWorkspaceEscalationCloseAndEvidence(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, inbox, c := fixture(t, db)
-	ctx := userContext(tenant, "analyst-1")
-	admin := adminContext(tenant)
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
+	admin := adminContext(t, db, tenant)
 	destination, err := s.CreateInbox(admin, service.CreateInboxInput{TenantID: tenant, Name: "Escalation"})
 	if err != nil {
 		t.Fatal(err)

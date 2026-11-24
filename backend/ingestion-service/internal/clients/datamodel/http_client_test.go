@@ -2,6 +2,7 @@ package datamodel
 
 import (
 	"context"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -61,7 +62,7 @@ func TestHTTPClientGetPublishedDataModelMapsContract(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewHTTPClient(server.URL, time.Second)
+	client := NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "ingestion-service"))
 	model, err := client.GetPublishedDataModel(context.Background(), uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
 	if err != nil {
 		t.Fatalf("GetPublishedDataModel returned error: %v", err)
@@ -103,7 +104,7 @@ func TestHTTPClientGetPublishedDataModelRequiresRevisionID(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewHTTPClient(server.URL, time.Second)
+	client := NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "ingestion-service"))
 	_, err := client.GetPublishedDataModel(context.Background(), uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
 	if err == nil {
 		t.Fatal("expected missing revision_id to return an error")
@@ -118,7 +119,7 @@ func TestHTTPClientGetPublishedDataModelReturnsDependencyErrorOnNon200(t *testin
 	}))
 	defer server.Close()
 
-	client := NewHTTPClient(server.URL, time.Second)
+	client := NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "ingestion-service"))
 	_, err := client.GetPublishedDataModel(context.Background(), uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
 	if err == nil {
 		t.Fatal("expected non-200 response to return an error")

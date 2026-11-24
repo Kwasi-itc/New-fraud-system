@@ -2,6 +2,7 @@ package ingestion
 
 import (
 	"context"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -19,8 +20,8 @@ func TestHTTPClientGetRecordReturnsDependencyErrorOnNon200(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewHTTPClient(server.URL, time.Second)
-	_, err := client.GetRecord(context.Background(), "tenant-1", "transactions", "txn-1")
+	client := NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "decision-engine-service"))
+	_, err := client.GetRecord(context.Background(), "11111111-1111-4111-8111-111111111111", "transactions", "txn-1")
 	if err == nil {
 		t.Fatal("expected non-200 response to return an error")
 	}
@@ -39,8 +40,8 @@ func TestHTTPClientAggregateRecordsReturnsTimeoutError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewHTTPClient(server.URL, 10*time.Millisecond)
-	_, err := client.AggregateRecords(context.Background(), "tenant-1", ports.AggregateQuery{
+	client := NewHTTPClient(server.URL, 10*time.Millisecond).WithSigner(authtest.ServiceSigner(t, "decision-engine-service"))
+	_, err := client.AggregateRecords(context.Background(), "11111111-1111-4111-8111-111111111111", ports.AggregateQuery{
 		ObjectType: "transactions",
 		Aggregate:  "count",
 		Field:      "amount",

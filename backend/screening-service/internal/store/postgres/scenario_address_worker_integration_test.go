@@ -81,10 +81,10 @@ func runAddressScreeningWorkers(t *testing.T, db *pgxpool.Pool, tenant, inbox, d
 		json.NewEncoder(w).Encode(map[string]any{"responses": responses})
 	}))
 	t.Cleanup(provider.Close)
-	const owner = "synthetic-address-owner-private-token-32"
-	screeningURL, _, _ := startInvestigatorServer(t, db, binaries["SCREENING_INTEGRATION_BINARY"], tenant, "SCREENING_OPERATOR_TOKEN="+owner, "OPENSANCTIONS_API_HOST="+provider.URL, "OPENSANCTIONS_AUTH_MODE=none", "OPENSANCTIONS_API_KEY=", "SCREENING_PROVIDER_URL=", "SCREENING_PROVIDER_URLS=")
+	owner := journeyHuman(t, db, tenant, "address-operator", "tenant_admin")
+	screeningURL, _, _ := startInvestigatorServer(t, db, binaries["SCREENING_INTEGRATION_BINARY"], tenant, "OPENSANCTIONS_API_HOST="+provider.URL, "OPENSANCTIONS_AUTH_MODE=none", "OPENSANCTIONS_API_KEY=", "SCREENING_PROVIDER_URL=", "SCREENING_PROVIDER_URLS=")
 	caseURL, _ := startCaseServer(t, db, binaries["CASE_MANAGER_INTEGRATION_BINARY"], tenant)
-	env := []string{"CASE_SERVICE_URL=" + caseURL, "CASE_SERVICE_AUTH_TOKEN=" + token, "DECISION_ENGINE_URL=" + decisionURL, "HTTP_CLIENT_TIMEOUT=2s"}
+	env := []string{"CASE_SERVICE_URL=" + caseURL, "DECISION_ENGINE_URL=" + decisionURL, "HTTP_CLIENT_TIMEOUT=2s"}
 	if direct {
 		env = append(env, "OPENSANCTIONS_API_HOST="+provider.URL, "OPENSANCTIONS_AUTH_MODE=none")
 	} else {
@@ -102,7 +102,7 @@ func runAddressScreeningWorkers(t *testing.T, db *pgxpool.Pool, tenant, inbox, d
 		req.Header.Set("Authorization", "Bearer "+bearer)
 		req.Header.Set("Content-Type", "application/json")
 		if strings.HasPrefix(path, "/v1/") {
-			req.Header.Set("X-Screening-Operator-Token", owner)
+			req.Header.Set("Authorization", "Bearer "+owner)
 		}
 		resp, err := client.Do(req)
 		if err != nil {
@@ -118,7 +118,7 @@ func runAddressScreeningWorkers(t *testing.T, db *pgxpool.Pool, tenant, inbox, d
 	var cap struct {
 		Address bool `json:"address_supported"`
 	}
-	if json.Unmarshal(httpRequest("GET", "/internal/screening-capabilities", testIntakeToken, nil, 200), &cap) != nil || !cap.Address {
+	if json.Unmarshal(httpRequest("GET", "/internal/screening-capabilities", journeyToken(t, tenant, "decision-engine-service", "screening-service", "screening:intake"), nil, 200), &cap) != nil || !cap.Address {
 		t.Fatal("API must advertise direct capability, including worker drift test")
 	}
 	cases := []struct {
@@ -297,11 +297,11 @@ func runAddressScreeningWorkers(t *testing.T, db *pgxpool.Pool, tenant, inbox, d
 				for i := 0; i < 3; i++ {
 					httpRequest("GET", "/v1/tenants/"+tenant+"/screenings/"+source, token, nil, 200)
 				}
-				httpRequest("GET", "/v1/tenants/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/screenings/"+source, token, nil, 404)
+				httpRequest("GET", "/v1/tenants/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/screenings/"+source, token, nil, 403)
 				if err := db.QueryRow(ctx, `SELECT request_json FROM core.screening_executions WHERE id=$1 AND tenant_id=$2`, execution, tenant).Scan(&raw); err != nil {
 					t.Fatal(err)
 				}
-				httpRequest("POST", "/internal/v1/tenants/"+tenant+"/decision-screenings", testIntakeToken, raw, 201)
+				httpRequest("POST", "/internal/v1/tenants/"+tenant+"/decision-screenings", journeyToken(t, tenant, "decision-engine-service", "screening-service", "screening:intake"), raw, 201)
 				var sources, jobs int
 				wantJobs := 1
 				if !direct {

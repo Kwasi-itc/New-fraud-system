@@ -20,25 +20,12 @@ The root `docker-compose.yml` runs the local/dev stack with one shared
 Postgres container, one-shot migration jobs, backend APIs, default workers, and
 the Next frontend.
 
-Before starting, configure the case integration identity in your local `.env`
-(keep this file and credentials out of version control):
-
-```dotenv
-CASE_SERVICE_AUTH_TOKEN=<generated secret of at least 32 bytes>
-CASE_SERVICE_TENANT_IDS=<comma-separated tenant UUIDs>
-CASE_USER_JWT_KEYS_FILE=<host path to JSON mapping key IDs to trusted RSA PEM public keys>
-CASE_USER_JWT_ISSUER=<trusted identity issuer>
-CASE_USER_JWT_AUDIENCE=case-manager
-CASE_MANAGER_FORWARDED_PORT=8086
-CASE_DB_POOL_MAX_CONNS=8
-```
-
-Use keys from the issuer that signs investigator tokens. Only public keys are
-mounted into case-manager; the integration token remains server-side. See the
-[case-manager authentication contract](backend/case-manager-service/README.md).
-Compose rejects missing required settings instead of exposing an unauthenticated
-case API. This configuration is also required when rendering the database-scale
-Compose override.
+Authentication uses signed human, client and per-service JWTs. Tenant Admins
+receive every tenant capability; custom roles contain explicit capabilities and
+cannot manage or assign roles. See the [current authentication guide](docs/authentication/README.md)
+and [migration/key operations](docs/authentication/operations.md) before rebuilding
+an existing installation. Static platform bearer tokens and tenant allowlists
+are retired.
 
 For local development, generate the provider and platform trust once:
 

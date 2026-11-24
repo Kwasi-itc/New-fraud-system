@@ -8,10 +8,9 @@ import (
 )
 
 type Config struct {
-	Port                   string
-	DatabaseURL            string
-	ServiceAuthMode        string
-	ServiceAuthToken       string
+	Port        string
+	DatabaseURL string
+
 	ServiceAllowedOrigins  []string
 	LogLevel               string
 	GinMode                string
@@ -26,8 +25,6 @@ func LoadConfig() (Config, error) {
 	cfg := Config{
 		Port:                   getEnv("PORT", "8080"),
 		DatabaseURL:            os.Getenv("DATABASE_URL"),
-		ServiceAuthMode:        getEnv("SERVICE_AUTH_MODE", "token"),
-		ServiceAuthToken:       getEnv("DATA_MODEL_SERVICE_TOKEN", os.Getenv("SERVICE_AUTH_TOKEN")),
 		ServiceAllowedOrigins:  getEnvCSV("SERVICE_ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
 		LogLevel:               getEnv("LOG_LEVEL", "info"),
 		GinMode:                getEnv("GIN_MODE", "debug"),
@@ -38,12 +35,6 @@ func LoadConfig() (Config, error) {
 
 	if cfg.DatabaseURL == "" {
 		return Config{}, fmt.Errorf("DATABASE_URL is required")
-	}
-	if cfg.ServiceAuthMode != "token" && cfg.ServiceAuthMode != "disabled" {
-		return Config{}, fmt.Errorf("SERVICE_AUTH_MODE must be token or disabled")
-	}
-	if cfg.ServiceAuthMode == "token" && strings.TrimSpace(cfg.ServiceAuthToken) == "" {
-		return Config{}, fmt.Errorf("SERVICE_AUTH_TOKEN is required when SERVICE_AUTH_MODE=token")
 	}
 	if cfg.IndexJobQueueWorkers <= 0 {
 		return Config{}, fmt.Errorf("INDEX_JOB_QUEUE_WORKERS must be greater than zero")

@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { authCall, cookieOptions, loginCookie, privateHeaders, rawSession, sessionCookie } from "@/lib/server/auth";
+import { authCall, cookieOptions, humanAuthCall, loginCookie, manageSignInURL, platformSession, privateHeaders, sessionCookie } from "@/lib/server/auth";
 type Context = { params: Promise<{ action: string }> };
 const fail = (message: string, status: number) => NextResponse.json({ error: message }, { status, headers: privateHeaders });
 function origin() { const value = process.env.APP_ORIGIN; if (!value) throw new Error("Application origin required"); return new URL(value).origin; }
@@ -13,6 +13,17 @@ function authErrorMessage(body: string) {
     }
   } catch {}
   return "Auth service returned an unreadable error response.";
+}
+function forward(response: Response) {
+  return new Response(response.status === 204 ? null : response.body, {
+    status: response.status,
+    headers: { ...privateHeaders, "Content-Type": response.headers.get("content-type") ?? "application/json" },
+  });
+}
+function accountPath(action: string, tenant: string) {
+  if (action === "profile") return "account/profile";
+  if (action === "sessions") return "account/sessions";
+  return `tenants/${encodeURIComponent(tenant)}/${action}`;
 }
 export async function GET(request: Request, context: Context) {
   const { action } = await context.params;
@@ -42,10 +53,16 @@ export async function GET(request: Request, context: Context) {
       jar.set(sessionCookie(), result.session, { ...cookieOptions, maxAge: 8 * 60 * 60 }); return redirect("/my-account");
     }
     if (["members", "sessions", "invitations", "audit"].includes(action)) {
-      const session = await rawSession(); if (!session) return fail("Sign in required.", 401);
-      const after = new URL(request.url).searchParams.get("after") ?? "00000000-0000-0000-0000-000000000000";
-      const response = await authCall(`${action}/list`, { session, after });
-      return new Response(await response.text(), { status: response.status, headers: { ...privateHeaders, "Content-Type": "application/json" } });
+      const current = await platformSession(); if (!current) return fail("Sign in required.", 401);
+      const params = new URL(request.url).searchParams;
+      if (!params.has("after")) params.set("after", "00000000-0000-0000-0000-000000000000");
+      const extras = action === "members" ? `&query=${encodeURIComponent(params.get("query") ?? "")}&role=${encodeURIComponent(params.get("role") ?? "")}` : "";
+      const path = `${accountPath(action, current.session.tenant_id)}?after=${encodeURIComponent(params.get("after")!)}${extras}`;
+      return forward(await humanAuthCall(current.access_token, path));
+    }
+    if (action === "profile") {
+      const current = await platformSession(); if (!current) return fail("Sign in required.", 401);
+      return forward(await humanAuthCall(current.access_token, accountPath(action, current.session.tenant_id)));
     }
     return fail("Not found", 404);
   } catch (error) {
@@ -76,32 +93,52 @@ export async function POST(request: Request, context: Context) {
       const result = await response.json(); (await cookies()).set(loginCookie, result.binding, { ...cookieOptions, maxAge: 300 });
       const redirectResponse = NextResponse.redirect(result.url, 303); redirectResponse.headers.set("Cache-Control", "private, no-store"); return redirectResponse;
     }
-    const session = await rawSession();
+    const current = await platformSession();
+    if (action === "manage-sign-in") {
+      if (!current) return fail("Sign in required.", 401);
+      const profile = await humanAuthCall(current.access_token, "account/profile");
+      if (!profile.ok) return fail("Your session has expired. Sign in again.", profile.status === 401 || profile.status === 403 ? 401 : 503);
+      const target = manageSignInURL();
+      if (!target) return fail("Sign-in management is not configured. Contact your administrator.", 503);
+      const response = NextResponse.redirect(target, 303); response.headers.set("Cache-Control", "private, no-store"); return response;
+    }
     if (action === "logout") {
-      if (session) { const response = await authCall("logout", { session }); if (!response.ok) return fail("Logout could not complete. Please retry.", 503); }
+      if (current) {
+        const response = await humanAuthCall(current.access_token, "account/logout", { method: "POST", body: "{}" });
+        if (!response.ok) return fail("Logout could not complete. Please retry.", 503);
+      }
       (await cookies()).set(sessionCookie(), "", { ...cookieOptions, maxAge: 0 }); const response = redirect("/login"); response.headers.set("Clear-Site-Data", '"cache"'); return response;
     }
-    if (action === "members" || action === "sessions" || action === "invitations") {
-      if (!session) return fail("Sign in required.", 401);
+    if (action === "members" || action === "sessions" || action === "invitations" || action === "profile") {
+      if (!current) return fail("Sign in required.", 401);
       if (!request.headers.get("content-type")?.startsWith("application/json")) return fail("JSON required.", 415);
       const reader = request.body?.getReader(); const chunks: Uint8Array[] = []; let size = 0;
       if (reader) for (;;) { const { value, done } = await reader.read(); if (done) break; size += value.byteLength; if (size > 16384) { await reader.cancel(); return fail("Request too large.", 413); } chunks.push(value); }
       let body;
       try { body = JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch { return fail("Invalid JSON.", 400); }
       if (!body || typeof body !== "object" || Array.isArray(body)) return fail("Invalid request.", 400);
+      if (action === "profile") {
+        return forward(await humanAuthCall(current.access_token, "account/profile", {
+          method: "PUT", body: JSON.stringify({ name: body.name, version: body.version }),
+        }));
+      }
       if (action === "invitations") {
-        const response = await authCall("invitations/change", { session, action: body.action, id: body.id, version: body.version, email: body.email, roles: body.roles });
-        return new Response(response.status === 204 ? null : await response.text(), { status: response.status, headers: { ...privateHeaders, "Content-Type": "application/json" } });
+        return forward(await humanAuthCall(current.access_token, `tenants/${encodeURIComponent(current.session.tenant_id)}/invitations`, {
+          method: "POST", body: JSON.stringify({ action: body.action, id: body.id, version: body.version, email: body.email, roles: body.roles }),
+        }));
       }
       if (action === "sessions") {
-        const response = await authCall("sessions/revoke", { target: body.target, all: body.all, session });
+        const response = await humanAuthCall(current.access_token, "account/sessions/revoke", {
+          method: "POST", body: JSON.stringify({ target: body.target, all: body.all }),
+        });
         if (!response.ok) return new Response(await response.text(), { status: response.status, headers: { ...privateHeaders, "Content-Type": "application/json" } });
         const result = await response.json();
         if (result.signed_out) (await cookies()).set(sessionCookie(), "", { ...cookieOptions, maxAge: 0 });
         return NextResponse.json(result, { headers: { ...privateHeaders, ...(result.signed_out ? { "Clear-Site-Data": '"cache"' } : {}) } });
       }
-      const response = await authCall("members/change", { user_id: body.user_id, version: body.version, roles: body.roles, active: body.active, session });
-      return new Response(response.status === 204 ? null : await response.text(), { status: response.status, headers: { ...privateHeaders, "Content-Type": "application/json" } });
+      return forward(await humanAuthCall(current.access_token, `tenants/${encodeURIComponent(current.session.tenant_id)}/members`, {
+        method: "POST", body: JSON.stringify({ user_id: body.user_id, version: body.version, roles: body.roles, active: body.active }),
+      }));
     }
     return fail("Not found", 404);
   } catch { return fail("Authentication is temporarily unavailable. Please retry.", 503); }

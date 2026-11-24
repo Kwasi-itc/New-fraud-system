@@ -3,7 +3,7 @@ package sourcemonitor
 import (
 	"context"
 	"encoding/json"
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourcedata"
 	"github.com/google/uuid"
 )
@@ -25,8 +25,8 @@ func (s Service) View(ctx context.Context, p identity.Principal, origin uuid.UUI
 	return s.ViewPage(ctx, p, origin, uuid.Nil)
 }
 func (s Service) ViewPage(ctx context.Context, p identity.Principal, origin, after uuid.UUID) (json.RawMessage, error) {
-	if err := identity.CheckIdentity(ctx, s.DB, p, false); err != nil {
-		return nil, err
+	if !p.IsHuman() || !p.Can("screening:search") {
+		return nil, identity.Forbidden()
 	}
 	if after != uuid.Nil {
 		var allowed bool

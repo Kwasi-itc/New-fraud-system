@@ -12,6 +12,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/access"
 	casepkg "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/domain/case"
 	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/service"
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
@@ -19,7 +20,7 @@ import (
 func TestExplorationLinksPivotsPathsAndAuthorization(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, inbox, c := fixture(t, db)
-	ctx := userContext(tenant, "analyst-1")
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
 	exec := func(sql string, args ...any) {
 		t.Helper()
 		if _, err := db.Exec(context.Background(), sql, args...); err != nil {
@@ -132,7 +133,7 @@ func TestExplorationLinksPivotsPathsAndAuthorization(t *testing.T) {
 		t.Fatal("forged edge", err)
 	}
 	in.Path = nil
-	for _, denied := range []context.Context{userContext(tenant, "outsider"), userContext(uuid.New(), "analyst-1"), serviceContext(tenant)} {
+	for _, denied := range []context.Context{userContext(t, db, tenant, "be50d326-8955-5631-93ad-aba09b86faa0"), userContext(t, db, uuid.New(), "2f2e747e-27db-57e8-b365-d06520fe4a76"), serviceContext(tenant)} {
 		if _, err = s.Explore(denied, tenant, c.ID, in); err == nil {
 			t.Fatal("unauthorized explorer")
 		}
@@ -177,8 +178,11 @@ func TestExplorationLinksPivotsPathsAndAuthorization(t *testing.T) {
 	exec(`INSERT INTO identity.users(id,display_name) VALUES($1,'Explorer')`, user)
 	exec(`INSERT INTO identity.memberships(user_id,tenant_id,roles) VALUES($1,$2,ARRAY['case_manager_admin'])`, user, tenant)
 	exec(`INSERT INTO identity.sessions(id,user_id,tenant_id,digest,expires_at,idle_until) VALUES($1,$2,$3,'explorer',now()+interval '1 hour',now()+interval '1 hour')`, sid, user, tenant)
-	t.Setenv("USER_REQUIRE_SESSION", "true")
-	verified := access.WithPrincipal(context.Background(), access.Principal{Kind: access.User, Subject: user.String(), TenantID: tenant, Admin: true, SessionID: sid, AuthzVersion: 1})
+	caps := map[string]bool{}
+	for _, capability := range auth.PredefinedRoles()["case_manager_admin"] {
+		caps[capability] = true
+	}
+	verified := access.WithPrincipal(context.Background(), access.Principal{Kind: access.User, Subject: user.String(), TenantID: tenant, Admin: true, SessionID: sid, AuthzVersion: 1, Capabilities: caps})
 	if _, err = s.Explore(verified, tenant, c.ID, in); err != nil {
 		t.Fatal(err)
 	}

@@ -170,7 +170,7 @@ func TestCaseOutboxRollbackRetryLeaseAndRecovery(t *testing.T) {
 	}))
 	defer server.Close()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	publisher := caseclient.NewHTTPClient(server.URL, "integration-token", time.Second)
+	publisher := caseclient.NewHTTPClient(server.URL, time.Second)
 	if err := service.NewCaseDeliveryService(repo, publisher, logger).RunBatch(ctx, 1); err != nil {
 		t.Fatal(err)
 	}

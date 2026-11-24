@@ -1,11 +1,25 @@
 // Browser contract fixture, not an alternative authentication implementation.
 import { createServer } from "node:http";
+import { readFileSync } from "node:fs";
+import { verify } from "node:crypto";
 import { randomUUID } from "node:crypto";
 import { handleDisplay, resetDisplay } from "./display-fixture.mjs";
 import { handleManualScreening } from "./manual-screening-fixture.mjs";
 import { handleScenarioScreening } from "./scenario-screening-fixture.mjs";
 import { handleControlledProvider } from "./controlled-provider-live-fixture.mjs";
 import { handlePrivateLists } from "./private-list-fixture.mjs";
+const catalog=JSON.parse(readFileSync(new URL("../../../backend/platform-auth/capabilities.json",import.meta.url)));
+const humanCaps=catalog.filter(c=>c.human).map(c=>c.name);
+const roleBundles=JSON.parse(readFileSync(new URL("../../../docs/authentication/capability-contract.json",import.meta.url))).roles;
+const workflowRole="role_99999999-9999-4999-8999-999999999999";
+roleBundles[workflowRole]=[...new Set([...roleBundles.platform_admin,...roleBundles.case_manager_admin])];
+let profileNames=new Map(),profileVersions=new Map();
+function fixtureCapabilities(roles) { return [...new Set(roles.flatMap(role=>roleBundles[role]??[]))]; }
+function validBootstrap(header) {
+ try { const [h,p,s]=header.replace(/^Bearer /,"").split("."); const meta=JSON.parse(Buffer.from(h,"base64url")),claims=JSON.parse(Buffer.from(p,"base64url"));
+ return meta.alg==="RS256" && meta.typ==="at+jwt" && meta.kid==="fixture-bff" && claims.principal_type==="service" && claims.service_id==="frontend-bff" && claims.aud==="urn:fraud:auth-service" && claims.capabilities?.includes("auth:bootstrap") && claims.exp>Date.now()/1000 && verify("RSA-SHA256",Buffer.from(`${h}.${p}`),process.env.TEST_BFF_PUBLIC_KEY,Buffer.from(s,"base64url"));
+ } catch { return false; }
+}
 const tenant = "11111111-1111-4111-8111-111111111111";
 const inbox = "22222222-2222-4222-8222-222222222222";
 const id = "33333333-3333-4333-8333-333333333333";
@@ -33,7 +47,9 @@ reset();
 function record(event_type, note) { events.unshift({ id: randomUUID(), event_type, additional_note: note, user_id: "analyst", created_at: new Date().toISOString(), new_value: "", previous_value: "" }); }
 createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
-  const send = (status, data) => { res.writeHead(status, { "Content-Type": "application/json" }); res.end(status === 204 ? undefined : JSON.stringify(data)); };
+  const evidence=url.pathname.match(/^\/v1\/tenants\/([^/]+)\/cases\/[^/]+\/evidence\/(decisions|screenings)\/([^/]+)$/);
+  if(evidence) url.pathname=`/v1/tenants/${evidence[1]}/${evidence[2]}/${evidence[3]}`;
+  const send = (status, data) => { if(data?.session) data.session.capabilities=fixtureCapabilities(data.session.roles); res.writeHead(status, { "Content-Type": "application/json" }); res.end(status === 204 ? undefined : JSON.stringify(data)); };
   if (url.pathname === "/health") return send(200, {});
   if (await handleControlledProvider(req, url, send)) return;
   if (await handlePrivateLists(req, url, send)) return;
@@ -48,7 +64,7 @@ createServer(async (req, res) => {
   if (url.pathname === "/fixture/workflow-lost-ack") { workflowLostAck = true; return send(204); }
   if (url.pathname === "/fixture/workflow-denied") { workflowDenied = true; return send(204); }
   if (url.pathname.startsWith("/internal/workflow-authoring/")) {
-    if (req.headers.authorization !== "Bearer fixture-workflow-authoring-private-token-32" || req.headers["x-workflow-user"] !== "analyst" || req.headers["x-workflow-version"] !== "1") return send(401, {});
+    if (req.headers.authorization !== "Bearer fixture-admin") return send(401, {});
     if (workflowDenied) return send(403, { error: "Workflow access denied." });
     if (!url.pathname.startsWith(`/internal/workflow-authoring/tenants/${tenant}/scenarios/`)) return send(403, {});
     if (req.method === "GET") return send(200, { scenario_name: "Payment checks", rules: [...workflowRules.values()], other_rules: 0, legacy_workflows: false });
@@ -70,39 +86,55 @@ createServer(async (req, res) => {
     if (workflowLostAck) { workflowLostAck = false; return send(503, { error: "Response lost" }); }
     return send(200, saved);
   }
-  if (url.pathname === "/reset") { explorerAttached = false; explorerLostAck = false; explorerDenied = false; invitations = []; revokedSessions = new Set(); revokedSessionIDs = new Set(); failSessionRevoke = false; }
+  if (url.pathname === "/reset") { explorerAttached = false; explorerLostAck = false; explorerDenied = false; invitations = []; profileNames=new Map();profileVersions=new Map(); revokedSessions = new Set(); revokedSessionIDs = new Set(); failSessionRevoke = false; }
   if (url.pathname === "/fixture/explorer-lost-ack") { explorerLostAck = true; return send(204); }
   if (url.pathname === "/fixture/explorer-denied") { explorerDenied = true; return send(204); }
   if (url.pathname === "/fixture/session-error") { failSessionRevoke = true; return send(204); }
   if (url.pathname.startsWith("/internal/")) {
-    if (req.headers.authorization !== "Bearer fixture-private-auth-proxy-token-32") return send(401, {});
+    if (!validBootstrap(req.headers.authorization ?? "")) return send(401, {});
     let raw = ""; for await (const chunk of req) raw += chunk;
     const body = JSON.parse(raw || "{}");
     if (url.pathname === "/internal/invitations/start") return body.token === "a".repeat(43) ? send(200, { url: "http://127.0.0.1:3199/provider-login", binding: "fixture-login-binding" }) : send(403, {});
+    if (url.pathname !== "/internal/session") return send(404, {});
     if (!["fixture-analyst", "fixture-admin", "fixture-platform", "fixture-workflow", "fixture-private-importer", "fixture-private-reviewer"].includes(body.session) || revokedSessions.has(body.session)) return send(401, { error: "Session expired" });
-    if (url.pathname === "/internal/session" && ["fixture-private-importer","fixture-private-reviewer"].includes(body.session)) return send(200,{access_token:body.session,session:{id:body.session,user_id:body.session,tenant_id:tenant,name:"Fictional tenant administrator",roles:["tenant_admin"],version:1,expires_at:"2099-01-01T00:00:00Z"}});
-    if (url.pathname === "/internal/session" && body.session === "fixture-workflow") return send(200, { access_token: "fixture-admin", session: { id: body.session, user_id: "analyst", tenant_id: tenant, name: "Workflow administrator", roles: ["platform_admin", "case_manager_admin"], version: 1, expires_at: "2099-01-01T00:00:00Z" } });
-    if (url.pathname === "/internal/logout") { revokedSessions.add(body.session); return send(204); }
-    if (url.pathname === "/internal/session") return send(200, { access_token: body.session, session: { id: body.session, user_id: "analyst", tenant_id: tenant, name: "Test investigator", roles: body.session === "fixture-admin" ? ["tenant_admin", "case_manager_admin"] : body.session === "fixture-platform" ? ["platform_viewer"] : ["case_investigator"], version: 1, expires_at: "2099-01-01T00:00:00Z" } });
-    if (url.pathname === "/internal/sessions/list") return send(200, { items: [currentSessionID, otherSessionID].filter(id => !revokedSessionIDs.has(id)).map(id => ({ id, current: id === currentSessionID, created_at: "2026-10-06T12:00:00Z", expires_at: "2099-01-01T00:00:00Z", idle_until: "2099-01-01T00:00:00Z" })), next_after: "" });
-    if (url.pathname === "/internal/sessions/revoke") {
+    if (["fixture-private-importer","fixture-private-reviewer"].includes(body.session)) return send(200,{access_token:body.session,session:{id:body.session,user_id:body.session,tenant_id:tenant,name:"Fictional tenant administrator",roles:["tenant_admin"],version:1,expires_at:"2099-01-01T00:00:00Z"}});
+    if (body.session === "fixture-workflow") return send(200, { access_token: "fixture-admin", session: { id: body.session, user_id: "analyst", tenant_id: tenant, name: "Workflow administrator", roles: [workflowRole], version: 1, expires_at: "2099-01-01T00:00:00Z" } });
+    return send(200, { access_token: body.session, session: { id: body.session, user_id: "analyst", tenant_id: tenant, name: "Test investigator", roles: body.session === "fixture-admin" ? ["tenant_admin"] : body.session === "fixture-platform" ? ["platform_viewer"] : ["case_investigator"], version: 1, expires_at: "2099-01-01T00:00:00Z" } });
+  }
+  if (url.pathname.startsWith("/v1/")) {
+    const token = (req.headers.authorization ?? "").replace(/^Bearer /i, "");
+    const actor = token;
+    if (!["fixture-analyst", "fixture-admin", "fixture-platform", "fixture-private-importer", "fixture-private-reviewer"].includes(token) || revokedSessions.has(token)) return send(401, { error: "Session expired" });
+    let raw = ""; for await (const chunk of req) raw += chunk;
+    const body = JSON.parse(raw || "{}");
+    const role=actor==="fixture-admin"?"tenant_admin":actor==="fixture-platform"?"platform_viewer":"case_investigator";
+    if (url.pathname === "/v1/account/profile" && req.method === "GET") return send(200,{user_id:"analyst",tenant_id:tenant,tenant_name:"Fixture tenant",name:profileNames.get(token)??"Test investigator",account_name:"fixture_login",email:"analyst@example.test",email_verified:true,role_id:role,role_name:role==="tenant_admin"?"Tenant Administrator":role==="platform_viewer"?"Platform Viewer":"Investigator",version:profileVersions.get(token)??1});
+    if (url.pathname === "/v1/account/profile" && req.method === "PUT") {
+      const version=profileVersions.get(token)??1;
+      if(body.version!==version)return send(409,{error:"Profile changed; refresh before retrying."});
+      if(typeof body.name!=="string"||!body.name.trim())return send(400,{error:"Display name required."});
+      profileNames.set(token,body.name.trim());profileVersions.set(token,version+1);return send(204);
+    }
+    if (url.pathname === "/v1/account/logout" && req.method === "POST") { revokedSessions.add(token); return send(204); }
+    if (url.pathname === "/v1/account/sessions" && req.method === "GET") return send(200, { items: [currentSessionID, otherSessionID].filter(id => !revokedSessionIDs.has(id)).map(id => ({ id, current: id === currentSessionID, created_at: "2026-10-06T12:00:00Z", expires_at: "2099-01-01T00:00:00Z", idle_until: "2099-01-01T00:00:00Z" })), next_after: "" });
+    if (url.pathname === "/v1/account/sessions/revoke" && req.method === "POST") {
       if (failSessionRevoke) return send(503, { error: "Unavailable" });
       if (!body.all && ![currentSessionID, otherSessionID].includes(body.target)) return send(403, {});
       if (body.target) revokedSessionIDs.add(body.target);
       const signed_out = !!body.all || body.target === currentSessionID;
-      if (signed_out) revokedSessions.add(body.session);
+      if (signed_out) revokedSessions.add(token);
       return send(200, { signed_out });
     }
-    if (body.session !== "fixture-admin") return send(403, { error: "Administrator required" });
-    if (url.pathname === "/internal/invitations/list") return send(200, { items: invitations, next_after: "" });
-    if (url.pathname === "/internal/audit/list") return send(200, { items: [{ id: "audit-1", actor: "admin", action: "invitation.created", target: "invite-1", at: "2026-10-09", details: { roles: ["case_investigator"] } }], next_after: "" });
-    if (url.pathname === "/internal/invitations/change") {
+    if (token !== "fixture-admin" && token !== "fixture-private-importer" && token !== "fixture-private-reviewer") return send(403, { error: "Administrator required" });
+    if (url.pathname.endsWith("/invitations") && req.method === "GET") return send(200, { items: invitations, next_after: "" });
+    if (url.pathname.endsWith("/audit") && req.method === "GET") return send(200, { items: [{ id: "audit-1", actor: "admin", action: "invitation.created", target: "invite-1", at: "2026-10-09", details: { roles: ["case_investigator"] } }], next_after: "" });
+    if (url.pathname.endsWith("/invitations") && req.method === "POST") {
       if (body.action === "create") invitations.push({ id: body.id, email: body.email, roles: body.roles, status: "pending", delivery: "queued", version: 1, expires_at: "2099-01-01T00:00:00Z" });
       else { const item = invitations.find(v => v.id === body.id); if (!item || item.version !== body.version) return send(409, {}); item.version++; item.status = body.action === "cancel" ? "cancelled" : "pending"; }
       return send(204);
     }
-    if (url.pathname === "/internal/members/list") return send(200, { items: [{ user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", name: "Test investigator", roles: ["case_investigator"], active: true, version: 1 }], next_after: "" });
-    if (url.pathname === "/internal/members/change") return send(409, { error: "Account changed; refresh before retrying." });
+    if (url.pathname.endsWith("/members") && req.method === "GET") return send(200, { items: [{ user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", name: "Test investigator", roles: ["case_investigator"], role_name:"Investigator", active: true, version: 1 }], next_after: "" });
+    if (url.pathname.endsWith("/members") && req.method === "POST") return send(409, { error: "Account changed; refresh before retrying." });
     return send(404, {});
   }
   if (url.pathname === "/reset") { decisionUnlinked = false; decisionAttachDenied = false; decisionCreateLostAck = false; }
@@ -120,6 +152,16 @@ createServer(async (req, res) => {
     return send(204);
   }
   const token = req.headers.authorization;
+  if(url.pathname===`/v1/tenants/${tenant}/capabilities`&&req.method==='GET')return token==="Bearer fixture-admin"?send(200,{capabilities:catalog}):send(403,{});
+  if(url.pathname.startsWith(`/v1/tenants/${tenant}/roles/`)&&req.method==='GET'){
+    if(token!=="Bearer fixture-admin")return send(403,{});
+    const role=url.pathname.split('/').at(-1),capabilities=roleBundles[role];
+    return capabilities?send(200,{id:role,name:role==='tenant_admin'?'Tenant Administrator':role==='case_investigator'?'Investigator':role.replaceAll('_',' '),builtin:true,capabilities,version:1}):send(404,{});
+  }
+  if(url.pathname===`/v1/tenants/${tenant}/roles` && req.method==='GET') {
+    if(token!=="Bearer fixture-admin") return send(403,{});
+    return send(200,{roles:[{id:"tenant_admin",name:"Tenant Administrator",builtin:true,capabilities:humanCaps,version:1},{id:"case_manager_admin",name:"Case Manager Administrator",builtin:true,capabilities:["cases:read"],version:1},{id:"case_investigator",name:"Investigator",builtin:true,capabilities:["cases:read"],version:1}]});
+  }
   if (url.pathname === `/v1/investigator/tenants/${tenant}/cases/${id}/exclusions`) {
     if (token !== "Bearer fixture-analyst") return send(401, { error: "Investigator sign-in required." });
     if (exclusionMode === "denied") return send(403, { error: "Current case/resource access is required." });
@@ -159,11 +201,10 @@ createServer(async (req, res) => {
     return send(200, result);
   }
   if (url.pathname === `/v1/tenants/${tenant}/screenings/${screening}`) {
-    if (req.headers["x-screening-operator-token"] !== "fixture-screening-owner-private-token-32") return send(403, { error: "Private screening credential required" });
-    if (token !== "Bearer fixture-owner-token") return send(401, { error: "Missing owner credential" });
+    if (!["Bearer fixture-admin","Bearer fixture-analyst"].includes(token)) return send(401, { error: "Missing owner credential" });
     return send(200, { screening: { id: screening, partial: screeningLinks[0]?.partial, status: "awaiting_review", provider: "Test screening provider", LastError: "fixture-secret-error", RequestJSON: { provider_config: { api_key: "fixture-secret-key" } } }, matches: screeningLinks[0]?.match_id ? [{ id: "pending-match-1", status: "pending" }] : [] });
   }
-  if (url.pathname === `/v1/tenants/${tenant}/decisions/${decision}`) { if (token !== "Bearer fixture-owner-token") return send(401, { error: "Missing owner credential" }); return send(200, { decision: { id: decision, outcome: "review", score: 35 }, rule_executions: [{ id: "fixture-execution", rule_id: "fixture-velocity", rule_name: "Velocity", outcome: "hit", score_modifier: 35 }] }); }
+  if (url.pathname === `/v1/tenants/${tenant}/decisions/${decision}`) { if (!["Bearer fixture-admin","Bearer fixture-analyst"].includes(token)) return send(401, { error: "Missing owner credential" }); return send(200, { decision: { id: decision, outcome: "review", score: 35 }, rule_executions: [{ id: "fixture-execution", rule_id: "fixture-velocity", rule_name: "Velocity", outcome: "hit", score_modifier: 35 }] }); }
   if (!["Bearer fixture-analyst", "Bearer fixture-admin"].includes(token)) return send(401, { error: "Authentication required" });
   if (!url.pathname.startsWith(`/v1/tenants/${tenant}/`)) return send(403, { error: "You cannot access this tenant." });
   const path = url.pathname.slice(`/v1/tenants/${tenant}/`.length);

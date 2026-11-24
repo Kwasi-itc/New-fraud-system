@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -35,7 +36,7 @@ func TestCacheRevalidatesEveryRequestAndIsolatesCallers(t *testing.T) {
 		fmt.Fprint(w, body)
 	}))
 	defer server.Close()
-	client := NewHTTPClient(server.URL, time.Second)
+	client := NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "ingestion-service"))
 	id := uuid.New()
 	first, err := client.GetPublishedDataModel(context.Background(), id)
 	if err != nil {
@@ -87,7 +88,7 @@ func TestCacheNeverFallsBackOnErrors(t *testing.T) {
 				fmt.Fprint(w, cacheTestBody)
 			}))
 			defer server.Close()
-			client := NewHTTPClient(server.URL, time.Second)
+			client := NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "ingestion-service"))
 			id := uuid.New()
 			if _, err := client.GetPublishedDataModel(context.Background(), id); err != nil {
 				t.Fatal(err)
@@ -120,7 +121,7 @@ func TestCacheTenantIsolationAndConcurrentAccess(t *testing.T) {
 		fmt.Fprint(w, cacheTestBody)
 	}))
 	defer server.Close()
-	client := NewHTTPClient(server.URL, 5*time.Second)
+	client := NewHTTPClient(server.URL, 5*time.Second).WithSigner(authtest.ServiceSigner(t, "ingestion-service"))
 	ids := []uuid.UUID{uuid.New(), uuid.New()}
 	var wg sync.WaitGroup
 	for i := 0; i < 32; i++ {
@@ -187,7 +188,7 @@ func TestCacheNoStoreAndOlderServers(t *testing.T) {
 				fmt.Fprint(w, cacheTestBody)
 			}))
 			defer server.Close()
-			client := NewHTTPClient(server.URL, time.Second)
+			client := NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "ingestion-service"))
 			id := uuid.New()
 			for i := 0; i < 3; i++ {
 				if _, err := client.GetPublishedDataModel(context.Background(), id); err != nil {
@@ -201,7 +202,7 @@ func TestCacheNoStoreAndOlderServers(t *testing.T) {
 func TestCacheRejectsUnsolicitedNotModified(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(304) }))
 	defer server.Close()
-	client := NewHTTPClient(server.URL, time.Second)
+	client := NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "ingestion-service"))
 	if _, err := client.GetPublishedDataModel(context.Background(), uuid.New()); err == nil {
 		t.Fatal("304 without a cached representation must fail")
 	}
@@ -216,7 +217,7 @@ func TestCacheDisabled(t *testing.T) {
 		fmt.Fprint(w, cacheTestBody)
 	}))
 	defer server.Close()
-	client := NewHTTPClientWithCacheLimits(server.URL, time.Second, 0, 0)
+	client := NewHTTPClientWithCacheLimits(server.URL, time.Second, 0, 0).WithSigner(authtest.ServiceSigner(t, "ingestion-service"))
 	id := uuid.New()
 	for i := 0; i < 2; i++ {
 		if _, err := client.GetPublishedDataModel(context.Background(), id); err != nil {

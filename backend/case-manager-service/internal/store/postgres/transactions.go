@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/access"
 	casepkg "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/domain/case"
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/ports"
@@ -44,8 +44,13 @@ func (u UnitOfWork) WithinTransaction(ctx context.Context, fn func(ports.Reposit
 		defer cancel()
 		_ = tx.Rollback(cleanup)
 	}()
-	if p, ok := access.FromContext(ctx); ok && p.Kind == access.User {
-		if err := identity.CheckIdentity(ctx, tx, identity.Principal{Subject: p.Subject, TenantID: p.TenantID, Admin: p.Admin, SessionID: p.SessionID, AuthzVersion: p.AuthzVersion}, true); err != nil {
+	// Read transactions still enforce owner/inbox rules, but a declared read
+	// policy uses the verified token snapshot. Trusted non-HTTP callers without
+	// route metadata retain the conservative current-authority check.
+	capability := identity.RequiredCapability(ctx)
+	currentAuthority := capability == "" || identity.RequiresCurrentAuthority(capability)
+	if p, ok := access.FromContext(ctx); ok && p.Kind == access.User && currentAuthority {
+		if err := identity.CheckIdentity(ctx, tx, p.Platform(), true); err != nil {
 			var denied *identity.Error
 			if !errors.As(err, &denied) || denied.Code != 403 {
 				return err

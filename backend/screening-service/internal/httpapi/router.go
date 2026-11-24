@@ -1,7 +1,8 @@
 package httpapi
 
 import (
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"log/slog"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/httpapi/handlers"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/privatelists"
+	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/provideraccess"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/providerproduct"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/providerregistry"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/riverjobs"
@@ -27,16 +29,14 @@ import (
 )
 
 type RouterConfig struct {
-	RemoteProvider         *providerproduct.Client
-	PrivateListWriter      *pgxpool.Pool
-	PrivateListPolicy      privatelists.Policy
-	ScreeningIntakeToken   string
-	ScreeningCallbackToken string
-	ScreeningOperatorToken string
-	InvestigatorVerifier   *identity.Verifier
-	CaseServiceAuthToken   string
-	AuthMode               string
-	AuthToken              string
+	PolicyObserver    func([]platformauth.RoutePolicy)
+	Verifier          platformauth.TokenVerifier
+	RemoteProvider    *providerproduct.Client
+	PrivateListWriter *pgxpool.Pool
+	PrivateListPolicy privatelists.Policy
+
+	InvestigatorVerifier *identity.Verifier
+
 	ScreeningProviderURL   string
 	ScreeningProviderURLs  string
 	OpenSanctionsAPIHost   string
@@ -67,7 +67,20 @@ type systemClock struct{}
 func (systemClock) Now() time.Time { return time.Now().UTC() }
 
 func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Engine {
-	router := gin.New()
+	engine := gin.New()
+	router := platformauth.NewRouter(engine, cfg.Verifier)
+	router.UseAuthenticated(func(c *gin.Context) {
+		p := platformauth.PrincipalFromContext(c)
+		if p.IsHuman() {
+			if scope, err := provideraccess.FromPrincipal(*p); err == nil {
+				c.Request = c.Request.WithContext(provideraccess.WithScope(c.Request.Context(), scope))
+			}
+		}
+		if p.IsService() && p.Can("screening:intake") {
+			c.Request = c.Request.WithContext(provideraccess.WithScenarioIntake(provideraccess.WithScope(c.Request.Context(), provideraccess.GlobalOperator())))
+		}
+		c.Next()
+	})
 	metrics := newServiceMetrics()
 	router.Use(requestContextMiddleware(logger))
 	router.Use(requestLoggingMiddleware(logger, metrics))
@@ -75,9 +88,9 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	registerDocsRoutes(router)
 
 	healthHandler := handlers.NewHealthHandler(logger, db)
-	router.GET("/healthz", healthHandler.Healthz)
-	router.GET("/readyz", healthHandler.Readyz)
-	router.GET("/metrics", func(c *gin.Context) {
+	router.GET("/healthz", platformauth.Policy{Public: true}, healthHandler.Healthz)
+	router.GET("/readyz", platformauth.Policy{Public: true}, healthHandler.Readyz)
+	router.GET("/metrics", platformauth.Policy{Capability: "metrics:read"}, func(c *gin.Context) {
 		c.JSON(200, metrics.Snapshot())
 	})
 
@@ -122,10 +135,10 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	})
 	providers := providerregistry.New(db, providerClient)
 	providers.Remote = cfg.RemoteProvider
-	inboxReader := inboxclient.NewHTTPClient(cfg.InboxServiceURL, cfg.CaseServiceAuthToken, cfg.HTTPClientTimeout)
-	casePublisher := caseclient.NewHTTPClient(cfg.CaseServiceURL, cfg.CaseServiceAuthToken, cfg.HTTPClientTimeout)
+	inboxReader := inboxclient.NewHTTPClient(cfg.InboxServiceURL, cfg.HTTPClientTimeout)
+	casePublisher := caseclient.NewHTTPClient(cfg.CaseServiceURL, cfg.HTTPClientTimeout)
 	blobStore := blobclient.NewHTTPClient(cfg.BlobServiceURL, cfg.HTTPClientTimeout)
-	decisionPublisher := decisionclient.NewHTTPClient(cfg.DecisionEngineURL, "token", cfg.ScreeningCallbackToken, cfg.HTTPClientTimeout)
+	decisionPublisher := decisionclient.NewHTTPClient(cfg.DecisionEngineURL, cfg.HTTPClientTimeout)
 	var datasetJobRepo ports.DatasetUpdateJobRepository
 	if db != nil {
 		datasetJobRepo = storepostgres.NewDatasetUpdateJobRepository(db)
@@ -143,12 +156,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	internalDecisionHandler := handlers.NewInternalDecisionHandler(screeningService)
 
 	v1 := router.Group("/v1")
-	v1.Use(screeningOwnerBoundary(cfg.ScreeningOperatorToken, cfg.AuthToken))
-	v1.Use(authMiddleware(AuthConfig{
-		Mode:  cfg.AuthMode,
-		Token: cfg.AuthToken,
-	}))
-	v1.GET("/service-info", func(c *gin.Context) {
+	v1.GET("/service-info", platformauth.Policy{Capability: "services:read"}, func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"service":                 "screening-service",
 			"screening_provider_url":  cfg.ScreeningProviderURL,
@@ -164,49 +172,56 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 			"decision_engine_url":     cfg.DecisionEngineURL,
 		})
 	})
-	v1.GET("/screening-provider/catalog", providerHandler.GetCatalog)
-	v1.GET("/screening-provider/freshness", providerHandler.GetFreshness)
-	v1.GET("/tenants/:tenantId/dataset-update-jobs", datasetUpdateHandler.List)
-	v1.POST("/tenants/:tenantId/dataset-update-jobs", datasetUpdateHandler.Create)
-	v1.GET("/tenants/:tenantId/dataset-update-jobs/:jobId", datasetUpdateHandler.Get)
-	v1.POST("/tenants/:tenantId/dataset-update-jobs/:jobId/retry", datasetUpdateHandler.Retry)
-	v1.POST("/tenants/:tenantId/screenings", screeningHandler.Create)
-	v1.POST("/tenants/:tenantId/screenings/freeform-search", screeningHandler.CreateFreeform)
-	v1.GET("/tenants/:tenantId/decisions/:decisionId/screenings", screeningHandler.ListByDecision)
-	v1.GET("/tenants/:tenantId/screenings/:screeningId", screeningHandler.Get)
-	v1.POST("/tenants/:tenantId/screenings/:screeningId/retry", screeningHandler.Retry)
-	v1.POST("/tenants/:tenantId/screening-matches/:matchId/review", screeningHandler.ReviewMatch)
-	v1.POST("/tenants/:tenantId/screening-matches/:matchId/comments", screeningHandler.AddComment)
-	v1.POST("/tenants/:tenantId/screening-matches/:matchId/enrich", screeningHandler.EnrichMatch)
-	v1.POST("/tenants/:tenantId/screenings/:screeningId/files", screeningHandler.CreateFile)
-	v1.POST("/tenants/:tenantId/screenings/:screeningId/file-uploads", screeningHandler.CreateFileUpload)
-	v1.GET("/tenants/:tenantId/screenings/:screeningId/files", screeningHandler.ListFiles)
-	v1.GET("/tenants/:tenantId/screenings/:screeningId/files/:fileId", screeningHandler.GetFile)
-	v1.GET("/tenants/:tenantId/screenings/:screeningId/files/:fileId/download", screeningHandler.GetFileDownload)
-	v1.GET("/tenants/:tenantId/screening-whitelist", whitelistHandler.Search)
-	v1.POST("/tenants/:tenantId/screening-whitelist", whitelistHandler.Create)
-	v1.DELETE("/tenants/:tenantId/screening-whitelist", whitelistHandler.Delete)
-	v1.GET("/tenants/:tenantId/continuous-screening-configs", continuousHandler.ListConfigs)
-	v1.POST("/tenants/:tenantId/continuous-screening-configs", continuousHandler.CreateConfig)
-	v1.GET("/tenants/:tenantId/continuous-screening-configs/:configId", continuousHandler.GetConfig)
-	v1.PUT("/tenants/:tenantId/continuous-screening-configs/:configId", continuousHandler.UpdateConfig)
-	v1.DELETE("/tenants/:tenantId/continuous-screening-configs/:configId", continuousHandler.DeleteConfig)
-	v1.GET("/tenants/:tenantId/continuous-screening-configs/:configId/monitored-objects", continuousHandler.ListMonitoredObjects)
-	v1.POST("/tenants/:tenantId/continuous-screening-configs/:configId/monitored-objects", continuousHandler.CreateMonitoredObject)
-	v1.GET("/tenants/:tenantId/monitored-objects/:monitoredObjectId", continuousHandler.GetMonitoredObject)
-	v1.DELETE("/tenants/:tenantId/monitored-objects/:monitoredObjectId", continuousHandler.DeleteMonitoredObject)
-	v1.POST("/tenants/:tenantId/monitored-objects/:monitoredObjectId/requeue", continuousHandler.RequeueMonitoredObject)
+	v1.GET("/screening-provider/catalog", platformauth.Policy{Capability: "sources:read", PrincipalType: platformauth.PrincipalUser}, providerHandler.GetCatalog)
+	v1.GET("/screening-provider/freshness", platformauth.Policy{Capability: "sources:read", PrincipalType: platformauth.PrincipalUser}, providerHandler.GetFreshness)
+	v1.GET("/tenants/:tenantId/dataset-update-jobs", platformauth.Policy{Capability: "sources:read", PrincipalType: platformauth.PrincipalUser}, datasetUpdateHandler.List)
+	v1.POST("/tenants/:tenantId/dataset-update-jobs", platformauth.Policy{Capability: "sources:manage", PrincipalType: platformauth.PrincipalUser}, datasetUpdateHandler.Create)
+	v1.GET("/tenants/:tenantId/dataset-update-jobs/:jobId", platformauth.Policy{Capability: "sources:read", PrincipalType: platformauth.PrincipalUser}, datasetUpdateHandler.Get)
+	v1.POST("/tenants/:tenantId/dataset-update-jobs/:jobId/retry", platformauth.Policy{Capability: "sources:manage", PrincipalType: platformauth.PrincipalUser}, datasetUpdateHandler.Retry)
+	v1.POST("/tenants/:tenantId/screenings", platformauth.Policy{Capability: "screening:write", PrincipalType: platformauth.PrincipalUser}, screeningHandler.Create)
+	v1.POST("/tenants/:tenantId/screenings/freeform-search", platformauth.Policy{Capability: "screening:write", PrincipalType: platformauth.PrincipalUser}, screeningHandler.CreateFreeform)
+	v1.GET("/tenants/:tenantId/decisions/:decisionId/screenings", platformauth.Policy{Capability: "screening:read", PrincipalType: platformauth.PrincipalUser}, screeningHandler.ListByDecision)
+	v1.GET("/tenants/:tenantId/screenings/:screeningId", platformauth.Policy{Capability: "screening:read", PrincipalType: platformauth.PrincipalUser}, screeningHandler.Get)
+	v1.POST("/tenants/:tenantId/screenings/:screeningId/retry", platformauth.Policy{Capability: "screening:write", PrincipalType: platformauth.PrincipalUser}, screeningHandler.Retry)
+	v1.POST("/tenants/:tenantId/screening-matches/:matchId/review", platformauth.Policy{Capability: "screening:review", PrincipalType: platformauth.PrincipalUser}, screeningHandler.ReviewMatch)
+	v1.POST("/tenants/:tenantId/screening-matches/:matchId/comments", platformauth.Policy{Capability: "screening:write", PrincipalType: platformauth.PrincipalUser}, screeningHandler.AddComment)
+	v1.POST("/tenants/:tenantId/screening-matches/:matchId/enrich", platformauth.Policy{Capability: "screening:write", PrincipalType: platformauth.PrincipalUser}, screeningHandler.EnrichMatch)
+	v1.POST("/tenants/:tenantId/screenings/:screeningId/files", platformauth.Policy{Capability: "screening:write", PrincipalType: platformauth.PrincipalUser}, screeningHandler.CreateFile)
+	v1.POST("/tenants/:tenantId/screenings/:screeningId/file-uploads", platformauth.Policy{Capability: "screening:write", PrincipalType: platformauth.PrincipalUser}, screeningHandler.CreateFileUpload)
+	v1.GET("/tenants/:tenantId/screenings/:screeningId/files", platformauth.Policy{Capability: "screening:read", PrincipalType: platformauth.PrincipalUser}, screeningHandler.ListFiles)
+	v1.GET("/tenants/:tenantId/screenings/:screeningId/files/:fileId", platformauth.Policy{Capability: "screening:read", PrincipalType: platformauth.PrincipalUser}, screeningHandler.GetFile)
+	v1.GET("/tenants/:tenantId/screenings/:screeningId/files/:fileId/download", platformauth.Policy{Capability: "screening:read", PrincipalType: platformauth.PrincipalUser}, screeningHandler.GetFileDownload)
+	v1.GET("/tenants/:tenantId/screening-whitelist", platformauth.Policy{Capability: "screening:read", PrincipalType: platformauth.PrincipalUser}, whitelistHandler.Search)
+	v1.POST("/tenants/:tenantId/screening-whitelist", platformauth.Policy{Capability: "screening:admin", PrincipalType: platformauth.PrincipalUser}, whitelistHandler.Create)
+	v1.DELETE("/tenants/:tenantId/screening-whitelist", platformauth.Policy{Capability: "screening:admin", PrincipalType: platformauth.PrincipalUser}, whitelistHandler.Delete)
+	v1.GET("/tenants/:tenantId/continuous-screening-configs", platformauth.Policy{Capability: "screening:read", PrincipalType: platformauth.PrincipalUser}, continuousHandler.ListConfigs)
+	v1.POST("/tenants/:tenantId/continuous-screening-configs", platformauth.Policy{Capability: "screening:admin", PrincipalType: platformauth.PrincipalUser}, continuousHandler.CreateConfig)
+	v1.GET("/tenants/:tenantId/continuous-screening-configs/:configId", platformauth.Policy{Capability: "screening:read", PrincipalType: platformauth.PrincipalUser}, continuousHandler.GetConfig)
+	v1.PUT("/tenants/:tenantId/continuous-screening-configs/:configId", platformauth.Policy{Capability: "screening:admin", PrincipalType: platformauth.PrincipalUser}, continuousHandler.UpdateConfig)
+	v1.DELETE("/tenants/:tenantId/continuous-screening-configs/:configId", platformauth.Policy{Capability: "screening:admin", PrincipalType: platformauth.PrincipalUser}, continuousHandler.DeleteConfig)
+	v1.GET("/tenants/:tenantId/continuous-screening-configs/:configId/monitored-objects", platformauth.Policy{Capability: "screening:read", PrincipalType: platformauth.PrincipalUser}, continuousHandler.ListMonitoredObjects)
+	v1.POST("/tenants/:tenantId/continuous-screening-configs/:configId/monitored-objects", platformauth.Policy{Capability: "screening:admin", PrincipalType: platformauth.PrincipalUser}, continuousHandler.CreateMonitoredObject)
+	v1.GET("/tenants/:tenantId/monitored-objects/:monitoredObjectId", platformauth.Policy{Capability: "screening:read", PrincipalType: platformauth.PrincipalUser}, continuousHandler.GetMonitoredObject)
+	v1.DELETE("/tenants/:tenantId/monitored-objects/:monitoredObjectId", platformauth.Policy{Capability: "screening:admin", PrincipalType: platformauth.PrincipalUser}, continuousHandler.DeleteMonitoredObject)
+	v1.POST("/tenants/:tenantId/monitored-objects/:monitoredObjectId/requeue", platformauth.Policy{Capability: "screening:admin", PrincipalType: platformauth.PrincipalUser}, continuousHandler.RequeueMonitoredObject)
 
 	internal := router.Group("/internal")
-	internal.Use(screeningServiceBoundary(cfg.ScreeningIntakeToken, cfg.AuthToken, cfg.ScreeningOperatorToken, cfg.ScreeningCallbackToken))
-	internal.POST("/v1/tenants/:tenantId/decision-screenings", internalDecisionHandler.Create)
-	internal.GET("/screening-capabilities", func(c *gin.Context) {
+	internal.POST("/v1/tenants/:tenantId/decision-screenings", platformauth.Policy{Capability: "screening:intake", PrincipalType: platformauth.PrincipalService}, internalDecisionHandler.Create)
+	internal.GET("/screening-capabilities", platformauth.Policy{Capability: "screening:intake", PrincipalType: platformauth.PrincipalService}, func(c *gin.Context) {
 		capability := providerClient.ManualCapabilities()
 		supported := capability.Configured && capability.Adapter == "opensanctions_match"
 		c.JSON(200, gin.H{"provider_configured": capability.Configured, "matching_settings_supported": supported, "address_supported": supported, "birth_date_supported": supported, "nationality_supported": supported, "country_supported": supported, "registration_number_supported": supported})
 	})
 
-	return router
+	router.GET("/v1/tenants/:tenantId/cases/:caseId/evidence/screenings/:screeningId", platformauth.Policy{Capability: "cases:read", PrincipalType: platformauth.PrincipalUser}, platformauth.CaseEvidence(db, "screening-evidence", "screeningId", screeningHandler.Get))
+
+	if err := router.ValidateCoverage(); err != nil {
+		panic(err)
+	}
+	if cfg.PolicyObserver != nil {
+		cfg.PolicyObserver(router.Inventory())
+	}
+	return engine
 }
 
 func max(a, b int) int {

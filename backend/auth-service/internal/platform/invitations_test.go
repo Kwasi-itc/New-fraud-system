@@ -158,7 +158,7 @@ func TestInvitationCancelResendExpiryAndInviterRevocation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = i.Store.ChangeMember(ctx, raw, c.UserID, c.Version, []string{"tenant_admin", "platform_viewer"}, true); err != nil {
+	if err = i.Store.ChangeMember(ctx, raw, c.UserID, c.Version, []string{"tenant_admin"}, true); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = i.Accept(ctx, digest(token), recipient("stale@example.test", "stale")); !errors.Is(err, ErrDenied) {

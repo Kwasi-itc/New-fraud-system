@@ -3,6 +3,7 @@ package ast_eval
 import (
 	"context"
 	"encoding/json"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,7 +18,7 @@ func TestAggregateCountDecisionUsesHTTPPushdown(t *testing.T) {
 	t.Parallel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/tenants/tenant-1/query/aggregate" {
+		if r.URL.Path != "/v1/tenants/11111111-1111-4111-8111-111111111111/query/aggregate" {
 			t.Fatalf("unexpected path %q", r.URL.Path)
 		}
 		_ = json.NewEncoder(w).Encode(map[string]any{"value": int64(12)})
@@ -40,11 +41,11 @@ func TestAggregateCountDecisionUsesHTTPPushdown(t *testing.T) {
 	}
 
 	value, err := EvaluateNode(context.Background(), node, Runtime{
-		TenantID:                    "tenant-1",
+		TenantID:                    "11111111-1111-4111-8111-111111111111",
 		ObjectID:                    "txn-1",
 		ObjectType:                  "transactions",
 		Fields:                      map[string]any{},
-		TenantDataReader:            ingestionclient.NewHTTPClient(server.URL, time.Second),
+		TenantDataReader:            ingestionclient.NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "decision-engine-service")),
 		AggregatePushdownMode:       AggregatePushdownModeEnabled,
 		AggregatePushdownAggregates: []string{"count"},
 	})
@@ -80,11 +81,11 @@ func TestAggregateSumDecisionUsesHTTPPushdown(t *testing.T) {
 	}
 
 	value, err := EvaluateNode(context.Background(), node, Runtime{
-		TenantID:                    "tenant-1",
+		TenantID:                    "11111111-1111-4111-8111-111111111111",
 		ObjectID:                    "txn-1",
 		ObjectType:                  "transactions",
 		Fields:                      map[string]any{},
-		TenantDataReader:            ingestionclient.NewHTTPClient(server.URL, time.Second),
+		TenantDataReader:            ingestionclient.NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "decision-engine-service")),
 		AggregatePushdownMode:       AggregatePushdownModeEnabled,
 		AggregatePushdownAggregates: []string{"count", "sum"},
 	})
@@ -161,11 +162,11 @@ func TestAggregateHTTPPushdownPreservesNestedORFilters(t *testing.T) {
 	}
 
 	value, err := EvaluateNode(context.Background(), node, Runtime{
-		TenantID:                    "tenant-1",
+		TenantID:                    "11111111-1111-4111-8111-111111111111",
 		ObjectID:                    "txn-1",
 		ObjectType:                  "transactions",
 		Fields:                      map[string]any{},
-		TenantDataReader:            ingestionclient.NewHTTPClient(server.URL, time.Second),
+		TenantDataReader:            ingestionclient.NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "decision-engine-service")),
 		AggregatePushdownMode:       AggregatePushdownModeEnabled,
 		AggregatePushdownAggregates: []string{"count"},
 	})
@@ -233,12 +234,12 @@ func TestAggregateHTTPPushdownResolvesTimeWindowFilters(t *testing.T) {
 	}
 
 	value, err := EvaluateNode(context.Background(), node, Runtime{
-		TenantID:                    "tenant-1",
+		TenantID:                    "11111111-1111-4111-8111-111111111111",
 		ObjectID:                    "txn-1",
 		ObjectType:                  "transactions",
 		Now:                         now,
 		Fields:                      map[string]any{"created_at": now.Format(time.RFC3339)},
-		TenantDataReader:            ingestionclient.NewHTTPClient(server.URL, time.Second),
+		TenantDataReader:            ingestionclient.NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "decision-engine-service")),
 		AggregatePushdownMode:       AggregatePushdownModeEnabled,
 		AggregatePushdownAggregates: []string{"count"},
 	})
@@ -282,11 +283,11 @@ func TestAggregateHTTPPushdownHandlesLargeDatasetScenario(t *testing.T) {
 	}
 
 	value, err := EvaluateNode(context.Background(), node, Runtime{
-		TenantID:                    "tenant-1",
+		TenantID:                    "11111111-1111-4111-8111-111111111111",
 		ObjectID:                    "txn-1",
 		ObjectType:                  "transactions",
 		Fields:                      map[string]any{},
-		TenantDataReader:            ingestionclient.NewHTTPClient(server.URL, time.Second),
+		TenantDataReader:            ingestionclient.NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "decision-engine-service")),
 		AggregatePushdownMode:       AggregatePushdownModeEnabled,
 		AggregatePushdownAggregates: []string{"count"},
 	})
@@ -359,11 +360,11 @@ func TestAggregatePushdownMatchesRemoteAggregateContractOnSupportedRule(t *testi
 	defer server.Close()
 
 	pushdownValue, err := EvaluateNode(context.Background(), node, Runtime{
-		TenantID:                    "tenant-1",
+		TenantID:                    "11111111-1111-4111-8111-111111111111",
 		ObjectID:                    "txn-1",
 		ObjectType:                  "transactions",
 		Fields:                      map[string]any{},
-		TenantDataReader:            ingestionclient.NewHTTPClient(server.URL, time.Second),
+		TenantDataReader:            ingestionclient.NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "decision-engine-service")),
 		AggregatePushdownMode:       AggregatePushdownModeEnabled,
 		AggregatePushdownAggregates: []string{"count"},
 	})
@@ -372,7 +373,7 @@ func TestAggregatePushdownMatchesRemoteAggregateContractOnSupportedRule(t *testi
 	}
 
 	remoteValue, err := EvaluateNode(context.Background(), node, Runtime{
-		TenantID:              "tenant-1",
+		TenantID:              "11111111-1111-4111-8111-111111111111",
 		ObjectID:              "txn-1",
 		ObjectType:            "transactions",
 		Fields:                map[string]any{},

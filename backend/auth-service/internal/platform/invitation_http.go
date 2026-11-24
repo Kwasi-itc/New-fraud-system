@@ -2,29 +2,23 @@ package platform
 
 import (
 	"encoding/json"
-	"github.com/google/uuid"
 	"net/http"
-	"slices"
+
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	"github.com/google/uuid"
 )
 
-func (s Server) auditList(w http.ResponseWriter, r *http.Request) {
-	var in struct {
-		Session string    `json:"session"`
-		After   uuid.UUID `json:"after"`
-	}
-	if !decode(w, r, &in) {
+func (s Server) accountAuditList(w http.ResponseWriter, r *http.Request, p auth.Principal) {
+	if err := checkCurrentCapability(r.Context(), s.Store.DB, p, "audit:read", false); err != nil {
+		s.authorizationError(w, err)
 		return
 	}
-	c, err := s.Store.Resolve(r.Context(), in.Session)
+	after, err := optionalUUID(r.URL.Query().Get("after"))
 	if err != nil {
-		s.fail(w, err)
+		http.Error(w, "invalid cursor", 400)
 		return
 	}
-	if !slices.Contains(c.Roles, "tenant_admin") {
-		s.fail(w, ErrDenied)
-		return
-	}
-	rows, err := s.Store.DB.Query(r.Context(), `SELECT id,actor_id,action,target_id,created_at::text,details FROM identity.audit_events WHERE tenant_id=$1 AND id>$2 ORDER BY id LIMIT 101`, c.TenantID, in.After)
+	rows, err := s.Store.DB.Query(r.Context(), `SELECT id,actor_id,action,target_id,created_at::text,details FROM identity.audit_events WHERE tenant_id=$1 AND id>$2 ORDER BY id LIMIT 101`, p.TenantID, after)
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -82,21 +76,19 @@ func (s Server) invitationStart(w http.ResponseWriter, r *http.Request) {
 	}
 	respond(w, map[string]string{"url": u, "binding": l.Binding})
 }
-func (s Server) invitations(w http.ResponseWriter, r *http.Request) {
+func (s Server) accountInvitations(w http.ResponseWriter, r *http.Request, p auth.Principal) {
 	if s.Invitations == nil {
-		s.fail(w, ErrDenied)
+		s.authorizationError(w, ErrDenied)
 		return
 	}
-	var in struct {
-		Session string    `json:"session"`
-		After   uuid.UUID `json:"after"`
-	}
-	if !decode(w, r, &in) {
-		return
-	}
-	items, err := s.Invitations.List(r.Context(), in.Session, in.After)
+	after, err := optionalUUID(r.URL.Query().Get("after"))
 	if err != nil {
-		s.fail(w, err)
+		http.Error(w, "invalid cursor", 400)
+		return
+	}
+	items, err := s.Invitations.ListForPrincipal(r.Context(), p, after)
+	if err != nil {
+		s.authorizationError(w, err)
 		return
 	}
 	next := ""
@@ -106,13 +98,12 @@ func (s Server) invitations(w http.ResponseWriter, r *http.Request) {
 	}
 	respond(w, map[string]any{"items": items, "next_after": next})
 }
-func (s Server) invitationChange(w http.ResponseWriter, r *http.Request) {
+func (s Server) accountInvitationChange(w http.ResponseWriter, r *http.Request, p auth.Principal) {
 	if s.Invitations == nil {
-		s.fail(w, ErrDenied)
+		s.authorizationError(w, ErrDenied)
 		return
 	}
 	var in struct {
-		Session string    `json:"session"`
 		Action  string    `json:"action"`
 		ID      uuid.UUID `json:"id"`
 		Version int64     `json:"version"`
@@ -124,12 +115,17 @@ func (s Server) invitationChange(w http.ResponseWriter, r *http.Request) {
 	}
 	var err error
 	if in.Action == "create" {
-		_, err = s.Invitations.Create(r.Context(), in.Session, in.ID, in.Email, in.Roles)
+		_, err = s.Invitations.CreateForPrincipal(r.Context(), p, in.ID, in.Email, in.Roles)
 	} else {
-		err = s.Invitations.Change(r.Context(), in.Session, in.ID, in.Version, in.Action)
+		err = s.Invitations.ChangeForPrincipal(r.Context(), p, in.ID, in.Version, in.Action)
 	}
 	if err != nil {
-		s.fail(w, err)
+		s.Logger.Warn("invitation operation denied",
+			"tenant_id", p.TenantID,
+			"actor_id", p.Subject,
+			"action", in.Action,
+			"error", err)
+		s.authorizationError(w, err)
 		return
 	}
 	w.WriteHeader(204)

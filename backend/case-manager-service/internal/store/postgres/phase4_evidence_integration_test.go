@@ -16,7 +16,7 @@ func TestPhase4EvidenceAuthorizationCompletionAndRetention(t *testing.T) {
 	db := testDatabase(t, true)
 	applyMigration(t, db, "000008_evidence_uploads.up.sql")
 	s, tenant, inbox, c := fixture(t, db)
-	ctx := userContext(tenant, "analyst-1")
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
 	content := []byte("Evidence recorded by investigator.\n")
 	upload, err := s.StartUpload(ctx, casepkg.File{TenantID: tenant, CaseID: c.ID, FileName: "evidence.txt", ContentType: "text/plain", FileSize: int64(len(content))})
 	if err != nil {
@@ -28,10 +28,10 @@ func TestPhase4EvidenceAuthorizationCompletionAndRetention(t *testing.T) {
 	if err := s.UploadContent(ctx, tenant, c.ID, upload.ID, []byte("short")); err == nil {
 		t.Fatal("size mismatch accepted")
 	}
-	if _, err := s.PutInboxUser(adminContext(tenant), tenant, inbox.ID, "other", false); err != nil {
+	if _, err := s.PutInboxUser(adminContext(t, db, tenant), tenant, inbox.ID, "3ffa3ad3-369c-52e0-ac06-8ca10a7cd909", false); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.UploadContent(userContext(tenant, "other"), tenant, c.ID, upload.ID, content); !errors.Is(err, casepkg.ErrForbidden) {
+	if err := s.UploadContent(userContext(t, db, tenant, "3ffa3ad3-369c-52e0-ac06-8ca10a7cd909"), tenant, c.ID, upload.ID, content); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatal("upload ownership bypass", err)
 	}
 	if err := s.UploadContent(ctx, tenant, c.ID, upload.ID, content); err != nil {
@@ -70,14 +70,14 @@ func TestPhase4EvidenceAuthorizationCompletionAndRetention(t *testing.T) {
 	if err := db.QueryRow(ctx, `SELECT count(*) FROM case_manager.case_events WHERE resource_id=$1 AND event_type='evidence_attached'`, upload.ID.String()).Scan(&count); err != nil || count != 1 {
 		t.Fatal("duplicate attachment event", count, err)
 	}
-	downloaded, err := newService(db).DownloadEvidence(userContext(tenant, "other"), tenant, c.ID, upload.ID)
+	downloaded, err := newService(db).DownloadEvidence(userContext(t, db, tenant, "3ffa3ad3-369c-52e0-ac06-8ca10a7cd909"), tenant, c.ID, upload.ID)
 	if err != nil || !bytes.Equal(downloaded.Data, content) {
 		t.Fatal("reload download", err)
 	}
-	if _, err := s.DownloadEvidence(userContext(tenant, "outsider"), tenant, c.ID, upload.ID); !errors.Is(err, casepkg.ErrForbidden) {
+	if _, err := s.DownloadEvidence(userContext(t, db, tenant, "be50d326-8955-5631-93ad-aba09b86faa0"), tenant, c.ID, upload.ID); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatal("private evidence leak", err)
 	}
-	if _, err := s.DownloadEvidence(userContext(uuid.New(), "analyst-1"), tenant, c.ID, upload.ID); !errors.Is(err, casepkg.ErrForbidden) {
+	if _, err := s.DownloadEvidence(userContext(t, db, uuid.New(), "2f2e747e-27db-57e8-b365-d06520fe4a76"), tenant, c.ID, upload.ID); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatal("tenant evidence leak", err)
 	}
 	abandoned, err := s.StartUpload(ctx, casepkg.File{TenantID: tenant, CaseID: c.ID, FileName: "abandoned.txt", ContentType: "text/plain", FileSize: 10})

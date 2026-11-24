@@ -12,26 +12,21 @@ import (
 )
 
 type Config struct {
-	ProviderTransport                   *lookup.Transport
-	InternalScreeningPolicy             service.InlinePolicy
-	NameRecognitionURL                  string
-	NameRecognitionToken                string
-	ScreeningIntakeToken                string
-	ScreeningCallbackToken              string
-	WorkflowAuthoringToken              string
-	ScreeningAuthoringToken             string
-	CaseServiceAuthToken                string
-	Port                                string
-	DatabaseURL                         string
-	DatabaseMaxConns                    int
-	DatabaseMinConns                    int
-	DataModelServiceURL                 string
-	IngestionServiceURL                 string
-	GeoIPMMDBPath                       string
-	GeoIPLocale                         string
-	TenantDataReadMode                  string
-	ServiceAuthMode                     string
-	ServiceAuthToken                    string
+	ProviderTransport       *lookup.Transport
+	InternalScreeningPolicy service.InlinePolicy
+	NameRecognitionURL      string
+	NameRecognitionToken    string
+
+	Port                string
+	DatabaseURL         string
+	DatabaseMaxConns    int
+	DatabaseMinConns    int
+	DataModelServiceURL string
+	IngestionServiceURL string
+	GeoIPMMDBPath       string
+	GeoIPLocale         string
+	TenantDataReadMode  string
+
 	ServiceAllowedOrigins               []string
 	WorkflowActionURL                   string
 	ScreeningServiceURL                 string
@@ -246,11 +241,6 @@ func LoadConfig() (Config, error) {
 		InternalScreeningPolicy:             inlinePolicy,
 		NameRecognitionURL:                  os.Getenv("SCREENING_NAME_RECOGNITION_URL"),
 		NameRecognitionToken:                os.Getenv("SCREENING_NAME_RECOGNITION_TOKEN"),
-		ScreeningIntakeToken:                os.Getenv("SCREENING_INTAKE_TOKEN"),
-		ScreeningCallbackToken:              os.Getenv("SCREENING_CALLBACK_TOKEN"),
-		CaseServiceAuthToken:                os.Getenv("CASE_SERVICE_AUTH_TOKEN"),
-		WorkflowAuthoringToken:              os.Getenv("WORKFLOW_AUTHORING_TOKEN"),
-		ScreeningAuthoringToken:             os.Getenv("SCREENING_AUTHORING_TOKEN"),
 		Port:                                getEnv("PORT", "8082"),
 		DatabaseURL:                         os.Getenv("DATABASE_URL"),
 		DatabaseMaxConns:                    databaseMaxConns,
@@ -260,8 +250,6 @@ func LoadConfig() (Config, error) {
 		GeoIPMMDBPath:                       strings.TrimSpace(os.Getenv("GEOIP_MMDB_PATH")),
 		GeoIPLocale:                         strings.TrimSpace(getEnv("GEOIP_LOCALE", "en")),
 		TenantDataReadMode:                  strings.ToLower(getEnv("TENANT_DATA_READ_MODE", "ingestion_http")),
-		ServiceAuthMode:                     getEnv("SERVICE_AUTH_MODE", "token"),
-		ServiceAuthToken:                    os.Getenv("SERVICE_AUTH_TOKEN"),
 		ServiceAllowedOrigins:               parseCSVEnv("SERVICE_ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
 		WorkflowActionURL:                   strings.TrimRight(os.Getenv("WORKFLOW_ACTION_URL"), "/"),
 		ScreeningServiceURL:                 strings.TrimRight(os.Getenv("SCREENING_SERVICE_URL"), "/"),
@@ -312,9 +300,6 @@ func LoadConfig() (Config, error) {
 		WorkerBatchLimit:                    workerBatchLimit,
 	}
 
-	if err := validateScreeningServiceTokens(cfg.ScreeningIntakeToken, cfg.ScreeningCallbackToken, cfg.ServiceAuthToken, cfg.ScreeningAuthoringToken); err != nil {
-		return Config{}, err
-	}
 	if cfg.DatabaseURL == "" {
 		return Config{}, fmt.Errorf("DATABASE_URL is required")
 	}
@@ -326,15 +311,6 @@ func LoadConfig() (Config, error) {
 	}
 	if cfg.TenantDataReadMode == "ingestion_http" && cfg.IngestionServiceURL == "" {
 		return Config{}, fmt.Errorf("INGESTION_SERVICE_URL is required")
-	}
-	if cfg.ServiceAuthMode != "token" && cfg.ServiceAuthMode != "disabled" {
-		return Config{}, fmt.Errorf("SERVICE_AUTH_MODE must be token or disabled")
-	}
-	if cfg.ServiceAuthMode == "token" && strings.TrimSpace(cfg.ServiceAuthToken) == "" {
-		return Config{}, fmt.Errorf("SERVICE_AUTH_TOKEN is required when SERVICE_AUTH_MODE=token")
-	}
-	if cfg.ScreeningAuthoringToken != "" && (len(strings.TrimSpace(cfg.ScreeningAuthoringToken)) < 32 || cfg.ScreeningAuthoringToken == cfg.ServiceAuthToken) {
-		return Config{}, fmt.Errorf("SCREENING_AUTHORING_TOKEN must be at least 32 nonblank bytes and distinct from SERVICE_AUTH_TOKEN")
 	}
 	if cfg.WorkerMode != "batch" && cfg.WorkerMode != "poll" {
 		return Config{}, fmt.Errorf("WORKER_MODE must be either batch or poll")
@@ -652,16 +628,4 @@ func loadDotEnvIfPresent() {
 		value = strings.Trim(value, `"'`)
 		_ = os.Setenv(key, value)
 	}
-}
-
-func validateScreeningServiceTokens(intake, callback, general, operator string) error {
-	for _, token := range []string{intake, callback} {
-		if token != "" && (len(strings.TrimSpace(token)) < 32 || token == general || token == operator) {
-			return fmt.Errorf("screening integration credentials must be at least 32 non-padding characters and distinct from general/operator credentials")
-		}
-	}
-	if intake != "" && intake == callback {
-		return fmt.Errorf("screening intake and callback credentials must differ")
-	}
-	return nil
 }

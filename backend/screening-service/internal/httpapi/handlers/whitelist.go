@@ -43,13 +43,17 @@ func (h WhitelistHandler) Search(c *gin.Context) {
 func (h WhitelistHandler) Create(c *gin.Context) {
 	var body createWhitelistRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 
-	item, err := h.service.CreateWhitelistEntry(c.Request.Context(), c.Param("tenantId"), body.EntityID, body.ReviewerID, body.UniqueCounterpartyIdentifier)
+	actor, ok := humanActor(c)
+	if !ok {
+		return
+	}
+	item, err := h.service.CreateWhitelistEntry(c.Request.Context(), c.Param("tenantId"), body.EntityID, actor, body.UniqueCounterpartyIdentifier)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, item)
@@ -68,7 +72,7 @@ func (h WhitelistHandler) Delete(c *gin.Context) {
 	}
 
 	if err := h.service.DeleteWhitelistEntry(c.Request.Context(), c.Param("tenantId"), entityID, counterparty); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.Status(http.StatusNoContent)

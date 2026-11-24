@@ -11,13 +11,13 @@ const (
 )
 
 type TestRun struct {
-	ID                string
-	TenantID          string
-	ScenarioID        string
-	LiveIterationID   string
+	ID                 string
+	TenantID           string
+	ScenarioID         string
+	LiveIterationID    string
 	PhantomIterationID string
-	Status            TestRunStatus
-	CreatedAt         time.Time
-	ExpiresAt         time.Time
-	UpdatedAt         time.Time
+	Status             TestRunStatus
+	CreatedAt          time.Time
+	ExpiresAt          time.Time
+	UpdatedAt          time.Time
 }

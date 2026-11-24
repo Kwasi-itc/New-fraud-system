@@ -4,6 +4,7 @@ package access
 
 import (
 	"context"
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"strings"
 
 	casepkg "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/domain/case"
@@ -23,14 +24,14 @@ type Principal struct {
 	TenantID     uuid.UUID
 	Admin        bool
 	SessionID    uuid.UUID
+	Capabilities map[string]bool
+	OrigType     auth.PrincipalType
+	OrigID       string
 	AuthzVersion int64
-	// Service principals can operate only within explicitly configured tenants.
-	ServiceTenants []uuid.UUID
 }
 type contextKey struct{}
 
 func WithPrincipal(ctx context.Context, p Principal) context.Context {
-	p.ServiceTenants = append([]uuid.UUID(nil), p.ServiceTenants...)
 	return context.WithValue(ctx, contextKey{}, p)
 }
 func FromContext(ctx context.Context) (Principal, bool) {
@@ -42,16 +43,10 @@ func Tenant(ctx context.Context, tenantID uuid.UUID) (Principal, error) {
 	if !ok || tenantID == uuid.Nil {
 		return Principal{}, casepkg.ErrForbidden
 	}
-	if p.Kind == User && p.TenantID == tenantID {
+	if (p.Kind == User || p.Kind == Service) && p.TenantID == tenantID {
 		return p, nil
 	}
-	if p.Kind == Service {
-		for _, id := range p.ServiceTenants {
-			if id == tenantID {
-				return p, nil
-			}
-		}
-	}
+
 	return Principal{}, casepkg.ErrForbidden
 }
 func Actor(ctx context.Context) *string {
@@ -66,7 +61,7 @@ func Administrator(ctx context.Context, tenantID uuid.UUID) error {
 	if err != nil {
 		return err
 	}
-	if p.Kind != User || !p.Admin {
+	if p.Kind != User || !p.Capabilities["inboxes:manage"] {
 		return casepkg.ErrForbidden
 	}
 	return nil
@@ -80,4 +75,11 @@ func Integration(ctx context.Context, tenantID uuid.UUID) error {
 		return casepkg.ErrForbidden
 	}
 	return nil
+}
+
+func FromPlatform(p auth.Principal) Principal {
+	return Principal{Kind: Kind(p.Type), Subject: p.Subject, TenantID: p.TenantID, Admin: p.Can("cases:access-all"), SessionID: p.SessionID, AuthzVersion: p.AuthzVersion, Capabilities: p.Capabilities, OrigType: p.OrigType, OrigID: p.OrigID}
+}
+func (p Principal) Platform() auth.Principal {
+	return auth.Principal{Type: auth.PrincipalType(p.Kind), Subject: p.Subject, TenantID: p.TenantID, Admin: p.Admin, SessionID: p.SessionID, AuthzVersion: p.AuthzVersion, Capabilities: p.Capabilities, OrigType: p.OrigType, OrigID: p.OrigID}
 }

@@ -3,6 +3,7 @@ package datamodel
 import (
 	"context"
 	"fmt"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -22,13 +23,13 @@ func TestGetTenantModelUsesCacheWithinTTL(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewHTTPClient(server.URL, time.Second)
+	client := NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "decision-engine-service"))
 
-	first, err := client.GetTenantModel(context.Background(), "tenant-1")
+	first, err := client.GetTenantModel(context.Background(), "11111111-1111-4111-8111-111111111111")
 	if err != nil {
 		t.Fatalf("first GetTenantModel failed: %v", err)
 	}
-	second, err := client.GetTenantModel(context.Background(), "tenant-1")
+	second, err := client.GetTenantModel(context.Background(), "11111111-1111-4111-8111-111111111111")
 	if err != nil {
 		t.Fatalf("second GetTenantModel failed: %v", err)
 	}
@@ -51,13 +52,13 @@ func TestGetTenantModelCacheSeparatesTenants(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewHTTPClient(server.URL, time.Second)
+	client := NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "decision-engine-service"))
 
-	if _, err := client.GetTenantModel(context.Background(), "tenant-1"); err != nil {
-		t.Fatalf("tenant-1 GetTenantModel failed: %v", err)
+	if _, err := client.GetTenantModel(context.Background(), "11111111-1111-4111-8111-111111111111"); err != nil {
+		t.Fatalf("11111111-1111-4111-8111-111111111111 GetTenantModel failed: %v", err)
 	}
-	if _, err := client.GetTenantModel(context.Background(), "tenant-2"); err != nil {
-		t.Fatalf("tenant-2 GetTenantModel failed: %v", err)
+	if _, err := client.GetTenantModel(context.Background(), "22222222-2222-4222-8222-222222222222"); err != nil {
+		t.Fatalf("22222222-2222-4222-8222-222222222222 GetTenantModel failed: %v", err)
 	}
 
 	if calls != 2 {
@@ -76,16 +77,16 @@ func TestGetTenantModelRefreshesExpiredCache(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewHTTPClient(server.URL, time.Second)
+	client := NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "decision-engine-service"))
 	client.now = func() time.Time { return now }
 
-	first, err := client.GetTenantModel(context.Background(), "tenant-1")
+	first, err := client.GetTenantModel(context.Background(), "11111111-1111-4111-8111-111111111111")
 	if err != nil {
 		t.Fatalf("first GetTenantModel failed: %v", err)
 	}
 
 	now = now.Add(tenantModelCacheTTL + time.Nanosecond)
-	second, err := client.GetTenantModel(context.Background(), "tenant-1")
+	second, err := client.GetTenantModel(context.Background(), "11111111-1111-4111-8111-111111111111")
 	if err != nil {
 		t.Fatalf("second GetTenantModel failed: %v", err)
 	}
@@ -114,7 +115,7 @@ func TestGetTenantModelCoalescesConcurrentRefreshes(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewHTTPClient(server.URL, time.Second)
+	client := NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "decision-engine-service"))
 
 	var wg sync.WaitGroup
 	start := make(chan struct{})
@@ -126,7 +127,7 @@ func TestGetTenantModelCoalescesConcurrentRefreshes(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			<-start
-			model, err := client.GetTenantModel(context.Background(), "tenant-1")
+			model, err := client.GetTenantModel(context.Background(), "11111111-1111-4111-8111-111111111111")
 			if err != nil {
 				errs <- err
 				return
@@ -165,8 +166,8 @@ func TestGetTenantModelReturnsDependencyErrorOnNon200(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewHTTPClient(server.URL, time.Second)
-	_, err := client.GetTenantModel(context.Background(), "tenant-1")
+	client := NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "decision-engine-service"))
+	_, err := client.GetTenantModel(context.Background(), "11111111-1111-4111-8111-111111111111")
 	if err == nil {
 		t.Fatal("expected non-200 response to return an error")
 	}

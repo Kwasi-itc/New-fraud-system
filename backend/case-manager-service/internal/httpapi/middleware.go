@@ -2,11 +2,7 @@ package httpapi
 
 import (
 	"context"
-	"crypto/subtle"
-	"errors"
 	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/observability"
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
@@ -17,12 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
-
-type AuthConfig struct {
-	Mode      string
-	Token     string
-	TenantIDs []uuid.UUID
-}
 
 func requestContextMiddleware(logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -71,51 +61,11 @@ func recoverRequest() gin.HandlerFunc {
 	}
 }
 
-func authMiddleware(cfg AuthConfig) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if cfg.Mode != "token" || cfg.Token == "" || len(cfg.TenantIDs) == 0 || subtle.ConstantTimeCompare([]byte(c.GetHeader("Authorization")), []byte("Bearer "+cfg.Token)) != 1 {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-			return
-		}
-		c.Request = c.Request.WithContext(access.WithPrincipal(c.Request.Context(), access.Principal{Kind: access.Service, Subject: "case-integration", ServiceTenants: cfg.TenantIDs}))
-		c.Next()
-	}
-}
-
 func requestDeadline(timeout time.Duration) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(c.Request.Context(), timeout)
 		defer cancel()
 		c.Request = c.Request.WithContext(ctx)
-		c.Next()
-	}
-}
-
-func userMiddleware(verifier *access.Verifier, pools ...*pgxpool.Pool) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		header := c.GetHeader("Authorization")
-		if !strings.HasPrefix(header, "Bearer ") {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-			return
-		}
-		p, err := verifier.Verify(strings.TrimPrefix(header, "Bearer "))
-		if err == nil && p.SessionID != uuid.Nil {
-			if len(pools) == 0 || pools[0] == nil {
-				c.AbortWithStatusJSON(503, gin.H{"error": "identity unavailable"})
-				return
-			}
-			err = identity.CheckIdentity(c.Request.Context(), pools[0], identity.Principal{Subject: p.Subject, TenantID: p.TenantID, Admin: p.Admin, SessionID: p.SessionID, AuthzVersion: p.AuthzVersion}, false)
-			var identityError *identity.Error
-			if errors.As(err, &identityError) && identityError.Code == 503 {
-				c.AbortWithStatusJSON(503, gin.H{"error": "identity unavailable"})
-				return
-			}
-		}
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-			return
-		}
-		c.Request = c.Request.WithContext(access.WithPrincipal(c.Request.Context(), p))
 		c.Next()
 	}
 }

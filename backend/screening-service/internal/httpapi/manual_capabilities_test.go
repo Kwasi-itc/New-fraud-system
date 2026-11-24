@@ -2,7 +2,8 @@ package httpapi
 
 import (
 	"encoding/json"
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/provider"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/service"
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,7 @@ func TestManualCapabilitiesAuthorizationAndUnsupportedFields(t *testing.T) {
 	for _, denied := range []bool{true, false} {
 		stub := &manualStub{}
 		router := gin.New()
-		registerManualRoutes(router, func(*http.Request) (identity.Principal, error) {
+		registerManualRoutes(authtest.DomainRouter(router), func(*http.Request) (identity.Principal, error) {
 			if denied {
 				return identity.Principal{}, &identity.Error{Code: 403, Message: "denied"}
 			}
@@ -77,7 +78,7 @@ func TestManualIndividualCapabilityEnforcement(t *testing.T) {
 			in.OperationID = uuid.NewString()
 			stub := &manualStub{}
 			router := gin.New()
-			registerManualRoutes(router, func(*http.Request) (identity.Principal, error) {
+			registerManualRoutes(authtest.DomainRouter(router), func(*http.Request) (identity.Principal, error) {
 				return identity.Principal{TenantID: uuid.New(), Subject: uuid.NewString()}, nil
 			}, stub,
 				provider.ManualCapabilities{Configured: true, EntityTypes: []string{"Person"}, Fields: map[string][]string{"Person": {"name", "address"}}, DatasetSelection: tc.datasets, ThresholdMin: 50, ThresholdMax: 80, LimitMax: 20})

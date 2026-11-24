@@ -29,7 +29,7 @@ func (f fakeTenantModelReader) ListIndexJobs(context.Context, string) ([]ports.M
 	return nil, nil
 }
 
-func (f fakeTenantModelReader) RetryIndexJob(context.Context, string) error {
+func (f fakeTenantModelReader) RetryIndexJob(context.Context, string, string) error {
 	return nil
 }
 

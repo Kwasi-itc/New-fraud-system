@@ -1,6 +1,6 @@
 # PostgreSQL development gateway
 
-The active branch is `main`. The base `docker-compose.yml` runs the PostgreSQL services; `docker-compose.gateway.yml` adds the retained single-origin frontend/API gateway.
+The base `docker-compose.yml` runs the PostgreSQL services; `docker-compose.gateway.yml` adds the retained single-origin frontend/API gateway.
 
 ## Start
 
@@ -16,9 +16,12 @@ For images already built:
 node docker/setup-postgres.mjs --skip-build
 ```
 
-Use `--port 8099` to choose another local port, or `--prepare-only` to prepare and validate configuration without starting containers. The existing local identity setup and required case integration tenant/issuer settings must already be present; see [platform auth](../backend/auth-service/PLATFORM_AUTH.md). This command does not create users, grant memberships or migrate NovaPay.
+Use `--port 8099` to choose another local port, or `--prepare-only` to prepare and validate configuration without starting containers. The existing local identity setup must already be present; see [current authentication setup](../docs/authentication/README.md). This command does not create users, grant memberships or migrate NovaPay.
 
-The command preserves existing provider/platform keys and credentials, creates missing private integration tokens in ignored `.local/postgres-dev/compose.env`, backs up PostgreSQL before service migrations, builds images and starts the stack. It updates only the existing Keycloak `fraud-auth` client's callback allowlist for the gateway origin. Do not run concurrent setup commands.
+The command preserves existing provider/platform keys and credentials, generates missing per-service signing keys and the public trust ring, prepares ignored `.local/postgres-dev/compose.env`, backs up PostgreSQL before service migrations, builds images and starts the stack. It updates only the existing Keycloak `fraud-auth` client's callback allowlist for the gateway origin. Do not run concurrent setup commands.
+
+The local HTTP profile defaults to `AUTH_COOKIE_SECURE=false` and `CASE_SESSION_COOKIE=fraud_session`, so browsers can retain the login-binding and session cookies at `http://localhost:8088`. Cookies remain HttpOnly and SameSite=Lax, and login state/nonce checks remain enabled. HTTPS deployment profiles keep Secure, host-prefixed cookies.
+
 
 ## EC2 RDS setup and initial tenant
 
@@ -68,7 +71,7 @@ enabled.
 
 PostgreSQL main currently has no case/auth Swagger routes. Their health routes are linked from the index. The four Swagger UIs use pinned assets bundled in the gateway image; Redoc retains its external asset dependency.
 
-Only the loopback gateway port is published by the overlay. The browser calls authenticated same-origin `/api/*` routes. Service tokens remain server-side; gateway API requests still require each owning service's credentials and tenant permissions. The gateway does not inject an integration token or bypass authorization.
+Only the loopback gateway port is published by the overlay. The browser calls authenticated same-origin `/api/*` routes. BFF signing keys remain server-side; gateway API requests require a valid human, client or service JWT with the receiving audience, capabilities and tenant permissions. The gateway forwards authentication without injecting a credential or bypassing authorization.
 
 Dashboard and detection pages select the tenant from the authenticated session;
 `NEXT_PUBLIC_DATA_MODEL_TENANT_ID` is not required by the frontend. The gateway
@@ -88,7 +91,7 @@ user. Changing the gateway address does not automatically relink identities.
 When unset, auth selects an existing active membership; an old frontend demo
 tenant setting no longer restricts sign-in.
 
-The application keeps using `new-fraud-system_postgres_data`, with all service-owned schemas in the same logical PostgreSQL database. The retired `fraud-mysql-dev` containers/volumes are separate and retained. Existing PostgreSQL accounts and memberships determine access; MySQL-only logins and NovaPay data are not copied.
+The application reuses the volume selected by `POSTGRES_DATA_VOLUME_NAME` in `.local/postgres-dev/compose.env`, with all service-owned schemas in the same logical PostgreSQL database. Preserve that setting for existing installations; changing the project name must not switch to an empty database. New installations default to `new-fraud-system_postgres_data`. The retired `fraud-mysql-dev` containers/volumes are separate and retained. Existing PostgreSQL accounts and memberships determine access; MySQL-only logins and NovaPay data are not copied.
 
 Screening authoring, rules-list entries, search/history/report pages and investigation results are retained. The PostgreSQL engine dispatches screening after saving decisions; decision-time forced outcomes remain disabled. Configure a real compatible provider separately: no synthetic catalog, external list or internal source collector is activated by this setup. See the [PostgreSQL screening status](../backend/screening-service/POSTGRESQL_PORT_STATUS.md).
 

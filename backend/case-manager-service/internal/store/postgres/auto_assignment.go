@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"os"
 	"time"
 )
 
@@ -44,10 +43,7 @@ func (m Maintenance) AssignWaiting(ctx context.Context, limit int) (int, error) 
 }
 
 func assignOne(ctx context.Context, tx pgx.Tx) (bool, error) {
-	identityFilter := ""
-	if os.Getenv("USER_REQUIRE_SESSION") == "true" {
-		identityFilter = ` AND EXISTS(SELECT 1 FROM identity.memberships im JOIN identity.users iu ON iu.id=im.user_id WHERE im.tenant_id=u.tenant_id AND im.user_id::text=u.user_id AND im.active AND iu.active AND im.roles && ARRAY['case_investigator','case_manager_admin']::text[])`
-	}
+	identityFilter := ` AND EXISTS(SELECT 1 FROM identity.case_actors_v1 im WHERE im.tenant_id=u.tenant_id AND im.user_id::text=u.user_id)`
 	var tenant, inbox, id uuid.UUID
 	err := tx.QueryRow(ctx, `WITH eligible_inboxes AS MATERIALIZED (
  SELECT DISTINCT u.tenant_id,u.inbox_id FROM case_manager.inbox_users u

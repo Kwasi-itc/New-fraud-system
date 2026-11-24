@@ -32,7 +32,7 @@ func (s *countingDataModelReader) ListIndexJobs(context.Context, string) ([]port
 	return nil, nil
 }
 
-func (s *countingDataModelReader) RetryIndexJob(context.Context, string) error {
+func (s *countingDataModelReader) RetryIndexJob(context.Context, string, string) error {
 	return nil
 }
 

@@ -11,7 +11,7 @@ func TestDataModelRoleMigrationAndRevocation(t *testing.T) {
 	_, adminRaw := provision(t, s, tenant, "admin", "tenant_admin")
 	// Reconstruct the v1 role constraint to exercise an actual existing-schema upgrade.
 	if _, err := s.DB.Exec(ctx, `DELETE FROM identity.schema_migrations WHERE version=2;
- ALTER TABLE identity.memberships DROP CONSTRAINT memberships_roles_check;
+ ALTER TABLE identity.memberships DROP CONSTRAINT IF EXISTS memberships_roles_check;
  ALTER TABLE identity.memberships ADD CONSTRAINT memberships_roles_check CHECK(cardinality(roles)>0 AND roles <@ ARRAY['tenant_admin','case_manager_admin','case_investigator']::text[])`); err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +37,7 @@ func TestDataModelRoleMigrationAndRevocation(t *testing.T) {
 		for _, write := range []bool{false, true} {
 			var allowed bool
 			err := s.DB.QueryRow(ctx, "SELECT identity.authorize_data_model_v1($1,$2,$3,$4,$5,false)", user.String(), tenant, v.ID, v.Version, write).Scan(&allowed)
-			if err != nil || allowed != (role == "platform_admin" || !write) {
+			if err != nil || allowed != (!write || role != "platform_viewer") {
 				t.Fatalf("role=%s write=%v allowed=%v err=%v", role, write, allowed, err)
 			}
 		}

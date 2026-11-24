@@ -3,6 +3,8 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
+	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -42,8 +44,9 @@ func TestRouterReadMetricsPoolContract(t *testing.T) {
 		{"implicit_shared", nil, true, 12},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			router := NewRouter(slog.Default(), primary, tc.read, RouterConfig{
-				AuthMode: "token", AuthToken: "test-token", DataModelServiceURL: "http://example.com", HTTPClientTimeout: time.Second,
+			verifier, token := authtest.HumanIdentity(t, uuid.New(), "metrics:read")
+			router := NewRouter(slog.Default(), primary, tc.read, RouterConfig{Verifier: verifier,
+				DataModelServiceURL: "http://example.com", HTTPClientTimeout: time.Second,
 			})
 			request := httptest.NewRequest(http.MethodGet, "/v1/admin/read-metrics", nil)
 			denied := httptest.NewRecorder()
@@ -52,7 +55,7 @@ func TestRouterReadMetricsPoolContract(t *testing.T) {
 				t.Fatalf("unauthenticated metrics status = %d", denied.Code)
 			}
 			request = httptest.NewRequest(http.MethodGet, "/v1/admin/read-metrics", nil)
-			request.Header.Set("Authorization", "Bearer test-token")
+			request.Header.Set("Authorization", "Bearer "+token)
 			response := httptest.NewRecorder()
 			router.ServeHTTP(response, request)
 			if response.Code != http.StatusOK {
@@ -82,14 +85,16 @@ func TestRouterHealthz(t *testing.T) {
 	t.Parallel()
 	gin.SetMode(gin.TestMode)
 
-	router := NewRouter(slog.Default(), nil, nil, RouterConfig{
-		AuthMode:            "disabled",
+	verifier, token := authtest.HumanIdentity(t, uuid.New(), "metrics:read")
+	router := NewRouter(slog.Default(), nil, nil, RouterConfig{Verifier: verifier,
+
 		AllowedOrigins:      []string{"http://localhost:3000"},
 		DataModelServiceURL: "http://example.com",
 		HTTPClientTimeout:   time.Second,
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
@@ -102,8 +107,9 @@ func TestRouterHandlesCORSPreflight(t *testing.T) {
 	t.Parallel()
 	gin.SetMode(gin.TestMode)
 
-	router := NewRouter(slog.Default(), nil, nil, RouterConfig{
-		AuthMode:            "disabled",
+	verifier, token := authtest.HumanIdentity(t, uuid.New(), "metrics:read")
+	router := NewRouter(slog.Default(), nil, nil, RouterConfig{Verifier: verifier,
+
 		AllowedOrigins:      []string{"http://localhost:3000"},
 		DataModelServiceURL: "http://example.com",
 		HTTPClientTimeout:   time.Second,
@@ -111,6 +117,7 @@ func TestRouterHandlesCORSPreflight(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodOptions, "/v1/tenants/test/ingest/accounts/csv", nil)
 	req.Header.Set("Origin", "http://localhost:3000")
+	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
@@ -126,8 +133,9 @@ func TestRouterExposesReadMetricsEndpoint(t *testing.T) {
 	t.Parallel()
 	gin.SetMode(gin.TestMode)
 
-	router := NewRouter(slog.Default(), nil, nil, RouterConfig{
-		AuthMode:            "disabled",
+	verifier, token := authtest.HumanIdentity(t, uuid.New(), "metrics:read")
+	router := NewRouter(slog.Default(), nil, nil, RouterConfig{Verifier: verifier,
+
 		AllowedOrigins:      []string{"http://localhost:3000"},
 		DataModelServiceURL: "http://example.com",
 		HTTPClientTimeout:   time.Second,
@@ -140,6 +148,7 @@ func TestRouterExposesReadMetricsEndpoint(t *testing.T) {
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/admin/read-metrics", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
@@ -159,14 +168,16 @@ func TestRouterExposesDeferredIngestMetricsEndpoint(t *testing.T) {
 	t.Parallel()
 	gin.SetMode(gin.TestMode)
 
-	router := NewRouter(slog.Default(), nil, nil, RouterConfig{
-		AuthMode:            "disabled",
+	verifier, token := authtest.HumanIdentity(t, uuid.New(), "metrics:read")
+	router := NewRouter(slog.Default(), nil, nil, RouterConfig{Verifier: verifier,
+
 		AllowedOrigins:      []string{"http://localhost:3000"},
 		DataModelServiceURL: "http://example.com",
 		HTTPClientTimeout:   time.Second,
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/admin/deferred-ingest-metrics", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 

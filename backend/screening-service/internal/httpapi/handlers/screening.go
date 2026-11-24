@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -62,7 +63,7 @@ type createFileUploadRequest struct {
 func (h ScreeningHandler) Create(c *gin.Context) {
 	var body createScreeningRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 
@@ -81,7 +82,7 @@ func (h ScreeningHandler) Create(c *gin.Context) {
 	if body.ProviderConfig != nil {
 		raw, err := jsonMarshal(body.ProviderConfig)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			screeningError(c, err)
 			return
 		}
 		request.ProviderConfig = raw
@@ -89,7 +90,7 @@ func (h ScreeningHandler) Create(c *gin.Context) {
 
 	item, err := h.service.CreateScreening(c.Request.Context(), c.Param("tenantId"), request)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, item)
@@ -98,7 +99,7 @@ func (h ScreeningHandler) Create(c *gin.Context) {
 func (h ScreeningHandler) CreateFreeform(c *gin.Context) {
 	var body createScreeningRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 
@@ -115,7 +116,7 @@ func (h ScreeningHandler) CreateFreeform(c *gin.Context) {
 	if body.ProviderConfig != nil {
 		raw, err := jsonMarshal(body.ProviderConfig)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			screeningError(c, err)
 			return
 		}
 		request.ProviderConfig = raw
@@ -123,7 +124,7 @@ func (h ScreeningHandler) CreateFreeform(c *gin.Context) {
 
 	item, err := h.service.CreateFreeformScreening(c.Request.Context(), c.Param("tenantId"), request)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, item)
@@ -150,7 +151,7 @@ func (h ScreeningHandler) Get(c *gin.Context) {
 func (h ScreeningHandler) Retry(c *gin.Context) {
 	item, err := h.service.Retry(c.Request.Context(), c.Param("tenantId"), c.Param("screeningId"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, item)
@@ -159,12 +160,24 @@ func (h ScreeningHandler) Retry(c *gin.Context) {
 func (h ScreeningHandler) ReviewMatch(c *gin.Context) {
 	var body reviewMatchRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
-	item, err := h.service.ReviewMatch(c.Request.Context(), c.Param("tenantId"), c.Param("matchId"), body.Status, body.Comment, body.ReviewerID, body.Whitelist)
+	actor, ok := humanActor(c)
+	if !ok {
+		return
+	}
+	if body.Whitelist {
+		p := auth.PrincipalFromContext(c)
+		if !p.Can("screening:admin") {
+			c.AbortWithStatusJSON(403, gin.H{"error": "Whitelist administration capability required."})
+			return
+		}
+		c.Request = c.Request.WithContext(auth.WithCurrentCapability(c.Request.Context(), "screening:admin"))
+	}
+	item, err := h.service.ReviewMatch(c.Request.Context(), c.Param("tenantId"), c.Param("matchId"), body.Status, body.Comment, actor, body.Whitelist)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, item)
@@ -173,12 +186,16 @@ func (h ScreeningHandler) ReviewMatch(c *gin.Context) {
 func (h ScreeningHandler) AddComment(c *gin.Context) {
 	var body addCommentRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
-	item, err := h.service.AddComment(c.Request.Context(), c.Param("tenantId"), c.Param("matchId"), body.Comment, body.AuthorID)
+	actor, ok := humanActor(c)
+	if !ok {
+		return
+	}
+	item, err := h.service.AddComment(c.Request.Context(), c.Param("tenantId"), c.Param("matchId"), body.Comment, actor)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, item)
@@ -187,7 +204,7 @@ func (h ScreeningHandler) AddComment(c *gin.Context) {
 func (h ScreeningHandler) EnrichMatch(c *gin.Context) {
 	item, err := h.service.EnrichMatch(c.Request.Context(), c.Param("tenantId"), c.Param("matchId"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, item)
@@ -196,12 +213,16 @@ func (h ScreeningHandler) EnrichMatch(c *gin.Context) {
 func (h ScreeningHandler) CreateFile(c *gin.Context) {
 	var body createFileRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
-	item, err := h.service.CreateFile(c.Request.Context(), c.Param("tenantId"), c.Param("screeningId"), body.FileName, body.ContentType, body.StorageKey, body.UploadedBy, body.FileSize)
+	actor, ok := humanActor(c)
+	if !ok {
+		return
+	}
+	item, err := h.service.CreateFile(c.Request.Context(), c.Param("tenantId"), c.Param("screeningId"), body.FileName, body.ContentType, body.StorageKey, actor, body.FileSize)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, item)
@@ -210,7 +231,7 @@ func (h ScreeningHandler) CreateFile(c *gin.Context) {
 func (h ScreeningHandler) ListFiles(c *gin.Context) {
 	items, err := h.service.ListFiles(c.Request.Context(), c.Param("tenantId"), c.Param("screeningId"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, items)
@@ -228,12 +249,16 @@ func (h ScreeningHandler) GetFile(c *gin.Context) {
 func (h ScreeningHandler) CreateFileUpload(c *gin.Context) {
 	var body createFileUploadRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
-	file, session, err := h.service.CreateFileUpload(c.Request.Context(), c.Param("tenantId"), c.Param("screeningId"), body.FileName, body.ContentType, body.UploadedBy, body.FileSize)
+	actor, ok := humanActor(c)
+	if !ok {
+		return
+	}
+	file, session, err := h.service.CreateFileUpload(c.Request.Context(), c.Param("tenantId"), c.Param("screeningId"), body.FileName, body.ContentType, actor, body.FileSize)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{
@@ -245,7 +270,7 @@ func (h ScreeningHandler) CreateFileUpload(c *gin.Context) {
 func (h ScreeningHandler) GetFileDownload(c *gin.Context) {
 	item, err := h.service.GetFileDownload(c.Request.Context(), c.Param("tenantId"), c.Param("screeningId"), c.Param("fileId"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, item)

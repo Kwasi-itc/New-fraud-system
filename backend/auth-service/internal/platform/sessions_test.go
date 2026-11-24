@@ -159,12 +159,22 @@ func TestSessionsHTTPPaginationAndValidation(t *testing.T) {
 	if _, err := s.DB.Exec(ctx, `INSERT INTO identity.sessions(id,digest,user_id,tenant_id,expires_at,idle_until) SELECT gen_random_uuid(),decode(md5(n::text),'hex'),$1,$2,now()+interval '1 hour',now()+interval '30 minutes' FROM generate_series(1,101) n`, user, tenant); err != nil {
 		t.Fatal(err)
 	}
-	server := httptest.NewServer(Server{Store: s, ProxyToken: strings.Repeat("x", 32), Logger: slog.New(slog.NewTextHandler(io.Discard, nil))}.Handler())
+	key, publicKey := clientTestKey(t)
+	verifier, proxyToken := testBFFAndPlatform(t, "test", publicKey)
+	current, err := s.Resolve(ctx, raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	humanToken := testHumanToken(t, "test", key, current)
+	server := httptest.NewServer(Server{Store: s, Verifier: verifier, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))}.Handler())
 	defer server.Close()
-	request := func(path, body string, status int) []byte {
+	request := func(method, path, token, body string, status int) []byte {
 		t.Helper()
-		req, _ := http.NewRequest("POST", server.URL+"/internal/sessions/"+path, strings.NewReader(body))
-		req.Header.Set("Authorization", "Bearer "+strings.Repeat("x", 32))
+		req, _ := http.NewRequest(method, server.URL+path, strings.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+token)
+		if body != "" {
+			req.Header.Set("Content-Type", "application/json")
+		}
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatal(err)
@@ -176,7 +186,7 @@ func TestSessionsHTTPPaginationAndValidation(t *testing.T) {
 		}
 		return data
 	}
-	page := request("list", `{"session":"`+raw+`"}`, 200)
+	page := request("GET", "/v1/account/sessions", humanToken, "", 200)
 	var out struct {
 		Items []SessionInfo `json:"items"`
 		After string        `json:"next_after"`
@@ -187,12 +197,12 @@ func TestSessionsHTTPPaginationAndValidation(t *testing.T) {
 	if strings.Contains(string(page), "digest") || strings.Contains(string(page), raw) || strings.Contains(string(page), "access_token") {
 		t.Fatal("secret exposed")
 	}
-	page = request("list", `{"session":"`+raw+`","after":"`+out.After+`"}`, 200)
+	page = request("GET", "/v1/account/sessions?after="+out.After, humanToken, "", 200)
 	if err := json.Unmarshal(page, &out); err != nil || len(out.Items) != 2 || out.After != "" {
 		t.Fatal("second page", err, len(out.Items))
 	}
-	request("revoke", `{"session":"`+raw+`","all":true,"target":"`+uuid.NewString()+`"}`, 400)
-	request("revoke", `{"session":"`+raw+`","user_id":"`+user.String()+`","all":true}`, 400)
-	request("revoke", `{"session":"invalid","all":true}`, 403)
-	request("list", `{"session":"`+raw+`","after":"invalid"}`, 400)
+	request("POST", "/v1/account/sessions/revoke", humanToken, `{"all":true,"target":"`+uuid.NewString()+`"}`, 400)
+	request("POST", "/v1/account/sessions/revoke", humanToken, `{"user_id":"`+user.String()+`","all":true}`, 400)
+	request("POST", "/v1/account/sessions/revoke", humanToken, `{"session":"invalid","all":true}`, 400)
+	request("GET", "/internal/sessions/list", proxyToken, `{"session":"`+raw+`"}`, 404)
 }

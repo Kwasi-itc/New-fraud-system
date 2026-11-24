@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/access"
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -84,15 +86,8 @@ func testDatabase(t *testing.T, migrate bool) *pgxpool.Pool {
 	// Case contributor/name reads depend on the real shared identity owner.
 	// Install its definitions in this generated fixture, as for the other owners;
 	// an empty substitute table would hide schema and migration dependencies.
-	for _, name := range []string{"schema.sql", "schema_v2.sql", "schema_v3.sql"} {
-		path := filepath.Join("..", "..", "..", "..", "auth-service", "internal", "platform", name)
-		content, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, err := db.Exec(ctx, string(content)); err != nil {
-			t.Fatalf("identity owner migration %s: %v", name, err)
-		}
+	if err := authtest.ApplyIdentity(ctx, db, "../../../../auth-service/internal/platform"); err != nil {
+		t.Fatal(err)
 	}
 	if migrate {
 		applyMigration(t, db, "000002_tenant_integrity.up.sql")
@@ -129,12 +124,12 @@ func fixture(t *testing.T, db *pgxpool.Pool) (service.CaseService, uuid.UUID, ca
 	s := newService(db)
 	tenant := uuid.New()
 	seedTenant(t, db, tenant)
-	ctx := adminContext(tenant)
+	ctx := adminContext(t, db, tenant)
 	inbox, err := s.CreateInbox(ctx, service.CreateInboxInput{TenantID: tenant, Name: "Investigations"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.PutInboxUser(ctx, tenant, inbox.ID, "analyst-1", true); err != nil {
+	if _, err := s.PutInboxUser(ctx, tenant, inbox.ID, "2f2e747e-27db-57e8-b365-d06520fe4a76", true); err != nil {
 		t.Fatal(err)
 	}
 	c, err := s.CreateCase(serviceContext(tenant), service.CreateCaseInput{TenantID: tenant, InboxID: inbox.ID, Name: "Initial"}, nil)
@@ -144,20 +139,56 @@ func fixture(t *testing.T, db *pgxpool.Pool) (service.CaseService, uuid.UUID, ca
 	return s, tenant, inbox, c
 }
 
-func adminContext(tenant uuid.UUID) context.Context {
-	return access.WithPrincipal(context.Background(), access.Principal{Kind: access.User, Subject: "admin", TenantID: tenant, Admin: true})
+func adminContext(t *testing.T, db *pgxpool.Pool, tenant uuid.UUID) context.Context {
+	return actorContext(t, db, tenant, "ae6c10d0-0b13-554c-b976-a05d8a18f0cc", "case_manager_admin")
 }
-func userContext(tenant uuid.UUID, user string) context.Context {
-	return access.WithPrincipal(context.Background(), access.Principal{Kind: access.User, Subject: user, TenantID: tenant})
+func userContext(t *testing.T, db *pgxpool.Pool, tenant uuid.UUID, user string) context.Context {
+	return actorContext(t, db, tenant, user, "case_investigator")
+}
+func actorContext(t *testing.T, db *pgxpool.Pool, tenant uuid.UUID, subject, role string) context.Context {
+	t.Helper()
+	ctx := context.Background()
+	uid, err := uuid.Parse(subject)
+	if err != nil {
+		t.Fatal("fixture requires canonical actor UUID", err)
+	}
+	sid := uuid.NewSHA1(uuid.NameSpaceOID, []byte(tenant.String()+subject))
+	var exists bool
+	if err := db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM core.tenants WHERE id=$1)`, tenant).Scan(&exists); err != nil {
+		t.Fatal(err)
+	}
+	if exists {
+		for _, seed := range []struct {
+			sql  string
+			args []any
+		}{
+			{`INSERT INTO identity.users(id,display_name) VALUES($1,'Fixture actor') ON CONFLICT DO NOTHING`, []any{uid}},
+			{`INSERT INTO identity.memberships(tenant_id,user_id,roles) VALUES($1,$2,$3) ON CONFLICT DO NOTHING`, []any{tenant, uid, []string{role}}},
+			{`INSERT INTO identity.sessions(id,digest,tenant_id,user_id,expires_at,idle_until) VALUES($1,$2,$3,$4,now()+interval '1 hour',now()+interval '1 hour') ON CONFLICT DO NOTHING`, []any{sid, []byte(sid.String()), tenant, uid}},
+		} {
+			if _, err := db.Exec(ctx, seed.sql, seed.args...); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	caps := map[string]bool{}
+	for _, cap := range auth.PredefinedRoles()[role] {
+		caps[cap] = true
+	}
+	return access.WithPrincipal(ctx, access.Principal{Kind: access.User, Subject: subject, TenantID: tenant, Admin: caps["cases:access-all"], SessionID: sid, AuthzVersion: 1, Capabilities: caps})
 }
 func serviceContext(tenant uuid.UUID) context.Context {
-	return access.WithPrincipal(context.Background(), access.Principal{Kind: access.Service, Subject: "integration", ServiceTenants: []uuid.UUID{tenant}})
+	return access.WithPrincipal(context.Background(), access.Principal{Kind: access.Service, Subject: "integration", TenantID: tenant})
 }
 func seedTenant(t *testing.T, db *pgxpool.Pool, tenant uuid.UUID) {
 	t.Helper()
 	if _, err := db.Exec(context.Background(), `INSERT INTO core.tenants(id,name,schema_name,status,created_at,updated_at) VALUES($1,$2,$2,'active',now(),now())`, tenant, "test_"+strings.ReplaceAll(tenant.String(), "-", "")); err != nil {
 		t.Fatal(err)
 	}
+	for _, subject := range []string{"2f2e747e-27db-57e8-b365-d06520fe4a76", "ce046d26-69de-593f-893d-c9810a448c58", "3ffa3ad3-369c-52e0-ac06-8ca10a7cd909", "8c3e3a26-0e0c-563f-88ca-6b3502142a33"} {
+		actorContext(t, db, tenant, subject, "case_investigator")
+	}
+
 }
 func seedDecision(t *testing.T, db *pgxpool.Pool, tenant uuid.UUID) uuid.UUID {
 	t.Helper()
@@ -220,7 +251,7 @@ func TestPostgresMutationRollback(t *testing.T) {
 func TestPostgresValidationAndNullableUpdates(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, inbox, c := fixture(t, db)
-	ctx := adminContext(tenant)
+	ctx := adminContext(t, db, tenant)
 	before := count(t, db, "case_events")
 	name := "Should not persist"
 	invalidStatus := casepkg.Status("invalid")
@@ -268,13 +299,13 @@ func TestPostgresValidationAndNullableUpdates(t *testing.T) {
 func TestPostgresLocalTenantRelationships(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, inbox, c := fixture(t, db)
-	ctx := adminContext(tenant)
+	ctx := adminContext(t, db, tenant)
 	other := uuid.New()
 	if _, err := s.CreateCase(ctx, service.CreateCaseInput{TenantID: other, InboxID: inbox.ID, Name: "Wrong tenant"}, nil); err == nil {
 		t.Fatal("cross-tenant inbox accepted")
 	}
 	seedTenant(t, db, other)
-	tag, err := s.CreateTag(adminContext(other), service.CreateTagInput{TenantID: other, Name: "Other tenant"})
+	tag, err := s.CreateTag(adminContext(t, db, other), service.CreateTagInput{TenantID: other, Name: "Other tenant"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -298,7 +329,7 @@ func TestPostgresLocalTenantRelationships(t *testing.T) {
 func TestPostgresUpdateRollbackAndDetailFailure(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, _, c := fixture(t, db)
-	ctx := adminContext(tenant)
+	ctx := adminContext(t, db, tenant)
 	failInserts(t, db, "case_events")
 	name := "Not saved"
 	if _, err := s.UpdateCase(ctx, service.UpdateCaseInput{TenantID: tenant, CaseID: c.ID, Name: &name}, nil); err == nil {
@@ -356,11 +387,11 @@ func (u pauseUOW) WithinTransaction(ctx context.Context, fn func(ports.Repositor
 func TestPostgresConcurrentAssignmentAndRename(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, _, c := fixture(t, db)
-	ctx, cancel := context.WithTimeout(adminContext(tenant), 10*time.Second)
+	ctx, cancel := context.WithTimeout(adminContext(t, db, tenant), 10*time.Second)
 	defer cancel()
 	read, resume := make(chan struct{}), make(chan struct{})
 	paused := service.NewCaseService(ids{}, clock{}, store.NewRepositories(db), pauseUOW{UnitOfWork: store.NewUnitOfWork(db), read: read, resume: resume})
-	name, user := "Renamed", "analyst-1"
+	name, user := "Renamed", "2f2e747e-27db-57e8-b365-d06520fe4a76"
 	renamed, assigned := make(chan error, 1), make(chan error, 1)
 	go func() {
 		_, err := paused.UpdateCase(ctx, service.UpdateCaseInput{TenantID: tenant, CaseID: c.ID, Name: &name}, nil)
@@ -401,7 +432,7 @@ func TestPostgresMigrationPreflightAndRollback(t *testing.T) {
 	applyMigration(t, db, "000004_reliable_intake.down.sql")
 	applyMigration(t, db, "000003_phase1_access.down.sql")
 	applyMigration(t, db, "000002_tenant_integrity.down.sql")
-	ctx := adminContext(tenant)
+	ctx := adminContext(t, db, tenant)
 	other := uuid.New()
 	if _, err := db.Exec(ctx, `UPDATE case_manager.cases SET tenant_id=$1 WHERE id=$2`, other, c.ID); err != nil {
 		t.Fatal(err)

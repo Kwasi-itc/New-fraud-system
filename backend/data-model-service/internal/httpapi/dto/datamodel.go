@@ -318,8 +318,8 @@ type PortableImportSummary struct {
 }
 
 type PortableDataModelDocument struct {
-	Version    string                 `json:"version"`
-	RevisionID string                 `json:"revision_id,omitempty"`
+	Version    string                  `json:"version"`
+	RevisionID string                  `json:"revision_id,omitempty"`
 	Tables     []PortableTableDocument `json:"tables"`
 	Links      []PortableLinkDocument  `json:"links"`
 	Pivots     []PortablePivotDocument `json:"pivots"`

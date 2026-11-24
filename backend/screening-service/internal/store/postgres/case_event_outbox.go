@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/ports"
 	"github.com/jackc/pgx/v5"
@@ -19,7 +20,11 @@ func (r CaseEventRepository) Enqueue(ctx context.Context, id, tenant, kind strin
 	if err != nil {
 		return err
 	}
-	_, err = r.db.Exec(ctx, `INSERT INTO screening.case_event_outbox(id,tenant_id,kind,payload) VALUES($1,$2,$3,$4)`, id, tenant, kind, body)
+	origin, err := json.Marshal(platformauth.CaptureOrigin(ctx))
+	if err != nil {
+		return err
+	}
+	_, err = r.db.Exec(ctx, `INSERT INTO screening.case_event_outbox(id,tenant_id,kind,payload,originator) VALUES($1,$2,$3,$4,$5)`, id, tenant, kind, body, origin)
 	return err
 }
 
@@ -30,7 +35,7 @@ func (r CaseEventRepository) Claim(ctx context.Context) (*ports.CaseEvent, error
  WHERE (status='pending' AND available_at<=now()) OR (status='delivering' AND lease_until<=now())
  ORDER BY available_at,created_at,id LIMIT 1 FOR UPDATE SKIP LOCKED)
  UPDATE screening.case_event_outbox o SET status='delivering',attempts=attempts+1,lease_until=now()+interval '60 seconds'
- FROM candidate c WHERE o.id=c.id RETURNING o.id,o.kind,o.payload,o.attempts`).Scan(&item.ID, &item.Kind, &item.Payload, &item.Attempts)
+ FROM candidate c WHERE o.id=c.id RETURNING o.id,o.kind,o.payload,o.attempts,o.originator`).Scan(&item.ID, &item.Kind, &item.Payload, &item.Attempts, &item.Origin)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}

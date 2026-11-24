@@ -32,17 +32,16 @@ func TestManualScreeningIntakeAtomicityAuthorizationAndConcurrency(t *testing.T)
 		t.Fatal(err)
 	}
 	exec(string(schema))
-	inbox, err := s.CreateInbox(adminContext(tenant), service.CreateInboxInput{TenantID: tenant, Name: "Manual investigations"})
+	inbox, err := s.CreateInbox(adminContext(t, db, tenant), service.CreateInboxInput{TenantID: tenant, Name: "Manual investigations"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("USER_REQUIRE_SESSION", "true")
 	user, sid := uuid.New(), uuid.New()
 	exec(`INSERT INTO identity.users(id,display_name) VALUES($1,'Synthetic investigator')`, user)
 	exec(`INSERT INTO identity.memberships(user_id,tenant_id,roles) VALUES($1,$2,ARRAY['case_investigator'])`, user, tenant)
 	exec(`INSERT INTO identity.sessions(id,user_id,tenant_id,digest,expires_at,idle_until) VALUES($1,$2,$3,'manual-intake',now()+interval '1 hour',now()+interval '1 hour')`, sid, user, tenant)
 	exec(`INSERT INTO case_manager.inbox_users(id,tenant_id,inbox_id,user_id,created_at) VALUES($1,$2,$3,$4,now())`, uuid.New(), tenant, inbox.ID, user.String())
-	principal := access.Principal{Kind: access.User, Subject: user.String(), TenantID: tenant, SessionID: sid, AuthzVersion: 1}
+	principal := access.Principal{Capabilities: map[string]bool{"cases:read": true, "cases:write": true, "cases:review": true}, Kind: access.User, Subject: user.String(), TenantID: tenant, SessionID: sid, AuthzVersion: 1}
 	verified := access.WithPrincipal(ctx, principal)
 	seed := func(actor string, status string) service.ManualScreeningInput {
 		t.Helper()
@@ -82,7 +81,7 @@ func TestManualScreeningIntakeAtomicityAuthorizationAndConcurrency(t *testing.T)
 		if _, err := s.InvestigateManualScreening(serviceContext(tenant), in); !errors.Is(err, casepkg.ErrForbidden) {
 			t.Fatal("service bypass", err)
 		}
-		if _, err := s.InvestigateManualScreening(userContext(tenant, user.String()), in); !errors.Is(err, casepkg.ErrForbidden) {
+		if _, err := s.InvestigateManualScreening(access.WithPrincipal(ctx, access.Principal{Kind: access.User, Subject: user.String(), TenantID: tenant, Capabilities: principal.Capabilities}), in); !errors.Is(err, casepkg.ErrForbidden) {
 			t.Fatal("sessionless bypass", err)
 		}
 		failed := seed(user.String(), "failed")

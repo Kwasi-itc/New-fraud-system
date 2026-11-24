@@ -3,9 +3,8 @@ package privatelists
 import (
 	"context"
 	"errors"
-	"strings"
 
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -15,71 +14,41 @@ var ErrConflict = errors.New("private_list_conflict")
 var ErrNotFound = errors.New("private_list_not_found")
 
 type Policy struct {
-	ImportRoles  []string
-	ApproveRoles []string
+	ImportCapability  string
+	ApproveCapability string
 }
 
-// Approved by the user: both operations belong to tenant administrators, with
-// a different authenticated person required by the publication transaction.
 func TenantAdministratorPolicy() Policy {
-	return Policy{ImportRoles: []string{"tenant_admin"}, ApproveRoles: []string{"tenant_admin"}}
+	return Policy{"private-lists:import", "private-lists:approve"}
 }
-
-func NewPolicy(importRoles, approveRoles string) (Policy, error) {
-	parse := func(raw string) ([]string, error) {
-		out := []string{}
-		seen := map[string]bool{}
-		known := map[string]bool{"tenant_admin": true, "case_manager_admin": true, "case_investigator": true, "platform_viewer": true, "platform_builder": true, "platform_publisher": true, "platform_admin": true}
-		if raw == "" {
-			return out, nil
-		}
-		for _, role := range strings.Split(raw, ",") {
-			role = strings.TrimSpace(role)
-			if !known[role] || seen[role] {
-				return nil, ErrPolicy
-			}
-			seen[role] = true
-			out = append(out, role)
-		}
-		return out, nil
+func NewPolicy(importCapability, approveCapability string) (Policy, error) {
+	if importCapability == "" && approveCapability == "" {
+		return Policy{}, nil
 	}
-	in, e := parse(importRoles)
-	if e != nil {
-		return Policy{}, e
-	}
-	approve, e := parse(approveRoles)
-	if e != nil {
-		return Policy{}, e
-	}
-	if (len(in) == 0) != (len(approve) == 0) {
+	if importCapability != "private-lists:import" || approveCapability != "private-lists:approve" {
 		return Policy{}, ErrPolicy
 	}
-	return Policy{in, approve}, nil
+	return TenantAdministratorPolicy(), nil
 }
-func (p Policy) Configured() bool { return len(p.ImportRoles) > 0 && len(p.ApproveRoles) > 0 }
-func (p Policy) readRoles() []string {
-	out := []string{}
-	seen := map[string]bool{}
-	for _, role := range append(append([]string{}, p.ImportRoles...), p.ApproveRoles...) {
-		if !seen[role] {
-			seen[role] = true
-			out = append(out, role)
-		}
-	}
-	return out
-}
+func (p Policy) Configured() bool { return p.ImportCapability != "" && p.ApproveCapability != "" }
 func (p Policy) check(ctx context.Context, q interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
 }, actor identity.Principal, action string, lock bool) error {
 	if !p.Configured() {
 		return ErrPolicy
 	}
-	roles := p.readRoles()
+	capability := "private-lists:read"
 	if action == "import" {
-		roles = p.ImportRoles
+		capability = p.ImportCapability
 	}
 	if action == "approve" {
-		roles = p.ApproveRoles
+		capability = p.ApproveCapability
 	}
-	return identity.CheckRoles(ctx, q, actor, roles, lock)
+	if !actor.IsHuman() || !actor.Can(capability) {
+		return identity.Forbidden()
+	}
+	if !lock {
+		return nil
+	}
+	return identity.CheckCapability(ctx, q, actor, capability, true)
 }

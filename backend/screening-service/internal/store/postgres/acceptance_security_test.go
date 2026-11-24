@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/privatelists"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"

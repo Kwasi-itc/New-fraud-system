@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/internalprovider"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/privatelists"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourcedata"
@@ -303,8 +303,8 @@ func TestAcceptanceLogicalRestorePreservesEvidenceAndResumesWorkers(t *testing.T
 	}
 	caseURL, _ := startCaseServer(t, restored, os.Getenv("CASE_MANAGER_INTEGRATION_BINARY"), tenant)
 	decisionURL, _, _ := startInvestigatorServer(t, restored, os.Getenv("DECISION_INTEGRATION_BINARY"), tenant, "DATA_MODEL_SERVICE_URL="+h.modelURL, "INTERNAL_SCREENING_INLINE_ENABLED=true", "INTERNAL_SCREENING_FAILURE_POLICY=error")
-	sourceURL, _, _ := startInvestigatorServer(t, restored, os.Getenv("SCREENING_INTEGRATION_BINARY"), tenant, "USER_JWT_KEYS_FILE="+h.keysFile, "USER_REQUIRE_SESSION=true", "SCREENING_PROVIDER_URL=")
-	startJourneyWorker(t, restored, os.Getenv("SCREENING_WORKER_INTEGRATION_BINARY"), "SCREENING_PROVIDER_URL=", "CASE_SERVICE_URL="+caseURL, "CASE_SERVICE_AUTH_TOKEN="+h.token, "DECISION_ENGINE_URL="+decisionURL)
+	sourceURL, _, _ := startInvestigatorServer(t, restored, os.Getenv("SCREENING_INTEGRATION_BINARY"), tenant, "SCREENING_PROVIDER_URL=")
+	startJourneyWorker(t, restored, os.Getenv("SCREENING_WORKER_INTEGRATION_BINARY"), "SCREENING_PROVIDER_URL=", "CASE_SERVICE_URL="+caseURL, "DECISION_ENGINE_URL="+decisionURL)
 	startJourneyWorker(t, restored, os.Getenv("DECISION_WORKER_INTEGRATION_BINARY"), "OUTBOX_PUBLISHER_URL="+h.receiverURL+"/events", "SCREENING_SERVICE_URL="+sourceURL)
 	begin = time.Now()
 	waitFor(t, func() bool {

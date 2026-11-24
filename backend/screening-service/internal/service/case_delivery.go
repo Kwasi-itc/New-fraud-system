@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"log/slog"
 	"time"
 
@@ -33,7 +34,7 @@ func (s CaseDeliveryService) RunBatch(ctx context.Context, limit int) error {
 		}
 		// No database transaction/lock is held across the network request.
 		deliveryCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-		err = s.deliver(deliveryCtx, *item)
+		err = s.deliver(platformauth.WithOrigin(deliveryCtx, item.Origin), *item)
 		cancel()
 		finishCtx, stop := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		finishErr := s.repo.Finish(finishCtx, *item, err)

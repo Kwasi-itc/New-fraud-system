@@ -76,7 +76,7 @@ func TestDecisionArrivalCreationReviewAndTransfer(t *testing.T) {
 		t.Fatal("unexpected primary intake", item)
 	}
 	until := time.Now().Add(time.Hour)
-	if err := s.Snooze(userContext(tenant, "analyst-1"), tenant, caseID, &until, nil); err != nil {
+	if err := s.Snooze(userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76"), tenant, caseID, &until, nil); err != nil {
 		t.Fatal(err)
 	}
 	second, _ := seedDecisionArrival(t, db, tenant, decision, nil, 0)
@@ -87,7 +87,7 @@ func TestDecisionArrivalCreationReviewAndTransfer(t *testing.T) {
 	if err != nil || snoozed.SnoozedUntil == nil {
 		t.Fatal("arrival cleared snooze", err)
 	}
-	if _, err := s.CloseCase(userContext(tenant, "analyst-1"), tenant, caseID, casepkg.OutcomeFalsePositive, "Reviewed"); err != nil {
+	if _, err := s.CloseCase(userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76"), tenant, caseID, casepkg.OutcomeFalsePositive, "Reviewed"); err != nil {
 		t.Fatal(err)
 	}
 	third, _ := seedDecisionArrival(t, db, tenant, decision, nil, 1)
@@ -102,7 +102,7 @@ func TestDecisionArrivalCreationReviewAndTransfer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := s.TransferDecision(userContext(tenant, "analyst-1"), service.TransferDecisionInput{TenantID: tenant, FromCaseID: caseID, ToCaseID: target.ID, DecisionID: decision, OperationID: uuid.New(), Reason: "Correction"}); err != nil {
+	if err := s.TransferDecision(userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76"), service.TransferDecisionInput{TenantID: tenant, FromCaseID: caseID, ToCaseID: target.ID, DecisionID: decision, OperationID: uuid.New(), Reason: "Correction"}); err != nil {
 		t.Fatal(err)
 	}
 	fourth, _ := seedDecisionArrival(t, db, tenant, decision, nil, 1)
@@ -227,7 +227,7 @@ func TestDecisionArrivalConcurrentWorkflowAndManualAttachment(t *testing.T) {
 				defer wg.Done()
 				<-start
 				if manual {
-					_, err := s.AddDecision(userContext(tenant, "analyst-1"), service.AddDecisionInput{TenantID: tenant, CaseID: existing.ID, DecisionID: decision}, nil)
+					_, err := s.AddDecision(userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76"), service.AddDecisionInput{TenantID: tenant, CaseID: existing.ID, DecisionID: decision}, nil)
 					if errors.Is(err, casepkg.ErrConflict) {
 						err = nil
 					}

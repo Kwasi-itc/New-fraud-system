@@ -1,3 +1,4 @@
+import { serviceBearer } from "./service-identity.mjs";
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,17 +35,15 @@ function parse(file) {
 
 const projectDirectory = path.join(root, '.local', project);
 const composeEnvPath = path.join(projectDirectory, 'compose.env');
-const serviceEnvPath = path.join(projectDirectory, 'data-model.env');
+const serviceEnvPath = path.join(projectDirectory, 'platform-admin-cli.env');
 const config = parse(composeEnvPath);
 const serviceConfig = parse(serviceEnvPath);
 if (!existsSync(composeEnvPath)) {
   throw new Error(`Missing ${path.relative(root, composeEnvPath)}. Run docker/setup-postgres-ec2.mjs first.`);
 }
 
-const token = serviceConfig.DATA_MODEL_SERVICE_TOKEN || serviceConfig.SERVICE_AUTH_TOKEN || config.DATA_MODEL_SERVICE_TOKEN;
-if (!token) {
-  throw new Error(`DATA_MODEL_SERVICE_TOKEN is missing from ${path.relative(root, serviceEnvPath)}.`);
-}
+if (!serviceConfig.PLATFORM_AUTH_SIGNING_KEY_ID || serviceConfig.PLATFORM_AUTH_SERVICE_ID !== 'platform-admin-cli') throw new Error('The platform administration signing identity is missing. Rerun standardized platform key setup.');
+const signingFile = path.join(projectDirectory, 'platform-admin-cli-private.pem');
 
 const baseUrl = 'http://data-model-service:8080';
 const timeout = 60_000;
@@ -71,7 +70,7 @@ async function requestJson(method, pathname, body) {
     response = await fetch(`${baseUrl}${pathname}`, {
       method,
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${serviceBearer(signingFile, serviceConfig.PLATFORM_AUTH_SIGNING_KEY_ID, "platform-admin-cli", "urn:fraud:data-model-service", ["tenants:provision"])}`,
         ...(body ? { 'Content-Type': 'application/json' } : {}),
       },
       ...(body ? { body: JSON.stringify(body) } : {}),

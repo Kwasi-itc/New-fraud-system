@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -95,6 +96,8 @@ func TestScreeningHandlerCreateFileUploadReturnsSession(t *testing.T) {
 	}
 	raw, _ := json.Marshal(body)
 	req := httptest.NewRequest(http.MethodPost, "/v1/tenants/tenant-1/screenings/screening-1/file-uploads", bytes.NewReader(raw))
+	actor := uuid.NewString()
+	req = req.WithContext(auth.WithTestPrincipal(req.Context(), auth.Principal{Type: auth.PrincipalUser, Subject: actor}))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
@@ -105,6 +108,11 @@ func TestScreeningHandlerCreateFileUploadReturnsSession(t *testing.T) {
 	}
 	if !bytes.Contains(rec.Body.Bytes(), []byte(`"upload_url":"https://upload.example/test-key"`)) {
 		t.Fatalf("expected upload session in response, got %s", rec.Body.String())
+	}
+	for _, file := range store.files.items {
+		if file.UploadedBy != actor {
+			t.Fatalf("uploader = %q, want authenticated actor %q", file.UploadedBy, actor)
+		}
 	}
 }
 

@@ -19,10 +19,10 @@ type FieldEnumValueService struct {
 }
 
 type CreateFieldEnumValueInput struct {
-	FieldID    uuid.UUID
-	Value      string
-	Label      string
-	SortOrder  int
+	FieldID   uuid.UUID
+	Value     string
+	Label     string
+	SortOrder int
 }
 
 type UpdateFieldEnumValueInput struct {

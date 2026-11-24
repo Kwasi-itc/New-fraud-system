@@ -18,7 +18,7 @@ func TestScreeningReadPrivateBoundary(t *testing.T) {
 	}
 	defer db.Close()
 	token := strings.Repeat("s", 32)
-	router := NewRouter(slog.Default(), db, RouterConfig{AuthMode: "disabled", ScreeningAuthoringToken: token})
+	router := NewRouter(slog.Default(), db, RouterConfig{})
 	path := "/internal/screening-authoring/tenants/11111111-1111-4111-8111-111111111111/decisions/44444444-4444-4444-8444-444444444444/screenings"
 	for _, tc := range []struct {
 		token, user, session, version string
@@ -26,8 +26,8 @@ func TestScreeningReadPrivateBoundary(t *testing.T) {
 	}{
 		{"", "", "", "", 401},
 		{"wrong", "", "", "", 401},
-		{token, "", "", "", 400},
-		{token, "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "0", 403},
+		{token, "", "", "", 401},
+		{token, "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222", "0", 401},
 	} {
 		req := httptest.NewRequest("GET", path, nil)
 		req.Header.Set("Authorization", "Bearer "+tc.token)

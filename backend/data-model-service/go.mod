@@ -3,8 +3,9 @@ module github.com/Kwasi-itc/New-fraud-system/backend/data-model-service
 go 1.25.0
 
 require (
-	github.com/Kwasi-itc/New-fraud-system/backend/investigator v0.0.0
+	github.com/Kwasi-itc/New-fraud-system/backend/platform-auth v0.0.0
 	github.com/gin-gonic/gin v1.10.1
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.8.0
@@ -12,7 +13,7 @@ require (
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.31.0
 )
 
-replace github.com/Kwasi-itc/New-fraud-system/backend/investigator => ../investigator
+replace github.com/Kwasi-itc/New-fraud-system/backend/platform-auth => ../platform-auth
 
 require (
 	github.com/bytedance/sonic v1.11.6 // indirect
@@ -26,7 +27,6 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
-	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect

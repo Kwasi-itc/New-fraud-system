@@ -11,7 +11,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/privatelists"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourceconnectors"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourcedata"
@@ -62,7 +62,7 @@ func (s Service) authorize(ctx context.Context, q interface {
 	if e != nil || !operator {
 		return ErrAuthority
 	}
-	return identity.CheckRoles(ctx, q, p, []string{"tenant_admin", "case_manager_admin", "case_investigator", "platform_viewer", "platform_builder", "platform_publisher", "platform_admin"}, lock)
+	return identity.CheckCapability(ctx, q, p, "source-notices:read", lock)
 }
 func (s Service) begin(ctx context.Context, p identity.Principal) (pgx.Tx, error) {
 	if s.DB == nil {

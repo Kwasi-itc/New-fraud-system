@@ -21,14 +21,14 @@ func TestDecisionSelectionsAccessAndBounds(t *testing.T) {
 	seedTenant(t, db, foreignTenant)
 	foreign := seedDecision(t, db, foreignTenant)
 	ids := []uuid.UUID{unlinked, linked, foreign, uuid.New()}
-	got, err := s.DecisionSelections(userContext(tenant, "analyst-1"), tenant, ids)
+	got, err := s.DecisionSelections(userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76"), tenant, ids)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(got) != 4 || got[0].State != "unlinked" || got[1].State != "linked" || got[1].CaseID == nil || *got[1].CaseID != c.ID || got[2].State != "unavailable" || got[3].State != "unavailable" {
 		t.Fatalf("unexpected selections: %+v", got)
 	}
-	private, err := s.DecisionSelections(userContext(tenant, "outsider"), tenant, []uuid.UUID{linked, foreign})
+	private, err := s.DecisionSelections(userContext(t, db, tenant, "be50d326-8955-5631-93ad-aba09b86faa0"), tenant, []uuid.UUID{linked, foreign})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,28 +37,28 @@ func TestDecisionSelectionsAccessAndBounds(t *testing.T) {
 			t.Fatal("private resource leaked", item)
 		}
 	}
-	if _, err := s.DecisionSelections(userContext(foreignTenant, "analyst-1"), tenant, ids); !errors.Is(err, casepkg.ErrForbidden) {
+	if _, err := s.DecisionSelections(userContext(t, db, foreignTenant, "2f2e747e-27db-57e8-b365-d06520fe4a76"), tenant, ids); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatal("tenant boundary", err)
 	}
 	if _, err := s.DecisionSelections(serviceContext(tenant), tenant, ids); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatal("service boundary", err)
 	}
 	for _, invalid := range [][]uuid.UUID{nil, {uuid.Nil}, {linked, linked}, make([]uuid.UUID, 101)} {
-		if _, err := s.DecisionSelections(adminContext(tenant), tenant, invalid); err == nil {
+		if _, err := s.DecisionSelections(adminContext(t, db, tenant), tenant, invalid); err == nil {
 			t.Fatal("accepted invalid selection")
 		}
 	}
-	if _, err := s.CloseCase(adminContext(tenant), tenant, c.ID, casepkg.OutcomeFalsePositive, "Reviewed"); err != nil {
+	if _, err := s.CloseCase(adminContext(t, db, tenant), tenant, c.ID, casepkg.OutcomeFalsePositive, "Reviewed"); err != nil {
 		t.Fatal(err)
 	}
-	got, err = s.DecisionSelections(adminContext(tenant), tenant, []uuid.UUID{linked})
+	got, err = s.DecisionSelections(adminContext(t, db, tenant), tenant, []uuid.UUID{linked})
 	if err != nil || got[0].CaseStatus == nil || *got[0].CaseStatus != "closed" {
 		t.Fatal("closed ownership lost", got, err)
 	}
-	if err := s.RemoveInboxUser(adminContext(tenant), tenant, inbox.ID, "analyst-1"); err != nil {
+	if err := s.RemoveInboxUser(adminContext(t, db, tenant), tenant, inbox.ID, "2f2e747e-27db-57e8-b365-d06520fe4a76"); err != nil {
 		t.Fatal(err)
 	}
-	got, err = s.DecisionSelections(userContext(tenant, "analyst-1"), tenant, []uuid.UUID{linked})
+	got, err = s.DecisionSelections(userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76"), tenant, []uuid.UUID{linked})
 	if err != nil || got[0].State != "unavailable" {
 		t.Fatal("revocation", got, err)
 	}
@@ -77,7 +77,7 @@ func TestManualCreateReceiptConcurrencyAndAuthorization(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			item, err := s.CreateCase(adminContext(tenant), in, nil)
+			item, err := s.CreateCase(adminContext(t, db, tenant), in, nil)
 			results <- item
 			errs <- err
 		}()
@@ -101,33 +101,33 @@ func TestManualCreateReceiptConcurrencyAndAuthorization(t *testing.T) {
 		t.Fatal("non-atomic creation")
 	}
 	history := count(t, db, "case_events")
-	if _, err := s.CloseCase(adminContext(tenant), tenant, caseID, casepkg.OutcomeFalsePositive, "Done"); err != nil {
+	if _, err := s.CloseCase(adminContext(t, db, tenant), tenant, caseID, casepkg.OutcomeFalsePositive, "Done"); err != nil {
 		t.Fatal(err)
 	}
 	afterClose := count(t, db, "case_events")
 	if afterClose <= history {
 		t.Fatal("closure not recorded")
 	}
-	replayed, err := s.CreateCase(adminContext(tenant), in, nil)
+	replayed, err := s.CreateCase(adminContext(t, db, tenant), in, nil)
 	if err != nil || replayed.ID != caseID || replayed.Status != casepkg.StatusClosed || count(t, db, "case_events") != afterClose {
 		t.Fatal("replay mutated case", err)
 	}
 	changed := in
 	changed.Name = "Changed"
-	if _, err := s.CreateCase(adminContext(tenant), changed, nil); !errors.Is(err, casepkg.ErrConflict) {
+	if _, err := s.CreateCase(adminContext(t, db, tenant), changed, nil); !errors.Is(err, casepkg.ErrConflict) {
 		t.Fatal("changed request replay", err)
 	}
-	if _, err := s.CreateCase(userContext(tenant, "analyst-1"), in, nil); !errors.Is(err, casepkg.ErrConflict) {
+	if _, err := s.CreateCase(userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76"), in, nil); !errors.Is(err, casepkg.ErrConflict) {
 		t.Fatal("actor not bound", err)
 	}
-	if _, err := s.CreateCase(userContext(uuid.New(), "admin"), in, nil); !errors.Is(err, casepkg.ErrForbidden) {
+	if _, err := s.CreateCase(userContext(t, db, uuid.New(), "ae6c10d0-0b13-554c-b976-a05d8a18f0cc"), in, nil); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatal("foreign replay", err)
 	}
 	newOp := uuid.New()
 	conflicting := in
 	conflicting.OperationID = &newOp
 	conflicting.DecisionIDs = []uuid.UUID{seedDecision(t, db, tenant), in.DecisionIDs[0]}
-	if _, err := s.CreateCase(adminContext(tenant), conflicting, nil); !errors.Is(err, casepkg.ErrConflict) {
+	if _, err := s.CreateCase(adminContext(t, db, tenant), conflicting, nil); !errors.Is(err, casepkg.ErrConflict) {
 		t.Fatal("owned decision accepted", err)
 	}
 	if count(t, db, "cases") != before+1 || count(t, db, "case_decisions") != 2 {
@@ -144,7 +144,7 @@ func TestManualCreateReceiptRollbackAndRevocation(t *testing.T) {
 	events := count(t, db, "case_events")
 	outbox := count(t, db, "outbox_events")
 	failInserts(t, db, "intake_receipts")
-	if _, err := s.CreateCase(userContext(tenant, "analyst-1"), in, nil); err == nil {
+	if _, err := s.CreateCase(userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76"), in, nil); err == nil {
 		t.Fatal("expected receipt failure")
 	}
 	if count(t, db, "cases") != before || count(t, db, "case_events") != events || count(t, db, "outbox_events") != outbox || count(t, db, "case_decisions") != 0 {
@@ -153,21 +153,21 @@ func TestManualCreateReceiptRollbackAndRevocation(t *testing.T) {
 	if _, err := db.Exec(context.Background(), `DROP TRIGGER fail_test_write ON case_manager.intake_receipts`); err != nil {
 		t.Fatal(err)
 	}
-	item, err := s.CreateCase(userContext(tenant, "analyst-1"), in, nil)
+	item, err := s.CreateCase(userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76"), in, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.CloseCase(adminContext(tenant), tenant, item.ID, casepkg.OutcomeFalsePositive, "Done"); err != nil {
+	if _, err := s.CloseCase(adminContext(t, db, tenant), tenant, item.ID, casepkg.OutcomeFalsePositive, "Done"); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.RemoveInboxUser(adminContext(tenant), tenant, inbox.ID, "analyst-1"); err != nil {
+	if err := s.RemoveInboxUser(adminContext(t, db, tenant), tenant, inbox.ID, "2f2e747e-27db-57e8-b365-d06520fe4a76"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.CreateCase(userContext(tenant, "analyst-1"), in, nil); !errors.Is(err, casepkg.ErrForbidden) {
+	if _, err := s.CreateCase(userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76"), in, nil); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatal("replay bypassed revoked access", err)
 	}
 	in.DecisionIDs = make([]uuid.UUID, 101)
-	if _, err := s.CreateCase(adminContext(tenant), in, nil); err == nil {
+	if _, err := s.CreateCase(adminContext(t, db, tenant), in, nil); err == nil {
 		t.Fatal("unbounded selection")
 	}
 }

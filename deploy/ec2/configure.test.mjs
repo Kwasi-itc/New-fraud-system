@@ -10,7 +10,7 @@ const repository = fileURLToPath(new URL('../../', import.meta.url));
 const temporary = path.join(repository, '.local/ec2-tests/unit');
 const tenant = '11111111-1111-4111-8111-111111111111';
 const secondTenant = '22222222-2222-4222-8222-222222222222';
-const options = { domain: 'fraud.example.test', email: 'ops@example.test', caseTenants: tenant };
+const options = { domain: 'fraud.example.test', email: 'ops@example.test' };
 
 function fixture(t) {
   mkdirSync(temporary, { recursive: true });
@@ -19,7 +19,7 @@ function fixture(t) {
     if (!path.resolve(root).startsWith(path.resolve(temporary) + path.sep)) throw new Error('Invalid fixture cleanup path.');
     rmSync(root, { recursive: true, force: true });
   });
-  for (const file of ['docker/gateway/nginx.conf', 'docker/gateway/service.yaml', 'docker-compose.yml', 'docker-compose.gateway.yml', 'deploy/ec2/compose.yml']) {
+  for (const file of ['docker/gateway/nginx.conf', 'docker/gateway/service.yaml', 'docker-compose.yml', 'docker-compose.gateway.yml', 'deploy/ec2/compose.yml', 'backend/ingestion-service/docker-compose.yml', 'backend/data-model-service/docker-compose.yml']) {
     mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
     copyFileSync(path.join(repository, file), path.join(root, file));
   }
@@ -53,7 +53,7 @@ test('first setup creates matching production credentials without changing root 
   const result = configure({ root, ...options });
   assert.equal(result.EC2_PUBLIC_ORIGIN, 'https://fraud.example.test');
   assert.equal(readFileSync(path.join(root, '.env'), 'utf8'), 'PRESERVE_EXISTING_ENV=true\n');
-  assert.equal(checkConfiguration(root).CASE_SERVICE_TENANT_IDS, tenant);
+  assert.equal(checkConfiguration(root).CASE_SERVICE_TENANT_IDS, undefined);
   const auth = readEnv(path.join(root, '.local/auth-provider/auth.env'));
   const provider = readEnv(path.join(root, '.local/auth-provider/keycloak.env'));
   assert.equal(auth.AUTH_ENV, 'production');
@@ -69,12 +69,13 @@ test('first setup creates matching production credentials without changing root 
   }
 });
 
-test('retry and tenant allowlist update preserve every credential and key', t => {
+test('retry preserves every signing identity and requires no tenant allowlist', t => {
   const root = fixture(t);
   const before = configure({ root, ...options });
   const snapshot = Object.fromEntries(identityFiles.map(file => [file, readFileSync(path.join(root, '.local/auth-provider', file), 'utf8')]));
-  const after = configure({ root, caseTenants: `${secondTenant},${tenant},${tenant}` });
-  assert.equal(after.CASE_SERVICE_TENANT_IDS, `${tenant},${secondTenant}`);
+  const after = configure({ root });
+  assert.equal(after.CASE_SERVICE_TENANT_IDS, undefined);
+  assert.throws(() => configure({root,caseTenants:tenant}), /was retired/);
   for (const key of Object.keys(before).filter(key => /TOKEN|PASSWORD|DATABASE_URL/.test(key))) assert.equal(after[key], before[key]);
   for (const file of identityFiles) assert.equal(readFileSync(path.join(root, '.local/auth-provider', file), 'utf8'), snapshot[file]);
 });
@@ -99,15 +100,14 @@ test('partial identity configuration is never silently regenerated', t => {
   assert.equal(existsSync(path.join(root, '.local/ec2/compose.env')), false);
 });
 
-test('missing integration credentials fail rather than rotating active secrets', t => {
-  const root = fixture(t);
-  configure({ root, ...options });
-  const file = path.join(root, '.local/ec2/compose.env');
-  const values = readEnv(file);
-  delete values.SCREENING_OPERATOR_TOKEN;
-  writeFileSync(file, serializeEnv(values));
-  assert.throws(() => configure({ root }), /credentials are missing/);
-  assert.equal(readEnv(file).SCREENING_OPERATOR_TOKEN, undefined);
+test('missing signing material fails read-only preflight without rotating identities', t => {
+  const root=fixture(t); configure({root,...options});
+  const dir=path.join(root,'.local/auth-provider');
+  const before=readFileSync(path.join(dir,'platform-private.pem'),'utf8');
+  rmSync(path.join(dir,'screening-service-private.pem'));
+  assert.throws(()=>checkConfiguration(root), /Incomplete identity material/);
+  assert.throws(()=>configure({root}), /Incomplete signing identity/);
+  assert.equal(readFileSync(path.join(dir,'platform-private.pem'),'utf8'),before);
 });
 
 test('HTTPS forwarding is fixed to configured origin rather than client-supplied proxy headers', () => {
@@ -141,7 +141,9 @@ test('merged EC2 Compose hides database/APIs, keeps PostgreSQL ownership and has
   assert.equal(model.services.frontend.environment.APP_ORIGIN, values.EC2_PUBLIC_ORIGIN);
   assert.deepEqual(model.services.keycloak.command, ['start', '--import-realm']);
   assert.equal(model.services.keycloak.environment.KC_HOSTNAME, `${values.EC2_PUBLIC_ORIGIN}/identity`);
-  assert.equal(model.services['case-manager-service'].environment.SERVICE_AUTH_TOKEN, values.CASE_SERVICE_AUTH_TOKEN);
+  assert.equal(model.services['case-manager-service'].environment.PLATFORM_AUTH_SERVICE_ID, 'case-manager-service');
+  for(const service of Object.values(model.services)) assert.equal(service.environment?.SERVICE_AUTH_TOKEN, undefined);
+  assert.equal(model.services['screening-case-delivery-worker'].environment.PLATFORM_AUTH_SERVICE_ID,'screening-case-delivery-worker');
   assert.equal(model.services['tls-edge'].networks.default.aliases[0], options.domain);
   const visiting = new Set(), visited = new Set();
   function visit(name) {
@@ -152,4 +154,17 @@ test('merged EC2 Compose hides database/APIs, keeps PostgreSQL ownership and has
     visiting.delete(name); visited.add(name);
   }
   for (const name of Object.keys(model.services)) visit(name);
+  for (const owner of ['data-model-service', 'ingestion-service']) {
+    const included = spawnSync('docker', ['compose', '--env-file', path.join(root, '.local/ec2/compose.env'), '-f', path.join(root, 'backend', owner, 'docker-compose.yml'), 'config', '--format', 'json'], { encoding: 'utf8', maxBuffer: 5 * 1024 * 1024 });
+    assert.equal(included.status, 0, `${owner} Compose rendering failed`);
+    const shared = JSON.parse(included.stdout);
+    assert.equal(shared.services[owner].environment.PLATFORM_AUTH_SERVICE_ID, owner);
+    assert.equal(shared.services[owner].environment.SERVICE_AUTH_MODE, undefined);
+    const databaseURLs = new Set(Object.values(shared.services).flatMap(service => {
+      if (!service.environment?.DATABASE_URL) return [];
+      const url = new URL(service.environment.DATABASE_URL);
+      return [JSON.stringify([url.hostname, url.port || '5432', url.pathname])];
+    }));
+    assert.equal(databaseURLs.size, 1, `${owner} starts a separate application database`);
+  }
 });

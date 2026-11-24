@@ -1,6 +1,8 @@
 package httpapi
 
 import (
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
+	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -15,7 +17,7 @@ func TestRouterHealthz(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	router := NewRouter(slog.Default(), nil, RouterConfig{
-		AuthMode:              "disabled",
+
 		AllowedOrigins:        []string{"http://localhost:3000"},
 		DataModelServiceURL:   "http://example.com",
 		IngestionServiceURL:   "http://example.com",
@@ -37,8 +39,9 @@ func TestRouterExposesRuntimeMetricsEndpoint(t *testing.T) {
 	t.Parallel()
 	gin.SetMode(gin.TestMode)
 
-	router := NewRouter(slog.Default(), nil, RouterConfig{
-		AuthMode:              "disabled",
+	verifier, token := authtest.HumanIdentity(t, uuid.New(), "metrics:read")
+	router := NewRouter(slog.Default(), nil, RouterConfig{Verifier: verifier,
+
 		AllowedOrigins:        []string{"http://localhost:3000"},
 		DataModelServiceURL:   "http://example.com",
 		IngestionServiceURL:   "http://example.com",
@@ -48,6 +51,7 @@ func TestRouterExposesRuntimeMetricsEndpoint(t *testing.T) {
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/admin/runtime-metrics", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
@@ -61,8 +65,7 @@ func TestRouterRequiresAuthTokenWhenConfigured(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	router := NewRouter(slog.Default(), nil, RouterConfig{
-		AuthMode:              "token",
-		AuthToken:             "secret-token",
+
 		AllowedOrigins:        []string{"http://localhost:3000"},
 		DataModelServiceURL:   "http://example.com",
 		IngestionServiceURL:   "http://example.com",

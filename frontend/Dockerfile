@@ -19,6 +19,7 @@ RUN npm run build
 
 FROM node:22-alpine AS runner
 WORKDIR /app
+RUN apk add --no-cache su-exec
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
@@ -32,11 +33,12 @@ ENV NEXT_PUBLIC_DATA_MODEL_TENANT_ID=
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --from=builder --chown=node:node /app/public ./public
-USER node
+COPY docker-entrypoint.sh /usr/local/bin/fraud-entrypoint.sh
 
 EXPOSE 3000
 
 HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=12 \
   CMD node -e "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
+ENTRYPOINT ["/bin/sh", "/usr/local/bin/fraud-entrypoint.sh"]
 CMD ["node", "server.js"]

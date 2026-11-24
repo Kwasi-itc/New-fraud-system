@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"io"
 	"log/slog"
 	"net/http/httptest"
@@ -32,8 +34,8 @@ import (
 func TestPostgresAuthorizationAndInvestigation(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, inbox, c := fixture(t, db)
-	admin := adminContext(tenant)
-	user := userContext(tenant, "analyst-1")
+	admin := adminContext(t, db, tenant)
+	user := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
 	private, err := s.CreateInbox(admin, service.CreateInboxInput{TenantID: tenant, Name: "Private"})
 	if err != nil {
 		t.Fatal(err)
@@ -42,7 +44,7 @@ func TestPostgresAuthorizationAndInvestigation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	listed, err := s.ListCases(user, tenant, casepkg.CaseFilters{AccessUserID: "admin"}, 100)
+	listed, err := s.ListCases(user, tenant, casepkg.CaseFilters{AccessUserID: "ae6c10d0-0b13-554c-b976-a05d8a18f0cc"}, 100)
 	if err != nil || len(listed) != 1 || listed[0].ID != c.ID {
 		t.Fatalf("list permissions: %+v %v", listed, err)
 	}
@@ -62,13 +64,13 @@ func TestPostgresAuthorizationAndInvestigation(t *testing.T) {
 	if _, err := s.UpdateCase(user, service.UpdateCaseInput{TenantID: tenant, CaseID: c.ID, InboxID: &private.ID}, nil); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatalf("private destination: %v", err)
 	}
-	if _, err := s.PutInboxUser(user, tenant, private.ID, "analyst-1", true); !errors.Is(err, casepkg.ErrForbidden) {
+	if _, err := s.PutInboxUser(user, tenant, private.ID, "2f2e747e-27db-57e8-b365-d06520fe4a76", true); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatalf("member self-grant: %v", err)
 	}
 	if _, err := s.GetCase(context.Background(), tenant, c.ID); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatalf("anonymous: %v", err)
 	}
-	if _, err := s.GetCase(userContext(uuid.New(), "analyst-1"), tenant, c.ID); !errors.Is(err, casepkg.ErrForbidden) {
+	if _, err := s.GetCase(userContext(t, db, uuid.New(), "2f2e747e-27db-57e8-b365-d06520fe4a76"), tenant, c.ID); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatalf("other tenant: %v", err)
 	}
 	nonmember := "nonmember"
@@ -79,19 +81,19 @@ func TestPostgresAuthorizationAndInvestigation(t *testing.T) {
 	if _, err := s.UpdateCase(serviceContext(tenant), service.UpdateCaseInput{TenantID: tenant, CaseID: c.ID, BoostReason: &boost}, nil); err != nil {
 		t.Fatal(err)
 	}
-	spoofed := "admin"
+	spoofed := "ae6c10d0-0b13-554c-b976-a05d8a18f0cc"
 	event, err := s.CreateComment(user, tenant, c.ID, "investigated", &spoofed)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if event.UserID == nil || *event.UserID != "analyst-1" {
+	if event.UserID == nil || *event.UserID != "2f2e747e-27db-57e8-b365-d06520fe4a76" {
 		t.Fatalf("actor spoofing: %+v", event)
 	}
 	got, err := s.GetCase(user, tenant, c.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Status != casepkg.StatusInvestigating || got.AssignedTo == nil || *got.AssignedTo != "analyst-1" || got.BoostReason != nil || len(got.Contributors) != 1 {
+	if got.Status != casepkg.StatusInvestigating || got.AssignedTo == nil || *got.AssignedTo != "2f2e747e-27db-57e8-b365-d06520fe4a76" || got.BoostReason != nil || len(got.Contributors) != 1 {
 		t.Fatalf("investigation effects: %+v", got)
 	}
 	if _, err := s.CreateComment(user, tenant, c.ID, "more evidence", nil); err != nil {
@@ -101,13 +103,13 @@ func TestPostgresAuthorizationAndInvestigation(t *testing.T) {
 	if err != nil || len(got.Contributors) != 1 {
 		t.Fatalf("duplicate contributor: %+v %v", got.Contributors, err)
 	}
-	if err := s.RemoveInboxUser(admin, tenant, inbox.ID, "analyst-1"); !errors.Is(err, casepkg.ErrConflict) {
+	if err := s.RemoveInboxUser(admin, tenant, inbox.ID, "2f2e747e-27db-57e8-b365-d06520fe4a76"); !errors.Is(err, casepkg.ErrConflict) {
 		t.Fatalf("removed active assignee: %v", err)
 	}
 	if err := s.Assign(admin, tenant, c.ID, nil, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.RemoveInboxUser(admin, tenant, inbox.ID, "analyst-1"); err != nil {
+	if err := s.RemoveInboxUser(admin, tenant, inbox.ID, "2f2e747e-27db-57e8-b365-d06520fe4a76"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.GetCase(user, tenant, c.ID); !errors.Is(err, casepkg.ErrForbidden) {
@@ -118,7 +120,7 @@ func TestPostgresAuthorizationAndInvestigation(t *testing.T) {
 func TestPostgresContributorAndMembershipRollback(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, inbox, c := fixture(t, db)
-	ctx := userContext(tenant, "analyst-1")
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
 	beforeEvents, beforeOutbox := count(t, db, "case_events"), count(t, db, "outbox_events")
 	failInserts(t, db, "case_contributors")
 	if _, err := s.CreateComment(ctx, tenant, c.ID, "rollback", nil); err == nil {
@@ -139,10 +141,10 @@ func TestPostgresContributorAndMembershipRollback(t *testing.T) {
 		t.Fatal(err)
 	}
 	failInserts(t, db, "outbox_events")
-	if _, err := s.PutInboxUser(adminContext(tenant), tenant, inbox.ID, "new-member", true); err == nil {
+	if _, err := s.PutInboxUser(adminContext(t, db, tenant), tenant, inbox.ID, "8c3e3a26-0e0c-563f-88ca-6b3502142a33", true); err == nil {
 		t.Fatal("membership outbox failure ignored")
 	}
-	users, err := s.ListInboxUsers(adminContext(tenant), tenant, inbox.ID)
+	users, err := s.ListInboxUsers(adminContext(t, db, tenant), tenant, inbox.ID)
 	if err != nil || len(users) != 1 {
 		t.Fatalf("membership escaped rollback: %+v %v", users, err)
 	}
@@ -168,7 +170,7 @@ func seedScreening(t *testing.T, db *pgxpool.Pool, tenant, decision uuid.UUID) (
 func TestPostgresSharedResourceOwnership(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, _, c := fixture(t, db)
-	ctx := adminContext(tenant)
+	ctx := adminContext(t, db, tenant)
 	other := uuid.New()
 	seedTenant(t, db, other)
 	decision := seedDecision(t, db, tenant)
@@ -223,7 +225,7 @@ func (q *queryCounter) TraceQueryEnd(context.Context, *pgx.Conn, pgx.TraceQueryE
 func TestPostgresBoundedQueueReadsAndScreeningLookup(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, inbox, c := fixture(t, db)
-	ctx := adminContext(tenant)
+	ctx := adminContext(t, db, tenant)
 	decision := seedDecision(t, db, tenant)
 	if _, err := s.AddDecision(serviceContext(tenant), service.AddDecisionInput{TenantID: tenant, CaseID: c.ID, DecisionID: decision}, nil); err != nil {
 		t.Fatal(err)
@@ -286,7 +288,7 @@ func TestPostgresBoundedQueueReadsAndScreeningLookup(t *testing.T) {
 	for _, limit := range []int{10, 100, 500} {
 		counter.n.Store(0)
 		started := time.Now()
-		items, err := readService.ListCases(userContext(tenant, "analyst-1"), tenant, casepkg.CaseFilters{}, limit)
+		items, err := readService.ListCases(userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76"), tenant, casepkg.CaseFilters{}, limit)
 		if err != nil || len(items) != limit {
 			t.Fatalf("queue read: %d %v", len(items), err)
 		}
@@ -322,7 +324,7 @@ func TestPostgresBoundedQueueReadsAndScreeningLookup(t *testing.T) {
 func TestPostgresSharedInboxLockConcurrency(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, inbox, _ := fixture(t, db)
-	ctx, cancel := context.WithTimeout(adminContext(tenant), 5*time.Second)
+	ctx, cancel := context.WithTimeout(adminContext(t, db, tenant), 5*time.Second)
 	defer cancel()
 	tx, err := db.Begin(ctx)
 	if err != nil {
@@ -449,19 +451,27 @@ func TestPostgresHTTPIdentityBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	serviceSigner := authtest.ServiceSigner(t, "screening-service")
+	serviceVerifier := authtest.ServiceVerifier(t, serviceSigner, "urn:fraud:case-manager-service")
+	serviceToken, err := serviceSigner.Sign(tenant, "urn:fraud:case-manager-service", []string{"inboxes:read"}, auth.Principal{})
+	if err != nil {
+		t.Fatal(err)
+	}
 	sign := func(subject string, tenantID uuid.UUID) string {
+		p, _ := access.FromContext(userContext(t, db, tenantID, subject))
 		token := jwt.NewWithClaims(jwt.SigningMethodRS256, access.Claims{
-			RegisteredClaims: jwt.RegisteredClaims{Issuer: "issuer", Subject: subject, Audience: jwt.ClaimStrings{"case-manager"}, IssuedAt: jwt.NewNumericDate(time.Now()), ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour))},
-			TenantID:         tenantID.String(), Roles: []string{"case_investigator"},
+			RegisteredClaims: jwt.RegisteredClaims{Issuer: "issuer", Subject: subject, Audience: jwt.ClaimStrings{"case-manager"}, IssuedAt: jwt.NewNumericDate(time.Now()), ID: uuid.NewString(), ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute))},
+			PrincipalType:    auth.PrincipalUser, SessionID: p.SessionID, AuthzVersion: 1, Capabilities: auth.PredefinedRoles()["case_investigator"], TenantID: tenantID, Roles: []string{"case_investigator"},
 		})
 		token.Header["kid"] = "test"
+		token.Header["typ"] = "at+jwt"
 		raw, err := token.SignedString(key)
 		if err != nil {
 			t.Fatal(err)
 		}
 		return raw
 	}
-	router := httpapi.NewRouter(slog.New(slog.NewTextHandler(io.Discard, nil)), db, httpapi.RouterConfig{UserVerifier: verifier, AuthMode: "token", AuthToken: "service-token", ServiceTenantIDs: []uuid.UUID{tenant}})
+	router := httpapi.NewRouter(slog.New(slog.NewTextHandler(io.Discard, nil)), db, httpapi.RouterConfig{Verifier: authtest.MergeVerifiers(verifier.Platform(), serviceVerifier), UserVerifier: verifier})
 	casePath := "/v1/tenants/" + tenant.String() + "/cases/" + c.ID.String()
 	selectionPath := "/v1/tenants/" + tenant.String() + "/decision-case-memberships"
 	selectionBody := `{"decision_ids":["` + decision.String() + `"]}`
@@ -475,49 +485,49 @@ func TestPostgresHTTPIdentityBoundary(t *testing.T) {
 		method, path, token, body string
 		want                      int
 	}{
-		{"POST", selectionPath, sign("analyst-1", tenant), selectionBody, 200},
-		{"POST", selectionPath, sign("analyst-1", tenant), `{"decision_ids":[]}`, 400},
-		{"POST", selectionPath, sign("analyst-1", tenant), `{"decision_ids":["invalid"]}`, 400},
-		{"POST", selectionPath, sign("analyst-1", uuid.New()), selectionBody, 403},
+		{"POST", selectionPath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), selectionBody, 200},
+		{"POST", selectionPath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{"decision_ids":[]}`, 400},
+		{"POST", selectionPath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{"decision_ids":["invalid"]}`, 400},
+		{"POST", selectionPath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", uuid.New()), selectionBody, 403},
 		{"POST", selectionPath, "service-token", selectionBody, 401},
-		{"POST", creationPath, sign("analyst-1", tenant), string(creationBody), 201},
-		{"POST", creationPath, sign("analyst-1", tenant), string(creationBody), 201},
-		{"GET", casePath, sign("analyst-1", tenant), "", 200},
-		{"GET", "/v1/tenants/" + tenant.String() + "/case-queue?decision_id=" + decision.String() + "&include_snoozed=true", sign("analyst-1", tenant), "", 200},
-		{"GET", "/v1/tenants/" + tenant.String() + "/case-queue?decision_id=" + decision.String(), sign("analyst-1", uuid.New()), "", 403},
-		{"GET", casePath, sign("outsider", tenant), "", 403},
-		{"GET", casePath, sign("analyst-1", uuid.New()), "", 403},
+		{"POST", creationPath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), string(creationBody), 201},
+		{"POST", creationPath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), string(creationBody), 201},
+		{"GET", casePath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), "", 200},
+		{"GET", "/v1/tenants/" + tenant.String() + "/case-queue?decision_id=" + decision.String() + "&include_snoozed=true", sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), "", 200},
+		{"GET", "/v1/tenants/" + tenant.String() + "/case-queue?decision_id=" + decision.String(), sign("2f2e747e-27db-57e8-b365-d06520fe4a76", uuid.New()), "", 403},
+		{"GET", casePath, sign("be50d326-8955-5631-93ad-aba09b86faa0", tenant), "", 403},
+		{"GET", casePath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", uuid.New()), "", 403},
 		{"GET", casePath, "service-token", "", 401},
 		{"POST", casePath + "/decision-transfers", "service-token", string(transferJSON), 401},
-		{"POST", casePath + "/decision-transfers", sign("outsider", tenant), string(transferJSON), 403},
-		{"POST", casePath + "/decision-transfers", sign("analyst-1", uuid.New()), string(transferJSON), 403},
-		{"POST", casePath + "/decision-transfers", sign("analyst-1", tenant), `{}`, 400},
-		{"POST", casePath + "/decision-transfers", sign("analyst-1", tenant), string(transferJSON), 204},
-		{"POST", casePath + "/decision-transfers", sign("analyst-1", tenant), string(transferJSON), 204},
-		{"POST", casePath + "/comments", sign("analyst-1", tenant), `{"comment":"Verified action"}`, 201},
-		{"GET", inboxPath, "service-token", "", 200},
-		{"GET", inboxPath, sign("analyst-1", tenant), "", 401},
-		{"POST", "/internal/v1/auto-assignment/run", "service-token", "{}", 501},
-		{"PATCH", casePath, sign("analyst-1", tenant), `{"status":"closed"}`, 400},
-		{"PATCH", casePath, sign("analyst-1", tenant), `{"status":"closed","outcome":"confirmed_risk","comment":"bypass"}`, 400},
-		{"PATCH", casePath, sign("analyst-1", tenant), `{"outcome":"confirmed_risk"}`, 400},
-		{"PATCH", casePath, sign("analyst-1", tenant), `{"status":"investigating","outcome":"unset"}`, 400},
-		{"PATCH", casePath, sign("analyst-1", tenant), `{"status":null}`, 400},
-		{"PATCH", casePath, sign("analyst-1", tenant), `{"outcome":null}`, 400},
-		{"POST", casePath + "/close", sign("analyst-1", tenant), `{"outcome":"confirmed_risk","comment":"  "}`, 400},
-		{"POST", casePath + "/close", sign("analyst-1", tenant), `{"outcome":"unset","comment":"findings"}`, 400},
-		{"POST", casePath + "/close", sign("analyst-1", tenant), `{"outcome":null,"comment":"findings"}`, 400},
-		{"POST", casePath + "/close", sign("outsider", tenant), `{"outcome":"confirmed_risk","comment":"findings"}`, 403},
-		{"POST", casePath + "/close", sign("analyst-1", uuid.New()), `{"outcome":"confirmed_risk","comment":"findings"}`, 403},
+		{"POST", casePath + "/decision-transfers", sign("be50d326-8955-5631-93ad-aba09b86faa0", tenant), string(transferJSON), 403},
+		{"POST", casePath + "/decision-transfers", sign("2f2e747e-27db-57e8-b365-d06520fe4a76", uuid.New()), string(transferJSON), 403},
+		{"POST", casePath + "/decision-transfers", sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{}`, 400},
+		{"POST", casePath + "/decision-transfers", sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), string(transferJSON), 204},
+		{"POST", casePath + "/decision-transfers", sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), string(transferJSON), 204},
+		{"POST", casePath + "/comments", sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{"comment":"Verified action"}`, 201},
+		{"GET", inboxPath, serviceToken, "", 200},
+		{"GET", inboxPath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), "", 403},
+		{"POST", "/internal/v1/auto-assignment/run", "service-token", "{}", 401},
+		{"PATCH", casePath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{"status":"closed"}`, 400},
+		{"PATCH", casePath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{"status":"closed","outcome":"confirmed_risk","comment":"bypass"}`, 400},
+		{"PATCH", casePath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{"outcome":"confirmed_risk"}`, 400},
+		{"PATCH", casePath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{"status":"investigating","outcome":"unset"}`, 400},
+		{"PATCH", casePath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{"status":null}`, 400},
+		{"PATCH", casePath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{"outcome":null}`, 400},
+		{"POST", casePath + "/close", sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{"outcome":"confirmed_risk","comment":"  "}`, 400},
+		{"POST", casePath + "/close", sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{"outcome":"unset","comment":"findings"}`, 400},
+		{"POST", casePath + "/close", sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{"outcome":null,"comment":"findings"}`, 400},
+		{"POST", casePath + "/close", sign("be50d326-8955-5631-93ad-aba09b86faa0", tenant), `{"outcome":"confirmed_risk","comment":"findings"}`, 403},
+		{"POST", casePath + "/close", sign("2f2e747e-27db-57e8-b365-d06520fe4a76", uuid.New()), `{"outcome":"confirmed_risk","comment":"findings"}`, 403},
 		{"POST", casePath + "/close", "service-token", `{"outcome":"confirmed_risk","comment":"findings"}`, 401},
 		{"POST", casePath + "/close", "", `{"outcome":"confirmed_risk","comment":"findings"}`, 401},
-		{"POST", casePath + "/close", sign("analyst-1", tenant), `{"outcome":"confirmed_risk","comment":"verified findings"}`, 200},
-		{"POST", casePath + "/close", sign("analyst-1", tenant), `{"outcome":"false_positive","comment":"duplicate"}`, 409},
-		{"PATCH", casePath, sign("analyst-1", tenant), `{"outcome":"unset"}`, 400},
-		{"PATCH", casePath, sign("analyst-1", tenant), `{"status":"investigating","outcome":"false_positive"}`, 400},
-		{"PATCH", casePath, sign("analyst-1", tenant), `{"status":"investigating","boost_reason":"new_decision"}`, 400},
-		{"PATCH", casePath, sign("outsider", tenant), `{"status":"investigating"}`, 403},
-		{"PATCH", casePath, sign("analyst-1", tenant), `{"status":"investigating"}`, 200},
+		{"POST", casePath + "/close", sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{"outcome":"confirmed_risk","comment":"verified findings"}`, 200},
+		{"POST", casePath + "/close", sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{"outcome":"false_positive","comment":"duplicate"}`, 409},
+		{"PATCH", casePath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{"outcome":"unset"}`, 400},
+		{"PATCH", casePath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{"status":"investigating","outcome":"false_positive"}`, 400},
+		{"PATCH", casePath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{"status":"investigating","boost_reason":"new_decision"}`, 400},
+		{"PATCH", casePath, sign("be50d326-8955-5631-93ad-aba09b86faa0", tenant), `{"status":"investigating"}`, 403},
+		{"PATCH", casePath, sign("2f2e747e-27db-57e8-b365-d06520fe4a76", tenant), `{"status":"investigating"}`, 200},
 	} {
 		beforeEvents, beforeOutbox := count(t, db, "case_events"), count(t, db, "outbox_events")
 		req := httptest.NewRequest(tt.method, tt.path, strings.NewReader(tt.body))
@@ -537,7 +547,7 @@ func TestPostgresHTTPIdentityBoundary(t *testing.T) {
 	if err := db.QueryRow(context.Background(), `SELECT user_id FROM case_manager.case_events WHERE tenant_id=$1 AND case_id=$2 AND event_type='comment_added'`, tenant, c.ID).Scan(&actor); err != nil {
 		t.Fatal(err)
 	}
-	if actor != "analyst-1" {
+	if actor != "2f2e747e-27db-57e8-b365-d06520fe4a76" {
 		t.Fatalf("unverified audit actor: %s", actor)
 	}
 }

@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -23,7 +24,7 @@ func TestOpenAPISpecHasUniqueMappings(t *testing.T) {
 func TestDocsRoutes(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	registerDocsRoutes(router)
+	registerDocsRoutes(authtest.DomainRouter(router))
 
 	t.Run("openapi", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/openapi.yaml", nil)

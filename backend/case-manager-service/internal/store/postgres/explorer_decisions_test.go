@@ -18,7 +18,7 @@ import (
 func TestAssociatedDecisionsVisibilityPaginationAndAttachment(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, inbox, c := fixture(t, db)
-	ctx := userContext(tenant, "analyst-1")
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
 	exec := func(sql string, args ...any) {
 		t.Helper()
 		if _, err := db.Exec(context.Background(), sql, args...); err != nil {
@@ -38,7 +38,7 @@ func TestAssociatedDecisionsVisibilityPaginationAndAttachment(t *testing.T) {
 	if _, err := s.AddDecision(ctx, service.AddDecisionInput{TenantID: tenant, CaseID: c.ID, DecisionID: root}, nil); err != nil {
 		t.Fatal(err)
 	}
-	privateInbox, err := s.CreateInbox(adminContext(tenant), service.CreateInboxInput{TenantID: tenant, Name: "Private inbox"})
+	privateInbox, err := s.CreateInbox(adminContext(t, db, tenant), service.CreateInboxInput{TenantID: tenant, Name: "Private inbox"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +105,7 @@ func TestAssociatedDecisionsVisibilityPaginationAndAttachment(t *testing.T) {
 		t.Fatal("visibility/pagination", len(seen), foundCase)
 	}
 	in.DecisionAfter = ""
-	adminPage, err := s.Explore(adminContext(tenant), tenant, c.ID, in)
+	adminPage, err := s.Explore(adminContext(t, db, tenant), tenant, c.ID, in)
 	if err != nil || len(adminPage.Decisions) != 25 || adminPage.Decisions[0].Case == nil || adminPage.Decisions[0].Case.ID != privateCase.ID {
 		t.Fatal("administrator visibility", err)
 	}
@@ -155,7 +155,7 @@ func TestAssociatedDecisionsVisibilityPaginationAndAttachment(t *testing.T) {
 		t.Fatal("foreign decision attached")
 	}
 	input.TargetDecisionID = targets[2]
-	if _, err = s.AttachExploredDecision(userContext(tenant, "outsider"), tenant, c.ID, input); err == nil {
+	if _, err = s.AttachExploredDecision(userContext(t, db, tenant, "be50d326-8955-5631-93ad-aba09b86faa0"), tenant, c.ID, input); err == nil {
 		t.Fatal("unauthorized attachment")
 	}
 	if _, err = s.AttachExploredDecision(serviceContext(tenant), tenant, c.ID, input); err == nil {
@@ -186,7 +186,7 @@ func TestAssociatedDecisionsVisibilityPaginationAndAttachment(t *testing.T) {
 func TestAssociatedDecisionIndexedLookupPlan(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, _, c := fixture(t, db)
-	ctx := userContext(tenant, "analyst-1")
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
 	root := seedDecision(t, db, tenant)
 	if _, err := s.AddDecision(ctx, service.AddDecisionInput{TenantID: tenant, CaseID: c.ID, DecisionID: root}, nil); err != nil {
 		t.Fatal(err)

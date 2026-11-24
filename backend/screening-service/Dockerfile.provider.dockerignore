@@ -2,8 +2,8 @@
 !backend/
 !backend/screening-service/
 !backend/screening-service/**
-!backend/investigator/
-!backend/investigator/**
+!backend/platform-auth/
+!backend/platform-auth/**
 !docker/
 !docker/gateway/
 !docker/gateway/package.json

@@ -81,19 +81,19 @@ func hasThresholds(i Iteration) bool {
 }
 
 type Rule struct {
-	ID              string
-	IterationID     string
-	TenantID        string
-	DisplayOrder    int
-	Name            string
-	Description     string
-	Formula         json.RawMessage
-	ScoreModifier   int
-	RuleGroup       string
-	SnoozeGroupID   *string
-	StableRuleID    string
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	ID            string
+	IterationID   string
+	TenantID      string
+	DisplayOrder  int
+	Name          string
+	Description   string
+	Formula       json.RawMessage
+	ScoreModifier int
+	RuleGroup     string
+	SnoozeGroupID *string
+	StableRuleID  string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 func (r Rule) Validate() error {

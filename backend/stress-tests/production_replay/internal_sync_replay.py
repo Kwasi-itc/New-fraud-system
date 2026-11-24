@@ -68,7 +68,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--data-model-url", required=True)
     result.add_argument("--ingestion-url", required=True)
     result.add_argument("--decision-engine-url", required=True)
-    result.add_argument("--auth-token-env", default="SERVICE_AUTH_TOKEN")
+    result.add_argument("--auth-token-env", default="PLATFORM_ACCESS_TOKEN")
     result.add_argument("--transactions", type=int, default=1_000_000)
     result.add_argument("--transaction-offset", type=int, default=0)
     result.add_argument("--ingestion-concurrency", type=int, default=10)

@@ -1,59 +1,62 @@
 import { expect, test } from "@playwright/test";
-test.beforeEach(async ({ request }) => { await request.get("http://127.0.0.1:3199/reset"); });
-test("signed-out pages require login and auth writes reject foreign origins", async ({ page }) => {
-  await page.goto("/my-account"); await expect(page).toHaveURL(/\/login$/);
-  await expect(page.getByRole("button", { name: "Continue to sign in" })).toBeVisible();
-  expect((await page.request.post("/api/auth/logout", { headers: { Origin: "https://untrusted.example" } })).status()).toBe(403);
-});
-test("investigator sees current roles, cannot administer accounts, and can log out", async ({ page, context }) => {
-  await context.addCookies([{ name: "case_test_session", value: "fixture-analyst", domain: "127.0.0.1", path: "/", httpOnly: true, sameSite: "Lax" }]);
-  await page.goto("/my-account"); await expect(page.getByText("Test investigator", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Tenant accounts" })).toHaveCount(0);
-  expect((await page.request.get("/api/auth/members")).status()).toBe(403);
-  await page.getByRole("button", { name: "Sign out", exact: true }).click(); await expect(page).toHaveURL(/\/login$/);
-  await page.goto("/my-account"); await expect(page).toHaveURL(/\/login$/);
-});
-test("administrator access editor confirms writes and displays version conflicts", async ({ page, context }) => {
-  await context.addCookies([{ name: "case_test_session", value: "fixture-admin", domain: "127.0.0.1", path: "/", httpOnly: true, sameSite: "Lax" }]);
-  await page.goto("/my-account"); await expect(page.getByRole("heading", { name: "Tenant accounts" })).toBeVisible();
-  await page.getByLabel("Case administrator", { exact: true }).check();
-  page.once("dialog", dialog => dialog.accept()); await page.getByRole("button", { name: "Save access" }).click();
-  await expect(page.getByRole("alert").filter({ hasText: "Account changed" })).toContainText("Account changed; refresh before retrying.");
-});
 
-test("investigator can inspect and revoke another own session with confirmation", async ({ page, context }) => {
-  await context.addCookies([{ name: "case_test_session", value: "fixture-analyst", domain: "127.0.0.1", path: "/", httpOnly: true, sameSite: "Lax" }]);
-  await page.goto("/my-account");
-  const sessions = page.getByRole("region", { name: "Your application sessions" });
-  await expect(sessions.getByText("This browser session", { exact: true })).toBeVisible();
-  page.once("dialog", dialog => dialog.dismiss());
-  await sessions.getByRole("button", { name: "Revoke session", exact: true }).click();
-  await expect(sessions.getByText("Other session", { exact: true })).toBeVisible();
-  page.once("dialog", dialog => dialog.accept());
-  await sessions.getByRole("button", { name: "Revoke session", exact: true }).click();
-  await expect(sessions.getByRole("status")).toHaveText("Session revoked.");
-  await expect(sessions.getByText("Other session", { exact: true })).toHaveCount(0);
-  await expect(sessions.getByText("This browser session", { exact: true })).toBeVisible();
+test.beforeEach(async ({ request }) => { await request.get("http://127.0.0.1:3199/reset"); });
+const login = async (context: import("@playwright/test").BrowserContext, value = "fixture-analyst") => context.addCookies([{ name: "case_test_session", value, domain: "127.0.0.1", path: "/", httpOnly: true, sameSite: "Lax" }]);
+
+test("signed-out pages require login and account writes reject foreign origins", async ({ page }) => {
+  await page.goto("/my-account"); await expect(page).toHaveURL(/\/login$/);
+  for (const action of ["logout", "profile", "manage-sign-in"]) expect((await page.request.post(`/api/auth/${action}`, { headers: { Origin: "https://untrusted.example" }, data: { name: "Forged", version: 1 } })).status()).toBe(403);
+});
+test("one role tag and compact account controls preserve tenant access", async ({ page, context }) => {
+  await login(context); await page.goto("/my-account");
+  await expect(page.getByRole("heading", { name: "Test investigator", exact: true })).toBeVisible();
+  const navigation = page.getByRole("navigation", { name: "Account pages" });
+  await expect(navigation.getByRole("link")).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "My access", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Sign-in & security", exact: true })).toHaveCount(0);
+  expect((await page.request.get("/api/auth/members")).status()).toBe(403);
+  await page.getByRole("button", { name: "Sign out", exact: true }).first().click(); await expect(page).toHaveURL(/\/login$/);
+  await page.goto("/my-account"); await expect(page).toHaveURL(/\/login$/);
+});
+test("profile edits persist through owner APIs and caller fields cannot replace the session", async ({ page, context }) => {
+  await login(context); await page.goto("/my-account");
+  await page.getByRole("button", { name: "Edit profile" }).click(); await page.getByLabel("Display name", { exact: true }).fill("Updated investigator");
+  await page.getByRole("dialog").getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("heading", { name: "Updated investigator", exact: true })).toBeVisible();
+  await page.reload(); await expect(page.getByRole("heading", { name: "Updated investigator", exact: true })).toBeVisible();
+  const response = await page.request.post("/api/auth/profile", { headers: { Origin: "http://127.0.0.1:3100" }, data: { session: "fixture-admin", user_id: "other-user", name: "Own update", version: 2 } });
+  expect(response.status()).toBe(204); expect((await (await page.request.get("/api/auth/profile")).json()).name).toBe("Own update");
+  expect((await page.request.post("/api/auth/profile", { headers: { Origin: "http://127.0.0.1:3100" }, data: { name: "Stale", version: 1 } })).status()).toBe(409);
+});
+test("manage sign-in uses a configured provider destination and requires a session", async ({ page, context }) => {
+  await login(context); await page.goto("/my-account");
+  const response = await page.request.post("/api/auth/manage-sign-in", { headers: { Origin: "http://127.0.0.1:3100" }, maxRedirects: 0 });
+  expect(response.status()).toBe(303); expect(response.headers().location).toBe("http://127.0.0.1:3199/provider-account");
+  await context.clearCookies(); expect((await page.request.post("/api/auth/manage-sign-in", { headers: { Origin: "http://127.0.0.1:3100" }, maxRedirects: 0 })).status()).toBe(401);
+});
+test("administrator member editor is single-choice and retains conflict errors", async ({ page, context }) => {
+  await login(context, "fixture-admin"); await page.goto("/administration/users");
+  await page.getByRole("button", { name: "Manage", exact: true }).click();
+  await expect(page.getByLabel("Assigned role")).not.toHaveAttribute("multiple");
+  await page.getByLabel("Assigned role").selectOption("case_manager_admin"); await page.getByRole("button", { name: "Save member", exact: true }).click();
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText("Account changed");
+});
+test("another own session is revoked only after confirmation", async ({ page, context }) => {
+  await login(context); await page.goto("/my-account"); await expect(page.getByRole("button", { name: "Revoke", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Revoke", exact: true }).click(); await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Revoke", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Revoke", exact: true }).click(); await page.getByRole("dialog").getByRole("button", { name: "Revoke session", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText("Session revoked."); await expect(page.getByRole("button", { name: "Revoke", exact: true })).toHaveCount(0);
   expect((await page.request.post("/api/auth/sessions", { headers: { Origin: "https://untrusted.example" }, data: { all: true } })).status()).toBe(403);
 });
-
-test("revoke-all clears the session and requires login", async ({ page, context }) => {
-  await context.addCookies([{ name: "case_test_session", value: "fixture-analyst", domain: "127.0.0.1", path: "/", httpOnly: true, sameSite: "Lax" }]);
-  await page.goto("/my-account");
-  page.once("dialog", dialog => dialog.accept());
-  await page.getByRole("button", { name: "Sign out all sessions in this tenant" }).click();
-  await expect(page).toHaveURL(/\/login$/);
+test("revoke-all clears the cookie and requires login", async ({ page, context }) => {
+  await login(context); await page.goto("/my-account"); await page.getByRole("button", { name: "Sign out all sessions", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Sign out all sessions", exact: true }).click(); await expect(page).toHaveURL(/\/login$/);
   expect((await context.cookies()).some(cookie => cookie.name === "case_test_session")).toBe(false);
-  await page.goto("/my-account"); await expect(page).toHaveURL(/\/login$/);
 });
-
-test("session revocation failure keeps an actionable error and does not claim success", async ({ page, context, request }) => {
-  await context.addCookies([{ name: "case_test_session", value: "fixture-analyst", domain: "127.0.0.1", path: "/", httpOnly: true, sameSite: "Lax" }]);
-  await request.get("http://127.0.0.1:3199/fixture/session-error");
-  await page.goto("/my-account");
-  page.once("dialog", dialog => dialog.accept());
-  await page.getByRole("button", { name: "Revoke session", exact: true }).click();
-  await expect(page.getByRole("region", { name: "Your application sessions" }).getByRole("alert")).toContainText("could not be confirmed");
-  await expect(page.getByRole("button", { name: "Refresh sessions" })).toBeEnabled();
-  await expect(page).toHaveURL(/\/my-account$/);
+test("session revocation failure retains a retryable confirmation without reporting success", async ({ page, context, request }) => {
+  await login(context); await request.get("http://127.0.0.1:3199/fixture/session-error"); await page.goto("/my-account");
+  await page.getByRole("button", { name: "Revoke", exact: true }).click(); await page.getByRole("dialog").getByRole("button", { name: "Revoke session", exact: true }).click();
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText("Unavailable"); await expect(page.getByRole("dialog").getByRole("button", { name: "Revoke session", exact: true })).toBeEnabled();
+  await expect(page.getByRole("status")).toHaveCount(0); await expect(page).toHaveURL(/\/my-account$/);
 });

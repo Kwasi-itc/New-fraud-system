@@ -2,6 +2,7 @@ package preflight
 
 import (
 	"context"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -84,6 +85,11 @@ func testDB(t *testing.T) *pgx.Conn {
 		t.Fatal(err)
 	}
 	for _, owner := range []string{"data-model-service", "ingestion-service", "decision-engine-service", "screening-service", "case-manager-service"} {
+		if owner == "case-manager-service" {
+			if err := authtest.ApplyIdentity(ctx, conn, "../platform"); err != nil {
+				t.Fatal(err)
+			}
+		}
 		files, err := filepath.Glob(filepath.Join("..", "..", "..", owner, "internal", "migrations", "metadata", "*.up.sql"))
 		if err != nil || len(files) == 0 {
 			t.Fatalf("missing migrations: %s", owner)

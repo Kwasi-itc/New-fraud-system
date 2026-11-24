@@ -16,14 +16,14 @@ func TestPhase5ReportsLifecycleIsolationAndConcurrency(t *testing.T) {
 	applyMigration(t, db, "000008_evidence_uploads.up.sql")
 	applyMigration(t, db, "000009_reports.up.sql")
 	s, tenant, inbox, c := fixture(t, db)
-	ctx := userContext(tenant, "analyst-1")
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
 	content := casepkg.ReportContent{Title: "Unusual account activity", FileIDs: []uuid.UUID{}}
 	id := uuid.New()
 	r, err := s.CreateReport(ctx, tenant, c.ID, id, content)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Status != "draft" || r.CreatedBy != "analyst-1" || r.Version != 1 {
+	if r.Status != "draft" || r.CreatedBy != "2f2e747e-27db-57e8-b365-d06520fe4a76" || r.Version != 1 {
 		t.Fatal(r)
 	}
 	if _, err := s.CreateReport(ctx, tenant, c.ID, id, content); err != nil {
@@ -91,11 +91,11 @@ func TestPhase5ReportsLifecycleIsolationAndConcurrency(t *testing.T) {
 	for _, other := range []struct {
 		tenant uuid.UUID
 		user   string
-	}{{tenant, "outsider"}, {uuid.New(), "analyst-1"}} {
-		if _, err := s.GetReport(userContext(other.tenant, other.user), tenant, c.ID, id); !errors.Is(err, casepkg.ErrForbidden) {
+	}{{tenant, "be50d326-8955-5631-93ad-aba09b86faa0"}, {uuid.New(), "2f2e747e-27db-57e8-b365-d06520fe4a76"}} {
+		if _, err := s.GetReport(userContext(t, db, other.tenant, other.user), tenant, c.ID, id); !errors.Is(err, casepkg.ErrForbidden) {
 			t.Fatal("report leaked", err)
 		}
-		if _, err := s.ListReports(userContext(other.tenant, other.user), tenant, c.ID, nil, 20); !errors.Is(err, casepkg.ErrForbidden) {
+		if _, err := s.ListReports(userContext(t, db, other.tenant, other.user), tenant, c.ID, nil, 20); !errors.Is(err, casepkg.ErrForbidden) {
 			t.Fatal("reports leaked", err)
 		}
 	}
@@ -127,7 +127,7 @@ func TestPhase5ReportsLifecycleIsolationAndConcurrency(t *testing.T) {
 	if err := db.QueryRow(ctx, `SELECT count(*) FROM case_manager.case_events WHERE resource_id=$1 AND event_type='report_completed'`, id.String()).Scan(&count); err != nil || count != 1 {
 		t.Fatal(count, err)
 	}
-	if err := s.RemoveInboxUser(adminContext(tenant), tenant, inbox.ID, "analyst-1"); err != nil {
+	if err := s.RemoveInboxUser(adminContext(t, db, tenant), tenant, inbox.ID, "2f2e747e-27db-57e8-b365-d06520fe4a76"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := newService(db).GetReport(ctx, tenant, c.ID, id); !errors.Is(err, casepkg.ErrForbidden) {
@@ -143,7 +143,7 @@ func TestPhase5ReportsAtomicAudit(t *testing.T) {
 	applyMigration(t, db, "000008_evidence_uploads.up.sql")
 	applyMigration(t, db, "000009_reports.up.sql")
 	s, tenant, _, c := fixture(t, db)
-	ctx := userContext(tenant, "analyst-1")
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
 	if _, err := db.Exec(ctx, `CREATE FUNCTION case_manager.reject_report() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.event_type LIKE 'report_%' THEN RAISE EXCEPTION 'injected'; END IF; RETURN NEW; END $$; CREATE TRIGGER reject_report BEFORE INSERT ON case_manager.outbox_events FOR EACH ROW EXECUTE FUNCTION case_manager.reject_report()`); err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func TestPhase5ReportUpgradeLegacyAndPagePlan(t *testing.T) {
 	db := testDatabase(t, true)
 	applyMigration(t, db, "000008_evidence_uploads.up.sql")
 	s, tenant, _, c := fixture(t, db)
-	ctx := userContext(tenant, "analyst-1")
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
 	legacy := uuid.New()
 	if _, err := db.Exec(ctx, `INSERT INTO case_manager.suspicious_activity_reports(id,tenant_id,case_id,status,payload,created_at,updated_at) VALUES($1,$2,$3,'completed','{"content":"original legacy document"}',now(),now())`, legacy, tenant, c.ID); err != nil {
 		t.Fatal(err)

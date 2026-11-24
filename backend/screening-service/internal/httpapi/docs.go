@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"embed"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -10,16 +11,16 @@ import (
 //go:embed openapi.yaml
 var openAPISpec []byte
 
-func registerDocsRoutes(router *gin.Engine) {
-	router.GET("/openapi.yaml", func(c *gin.Context) {
+func registerDocsRoutes(router *platformauth.Router) {
+	router.GET("/openapi.yaml", platformauth.Policy{Public: true}, func(c *gin.Context) {
 		c.Data(http.StatusOK, "application/yaml; charset=utf-8", openAPISpec)
 	})
 
-	router.GET("/docs", func(c *gin.Context) {
+	router.GET("/docs", platformauth.Policy{Public: true}, func(c *gin.Context) {
 		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(docsHTML))
 	})
 
-	router.GET("/redoc", func(c *gin.Context) {
+	router.GET("/redoc", platformauth.Policy{Public: true}, func(c *gin.Context) {
 		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(redocHTML))
 	})
 }

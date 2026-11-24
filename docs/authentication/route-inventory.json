@@ -1,0 +1,2377 @@
+[
+  {
+    "service": "auth-service",
+    "method": "GET",
+    "path": "/healthz",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/internal/audit/list",
+    "capability": "auth:bootstrap",
+    "principal_type": "service",
+    "control_plane": true
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/internal/invitations/change",
+    "capability": "auth:bootstrap",
+    "principal_type": "service",
+    "control_plane": true
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/internal/invitations/list",
+    "capability": "auth:bootstrap",
+    "principal_type": "service",
+    "control_plane": true
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/internal/invitations/start",
+    "capability": "auth:bootstrap",
+    "principal_type": "service",
+    "control_plane": true
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/internal/login/complete",
+    "capability": "auth:bootstrap",
+    "principal_type": "service",
+    "control_plane": true
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/internal/login/start",
+    "capability": "auth:bootstrap",
+    "principal_type": "service",
+    "control_plane": true
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/internal/logout",
+    "capability": "auth:bootstrap",
+    "principal_type": "service",
+    "control_plane": true
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/internal/members/change",
+    "capability": "auth:bootstrap",
+    "principal_type": "service",
+    "control_plane": true
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/internal/members/list",
+    "capability": "auth:bootstrap",
+    "principal_type": "service",
+    "control_plane": true
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/internal/profile",
+    "capability": "auth:bootstrap",
+    "principal_type": "service",
+    "control_plane": true
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/internal/profile/update",
+    "capability": "auth:bootstrap",
+    "principal_type": "service",
+    "control_plane": true
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/internal/session",
+    "capability": "auth:bootstrap",
+    "principal_type": "service",
+    "control_plane": true
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/internal/sessions/list",
+    "capability": "auth:bootstrap",
+    "principal_type": "service",
+    "control_plane": true
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/internal/sessions/revoke",
+    "capability": "auth:bootstrap",
+    "principal_type": "service",
+    "control_plane": true
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/oauth/token",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "auth-service",
+    "method": "GET",
+    "path": "/readyz",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "auth-service",
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/capabilities",
+    "capability": "roles:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "auth-service",
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/client-keys",
+    "capability": "clients:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/client-keys",
+    "capability": "clients:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "auth-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/client-keys/{kid}",
+    "capability": "clients:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "auth-service",
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/client-scopes",
+    "capability": "clients:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "auth-service",
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/clients",
+    "capability": "clients:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/clients",
+    "capability": "clients:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "auth-service",
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/clients/{clientId}",
+    "capability": "clients:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "auth-service",
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/clients/{clientId}",
+    "capability": "clients:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "auth-service",
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/clients/{clientId}/scope-approvals",
+    "capability": "clients:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/clients/{clientId}/scope-approvals/{scope}",
+    "capability": "clients:approve-sensitive",
+    "principal_type": "user"
+  },
+  {
+    "service": "auth-service",
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/roles",
+    "capability": "roles:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "auth-service",
+    "method": "POST",
+    "path": "/v1/tenants/{tenantId}/roles",
+    "capability": "roles:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "auth-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/{tenantId}/roles/{roleId}",
+    "capability": "roles:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "auth-service",
+    "method": "GET",
+    "path": "/v1/tenants/{tenantId}/roles/{roleId}",
+    "capability": "roles:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "auth-service",
+    "method": "PUT",
+    "path": "/v1/tenants/{tenantId}/roles/{roleId}",
+    "capability": "roles:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/healthz",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/internal/v1/ai-case-reviews/:reviewId/run",
+    "body_tenant": true,
+    "capability": "workflows:execute",
+    "principal_type": "service"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/internal/v1/auto-assignment/run",
+    "body_tenant": true,
+    "capability": "workflows:execute",
+    "principal_type": "service"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/internal/v1/tenants/:tenantId/inboxes/:inboxId",
+    "capability": "inboxes:read",
+    "principal_type": "service"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/internal/v1/workflow-actions",
+    "body_tenant": true,
+    "capability": "workflows:execute",
+    "principal_type": "service"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/readyz",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/screening-events/evidence-uploaded",
+    "body_tenant": true,
+    "capability": "cases:events-write",
+    "principal_type": "service"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/screening-events/requires-review",
+    "body_tenant": true,
+    "capability": "cases:events-write",
+    "principal_type": "service"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/screening-events/reviewed",
+    "body_tenant": true,
+    "capability": "cases:events-write",
+    "principal_type": "service"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/service-info",
+    "capability": "services:read"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/case-analytics",
+    "capability": "cases:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/case-bulk",
+    "capability": "cases:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/case-queue",
+    "capability": "cases:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/case-session",
+    "capability": "cases:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/cases",
+    "capability": "cases:read"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/cases",
+    "capability": "cases:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/cases/:caseId",
+    "capability": "cases:read"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "PATCH",
+    "path": "/v1/tenants/:tenantId/cases/:caseId",
+    "capability": "cases:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/assign",
+    "capability": "cases:assign",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/close",
+    "capability": "cases:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/comments",
+    "capability": "cases:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/decision-transfers",
+    "capability": "cases:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/decisions",
+    "capability": "cases:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/escalate",
+    "capability": "cases:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/events",
+    "capability": "cases:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/evidence-access/:kind/:resourceId",
+    "capability": "cases:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/explore",
+    "capability": "cases:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/explore/attach",
+    "capability": "cases:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/files",
+    "capability": "cases:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/files/:fileId/download",
+    "capability": "cases:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/links/:kind",
+    "capability": "cases:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/overview",
+    "capability": "cases:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/reports",
+    "capability": "reports:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/reports",
+    "capability": "reports:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/reports/:reportId",
+    "capability": "reports:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "PATCH",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/reports/:reportId",
+    "capability": "reports:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/reports/:reportId/complete",
+    "capability": "reports:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/reports/:reportId/export",
+    "capability": "reports:export",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/snooze",
+    "capability": "cases:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/tags",
+    "capability": "cases:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/tags/:tagId",
+    "capability": "cases:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/unassign",
+    "capability": "cases:assign",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/unsnooze",
+    "capability": "cases:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/uploads",
+    "capability": "cases:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "PUT",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/uploads/:uploadId/content",
+    "capability": "cases:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/uploads/:uploadId/finalize",
+    "capability": "cases:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/clients/:clientId/inboxes",
+    "capability": "inboxes:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/:tenantId/clients/:clientId/inboxes/:inboxId",
+    "capability": "inboxes:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "PUT",
+    "path": "/v1/tenants/:tenantId/clients/:clientId/inboxes/:inboxId",
+    "capability": "inboxes:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/decision-case-memberships",
+    "capability": "cases:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/inboxes",
+    "capability": "inboxes:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/inboxes",
+    "capability": "inboxes:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/inboxes/:inboxId",
+    "capability": "inboxes:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "PATCH",
+    "path": "/v1/tenants/:tenantId/inboxes/:inboxId",
+    "capability": "inboxes:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/inboxes/:inboxId/users",
+    "capability": "inboxes:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/:tenantId/inboxes/:inboxId/users/:userId",
+    "capability": "inboxes:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "PUT",
+    "path": "/v1/tenants/:tenantId/inboxes/:inboxId/users/:userId",
+    "capability": "inboxes:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/manual-screening-investigations",
+    "capability": "cases:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/tags",
+    "capability": "cases:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/tags",
+    "capability": "inboxes:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/:tenantId/tags/:tagId",
+    "capability": "inboxes:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "case-manager-service",
+    "method": "PATCH",
+    "path": "/v1/tenants/:tenantId/tags/:tagId",
+    "capability": "inboxes:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/docs",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/healthz",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/openapi.yaml",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/readyz",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/redoc",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/v1/admin/reconcile",
+    "capability": "platform:reconcile",
+    "principal_type": "service",
+    "control_plane": true
+  },
+  {
+    "service": "data-model-service",
+    "method": "DELETE",
+    "path": "/v1/enum-values/:enumValueId",
+    "capability": "models:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "PATCH",
+    "path": "/v1/enum-values/:enumValueId",
+    "capability": "models:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "DELETE",
+    "path": "/v1/fields/:fieldId",
+    "capability": "models:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "PATCH",
+    "path": "/v1/fields/:fieldId",
+    "capability": "models:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/v1/fields/:fieldId/enum-values",
+    "capability": "models:read"
+  },
+  {
+    "service": "data-model-service",
+    "method": "POST",
+    "path": "/v1/fields/:fieldId/enum-values",
+    "capability": "models:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/v1/index-jobs/:jobId",
+    "capability": "models:read"
+  },
+  {
+    "service": "data-model-service",
+    "method": "POST",
+    "path": "/v1/index-jobs/:jobId/retry",
+    "capability": "models:index-write"
+  },
+  {
+    "service": "data-model-service",
+    "method": "DELETE",
+    "path": "/v1/links/:linkId",
+    "capability": "models:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "DELETE",
+    "path": "/v1/navigation-options/:navigationOptionId",
+    "capability": "models:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "DELETE",
+    "path": "/v1/pivots/:pivotId",
+    "capability": "models:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "DELETE",
+    "path": "/v1/tables/:tableId",
+    "capability": "models:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "PATCH",
+    "path": "/v1/tables/:tableId",
+    "capability": "models:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/v1/tables/:tableId/display-settings",
+    "capability": "models:read"
+  },
+  {
+    "service": "data-model-service",
+    "method": "PUT",
+    "path": "/v1/tables/:tableId/display-settings",
+    "capability": "models:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/v1/tables/:tableId/fields",
+    "capability": "models:read"
+  },
+  {
+    "service": "data-model-service",
+    "method": "POST",
+    "path": "/v1/tables/:tableId/fields",
+    "capability": "models:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/v1/tables/:tableId/navigation-options",
+    "capability": "models:read"
+  },
+  {
+    "service": "data-model-service",
+    "method": "POST",
+    "path": "/v1/tables/:tableId/navigation-options",
+    "capability": "models:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/v1/tables/:tableId/options",
+    "capability": "models:read"
+  },
+  {
+    "service": "data-model-service",
+    "method": "PUT",
+    "path": "/v1/tables/:tableId/options",
+    "capability": "models:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/v1/tenants",
+    "capability": "tenants:provision",
+    "principal_type": "service",
+    "control_plane": true
+  },
+  {
+    "service": "data-model-service",
+    "method": "POST",
+    "path": "/v1/tenants",
+    "capability": "tenants:provision",
+    "principal_type": "service",
+    "control_plane": true
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId",
+    "capability": "models:read"
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/data-model",
+    "capability": "models:read"
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/data-model/export",
+    "capability": "models:read"
+  },
+  {
+    "service": "data-model-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/data-model/import",
+    "capability": "models:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/index-jobs",
+    "capability": "models:read"
+  },
+  {
+    "service": "data-model-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/index-jobs",
+    "capability": "models:index-write"
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/links",
+    "capability": "models:read"
+  },
+  {
+    "service": "data-model-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/links",
+    "capability": "models:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/pivots",
+    "capability": "models:read"
+  },
+  {
+    "service": "data-model-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/pivots",
+    "capability": "models:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/provision",
+    "capability": "tenants:provision",
+    "principal_type": "service"
+  },
+  {
+    "service": "data-model-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/record-displays",
+    "capability": "models:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/schema-change-log",
+    "capability": "models:read"
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/schema-migrations",
+    "capability": "models:read"
+  },
+  {
+    "service": "data-model-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/tables",
+    "capability": "models:read"
+  },
+  {
+    "service": "data-model-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/tables",
+    "capability": "models:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/docs",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/healthz",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/internal/screening-status-updates",
+    "body_tenant": true,
+    "capability": "screening:callback",
+    "principal_type": "service"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/openapi.yaml",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/readyz",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/redoc",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/admin/runtime-metrics",
+    "capability": "metrics:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/investigator/tenants/:tenantId/cases/:caseId/review",
+    "capability": "cases:review",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/investigator/tenants/:tenantId/cases/:caseId/review",
+    "capability": "cases:review",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/rule-functions",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/service-info",
+    "capability": "services:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/async-decision-executions",
+    "capability": "executions:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/async-decision-executions",
+    "capability": "executions:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/async-decision-executions/:executionId",
+    "capability": "executions:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/async-decision-executions/:executionId/retry",
+    "capability": "executions:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/async-decision-executions/status-summary",
+    "capability": "executions:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/evidence/decisions/:decisionId",
+    "capability": "cases:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/decisions",
+    "capability": "decisions:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/decisions",
+    "capability": "decisions:evaluate"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/decisions/:decisionId",
+    "capability": "decisions:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/decisions/:decisionId/scoring-requests",
+    "capability": "executions:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/decisions/:decisionId/screening-executions",
+    "capability": "executions:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/decisions/:decisionId/workflow-executions",
+    "capability": "executions:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/decisions/all",
+    "capability": "decisions:evaluate"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/decisions/count",
+    "capability": "decisions:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/ingestion-events/record-ingested",
+    "body_tenant": true,
+    "capability": "ingestion:events",
+    "principal_type": "service"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/outbox-events",
+    "capability": "executions:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/platform/custom-list-entries",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/platform/custom-lists",
+    "capability": "lists:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/platform/custom-lists",
+    "capability": "lists:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/:tenantId/platform/custom-lists/:listId",
+    "capability": "lists:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/platform/custom-lists/:listId",
+    "capability": "lists:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "PUT",
+    "path": "/v1/tenants/:tenantId/platform/custom-lists/:listId",
+    "capability": "lists:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/platform/custom-lists/:listId/entries",
+    "capability": "lists:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/platform/custom-lists/:listId/entries",
+    "capability": "lists:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/:tenantId/platform/custom-lists/:listId/entries/:entryId",
+    "capability": "lists:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "PUT",
+    "path": "/v1/tenants/:tenantId/platform/custom-lists/:listId/entries/:entryId",
+    "capability": "lists:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/platform/custom-lists/:listId/entries/import",
+    "capability": "lists:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/platform/ip-flags",
+    "capability": "lists:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/platform/ip-flags",
+    "capability": "lists:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/platform/record-tags",
+    "capability": "lists:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/platform/record-tags",
+    "capability": "lists:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/platform/risk-snapshots",
+    "capability": "lists:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios",
+    "capability": "scenarios:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId",
+    "capability": "scenarios:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "PUT",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId",
+    "capability": "scenarios:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/ast-ai-description",
+    "capability": "scenarios:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/copy",
+    "capability": "scenarios:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/decisions",
+    "capability": "decisions:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/editor-identifiers",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/evaluate",
+    "capability": "decisions:evaluate"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/generate-ast",
+    "capability": "scenarios:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations",
+    "capability": "scenarios:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "PUT",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId",
+    "capability": "scenarios:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/commit",
+    "capability": "scenarios:publish",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/deactivate",
+    "capability": "scenarios:publish",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/draft",
+    "capability": "scenarios:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules",
+    "capability": "scenarios:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules/:ruleId",
+    "capability": "scenarios:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "PUT",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules/:ruleId",
+    "capability": "scenarios:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules/:ruleId/ai-description",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/validate",
+    "capability": "scenarios:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations/metadata",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/publications",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/publications",
+    "capability": "scenarios:publish",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/publications/preparation",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/publications/preparation",
+    "capability": "scenarios:publish",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/recurring-schedule",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "PUT",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/recurring-schedule",
+    "capability": "scenarios:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/rule-groups",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/rule-snoozes",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/rule-snoozes",
+    "capability": "scenarios:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/rules/latest",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions",
+    "capability": "executions:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions",
+    "capability": "executions:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions/:executionId",
+    "capability": "executions:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions/:executionId/retry",
+    "capability": "executions:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions/status-summary",
+    "capability": "executions:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/scoring-configs",
+    "capability": "screening:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/scoring-configs",
+    "capability": "screening:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/scoring-configs/:configId",
+    "capability": "screening:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/scoring-configs/:configId",
+    "capability": "screening:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "PUT",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/scoring-configs/:configId",
+    "capability": "screening:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/screening-configs",
+    "capability": "screening:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/screening-configs",
+    "capability": "screening:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/screening-configs/:configId",
+    "capability": "screening:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/screening-configs/:configId",
+    "capability": "screening:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "PUT",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/screening-configs/:configId",
+    "capability": "screening:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/test-runs",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/test-runs",
+    "capability": "scenarios:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/workflow-rules",
+    "capability": "workflows:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/workflow-rules",
+    "capability": "workflows:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId",
+    "capability": "workflows:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId",
+    "capability": "workflows:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "PUT",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId",
+    "capability": "workflows:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId/actions",
+    "capability": "workflows:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId/actions/:actionId",
+    "capability": "workflows:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "PUT",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId/actions/:actionId",
+    "capability": "workflows:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId/conditions",
+    "capability": "workflows:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId/conditions/:conditionId",
+    "capability": "workflows:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "PUT",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId/conditions/:conditionId",
+    "capability": "workflows:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/reorder",
+    "capability": "workflows:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/workflows",
+    "capability": "workflows:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/workflows",
+    "capability": "workflows:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/workflows/:workflowId",
+    "capability": "workflows:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/workflows/:workflowId",
+    "capability": "workflows:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "PUT",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/workflows/:workflowId",
+    "capability": "workflows:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/workflows/reorder",
+    "capability": "workflows:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/scoring-requests/:requestId",
+    "capability": "executions:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scoring-requests/:requestId/retry",
+    "capability": "executions:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/scoring-requests/:requestId/status",
+    "capability": "executions:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/screening-executions/:executionId",
+    "capability": "executions:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/screening-executions/:executionId/retry",
+    "capability": "executions:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/screening-executions/:executionId/status",
+    "capability": "executions:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/test-runs/:testRunId",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/test-runs/:testRunId/cancel",
+    "capability": "scenarios:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/test-runs/:testRunId/data-by-rule-execution",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/test-runs/:testRunId/decision-data-by-score",
+    "capability": "scenarios:read"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/test-runs/:testRunId/evaluate",
+    "capability": "scenarios:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "ingestion-service",
+    "method": "GET",
+    "path": "/docs",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "ingestion-service",
+    "method": "GET",
+    "path": "/healthz",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "ingestion-service",
+    "method": "GET",
+    "path": "/openapi.yaml",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "ingestion-service",
+    "method": "GET",
+    "path": "/readyz",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "ingestion-service",
+    "method": "GET",
+    "path": "/redoc",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "ingestion-service",
+    "method": "GET",
+    "path": "/v1/admin/deferred-ingest-metrics",
+    "capability": "metrics:read"
+  },
+  {
+    "service": "ingestion-service",
+    "method": "GET",
+    "path": "/v1/admin/read-metrics",
+    "capability": "metrics:read"
+  },
+  {
+    "service": "ingestion-service",
+    "method": "GET",
+    "path": "/v1/deferred-ingests/:deferredIngestId",
+    "capability": "ingest:read"
+  },
+  {
+    "service": "ingestion-service",
+    "method": "PATCH",
+    "path": "/v1/tenants/:tenantId/ingest/:objectType",
+    "capability": "ingest:write"
+  },
+  {
+    "service": "ingestion-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/ingest/:objectType",
+    "capability": "ingest:write"
+  },
+  {
+    "service": "ingestion-service",
+    "method": "PATCH",
+    "path": "/v1/tenants/:tenantId/ingest/:objectType/batch",
+    "capability": "ingest:write"
+  },
+  {
+    "service": "ingestion-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/ingest/:objectType/batch",
+    "capability": "ingest:write"
+  },
+  {
+    "service": "ingestion-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/ingest/:objectType/csv",
+    "capability": "ingest:write"
+  },
+  {
+    "service": "ingestion-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/ingest/:objectType/upload-logs",
+    "capability": "ingest:read"
+  },
+  {
+    "service": "ingestion-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/query/aggregate",
+    "capability": "records:read"
+  },
+  {
+    "service": "ingestion-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/records/:objectType",
+    "capability": "records:read"
+  },
+  {
+    "service": "ingestion-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/records/:objectType/:objectId",
+    "capability": "records:read"
+  },
+  {
+    "service": "ingestion-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/records/:objectType/search",
+    "capability": "records:read"
+  },
+  {
+    "service": "ingestion-service",
+    "method": "GET",
+    "path": "/v1/upload-logs/:uploadLogId",
+    "capability": "ingest:read"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/docs",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/healthz",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/internal/screening-capabilities",
+    "capability": "screening:intake",
+    "principal_type": "service"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/internal/v1/tenants/:tenantId/decision-screenings",
+    "capability": "screening:intake",
+    "principal_type": "service"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/metrics",
+    "capability": "metrics:read"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/openapi.yaml",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/readyz",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/redoc",
+    "capability": "",
+    "public": true
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/investigator/tenants/:tenantId/cases/:caseId/exclusions",
+    "capability": "cases:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/investigator/tenants/:tenantId/cases/:caseId/matches/:matchId/enrich",
+    "capability": "cases:review",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/investigator/tenants/:tenantId/cases/:caseId/review",
+    "capability": "cases:review",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/investigator/tenants/:tenantId/cases/:caseId/review",
+    "capability": "cases:review",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/manual-screenings",
+    "capability": "screening:search",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/manual-screenings",
+    "capability": "screening:search",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/manual-screenings/:id",
+    "capability": "screening:search",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/manual-screenings/:id/matches/:matchId/enrich",
+    "capability": "screening:search",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/manual-screenings/:id/monitor",
+    "capability": "screening:search",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/manual-screenings/:id/monitor",
+    "capability": "screening:search",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/private-lists",
+    "capability": "private-lists:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/private-lists",
+    "capability": "private-lists:import",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/private-lists/:listId",
+    "capability": "private-lists:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/private-lists/:listId/imports",
+    "capability": "private-lists:import",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/private-lists/:listId/imports/:importId",
+    "capability": "private-lists:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/private-lists/:listId/imports/:importId/approve",
+    "capability": "private-lists:approve",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/private-lists/:listId/imports/:importId/artifact",
+    "capability": "private-lists:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/private-lists/:listId/imports/:importId/diff",
+    "capability": "private-lists:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/private-lists/:listId/imports/:importId/reject",
+    "capability": "private-lists:approve",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/private-lists/:listId/recover",
+    "capability": "private-lists:import",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/screening-provider/catalog",
+    "capability": "sources:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/screening-provider/freshness",
+    "capability": "sources:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/service-info",
+    "capability": "services:read"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/cases/:caseId/evidence/screenings/:screeningId",
+    "capability": "cases:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/continuous-screening-configs",
+    "capability": "screening:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/continuous-screening-configs",
+    "capability": "screening:admin",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/:tenantId/continuous-screening-configs/:configId",
+    "capability": "screening:admin",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/continuous-screening-configs/:configId",
+    "capability": "screening:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "PUT",
+    "path": "/v1/tenants/:tenantId/continuous-screening-configs/:configId",
+    "capability": "screening:admin",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/continuous-screening-configs/:configId/monitored-objects",
+    "capability": "screening:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/continuous-screening-configs/:configId/monitored-objects",
+    "capability": "screening:admin",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/dataset-update-jobs",
+    "capability": "sources:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/dataset-update-jobs",
+    "capability": "sources:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/dataset-update-jobs/:jobId",
+    "capability": "sources:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/dataset-update-jobs/:jobId/retry",
+    "capability": "sources:manage",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/decisions/:decisionId/screenings",
+    "capability": "screening:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/:tenantId/monitored-objects/:monitoredObjectId",
+    "capability": "screening:admin",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/monitored-objects/:monitoredObjectId",
+    "capability": "screening:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/monitored-objects/:monitoredObjectId/requeue",
+    "capability": "screening:admin",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/screening-matches/:matchId/comments",
+    "capability": "screening:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/screening-matches/:matchId/enrich",
+    "capability": "screening:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/screening-matches/:matchId/review",
+    "capability": "screening:review",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "DELETE",
+    "path": "/v1/tenants/:tenantId/screening-whitelist",
+    "capability": "screening:admin",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/screening-whitelist",
+    "capability": "screening:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/screening-whitelist",
+    "capability": "screening:admin",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/screenings",
+    "capability": "screening:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/screenings/:screeningId",
+    "capability": "screening:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/screenings/:screeningId/file-uploads",
+    "capability": "screening:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/screenings/:screeningId/files",
+    "capability": "screening:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/screenings/:screeningId/files",
+    "capability": "screening:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/screenings/:screeningId/files/:fileId",
+    "capability": "screening:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/screenings/:screeningId/files/:fileId/download",
+    "capability": "screening:read",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/screenings/:screeningId/retry",
+    "capability": "screening:write",
+    "principal_type": "user"
+  },
+  {
+    "service": "screening-service",
+    "method": "POST",
+    "path": "/v1/tenants/:tenantId/screenings/freeform-search",
+    "capability": "screening:write",
+    "principal_type": "user"
+  }
+]

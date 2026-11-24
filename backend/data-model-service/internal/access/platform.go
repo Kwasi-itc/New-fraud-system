@@ -4,7 +4,7 @@ package access
 import (
 	"context"
 	"errors"
-	"github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	investigator "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
@@ -50,16 +50,26 @@ var ownership = map[string]string{
 
 func Check(ctx context.Context, db Queryer, g Grant, lock bool) error {
 	p := g.Principal
-	if p.SessionID == uuid.Nil || p.TenantID == uuid.Nil || g.ID == uuid.Nil || p.AuthzVersion < 1 {
+	if p.TenantID == uuid.Nil || g.ID == uuid.Nil || (!p.IsHuman() && !p.IsService()) || (p.IsHuman() && p.AuthzVersion < 1) {
 		return Denied()
 	}
-	var allowed bool
-	if err := db.QueryRow(ctx, "SELECT identity.authorize_data_model_v1($1,$2,$3,$4,$5,$6)", p.Subject, p.TenantID, p.SessionID, p.AuthzVersion, g.Write, lock).Scan(&allowed); err != nil {
-		return &Error{503, "Identity verification is temporarily unavailable."}
+	capability := investigator.RequiredCapability(ctx)
+	if capability == "" {
+		capability = "models:read"
+		if g.Write {
+			capability = "models:write"
+		}
 	}
-	if !allowed {
+	if !p.Can(capability) {
 		return Denied()
 	}
+	if lock && p.IsHuman() {
+		if err := investigator.CheckCapability(ctx, db, p, capability, true); err != nil {
+			status, message := investigator.HTTPError(err)
+			return &Error{status, message}
+		}
+	}
+
 	tenant := g.ID
 	if g.Kind != "tenantId" {
 		query, ok := ownership[g.Kind]

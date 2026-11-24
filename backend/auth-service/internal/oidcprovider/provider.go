@@ -181,6 +181,7 @@ func (p *Provider) AuthorizationURL(state, nonce, verifier string) (string, erro
 }
 
 type Identity struct {
+	AccountName   string
 	Issuer        string
 	Subject       string
 	Name          string
@@ -210,6 +211,7 @@ func (p *Provider) Exchange(ctx context.Context, code, verifier, expectedNonce s
 	var claims struct {
 		AuthorizedParty string `json:"azp"`
 		Name            string `json:"name"`
+		AccountName     string `json:"preferred_username"`
 		Email           string `json:"email"`
 		EmailVerified   bool   `json:"email_verified"`
 	}
@@ -222,7 +224,7 @@ func (p *Provider) Exchange(ctx context.Context, code, verifier, expectedNonce s
 	if id.AccessTokenHash != "" && id.VerifyAccessToken(token.AccessToken) != nil {
 		return Identity{}, errors.New("OIDC access token binding invalid")
 	}
-	return Identity{Issuer: id.Issuer, Subject: id.Subject, Name: claims.Name, Email: claims.Email, EmailVerified: claims.EmailVerified}, nil
+	return Identity{Issuer: id.Issuer, Subject: id.Subject, Name: claims.Name, AccountName: claims.AccountName, Email: claims.Email, EmailVerified: claims.EmailVerified}, nil
 }
 
 func tokenExchangeFailure(err error) error {
