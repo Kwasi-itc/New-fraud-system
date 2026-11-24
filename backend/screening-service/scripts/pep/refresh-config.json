@@ -1,0 +1,28 @@
+{
+  "sources": {
+    "parliament": {
+      "enabled": true,
+      "interval_minutes": 360
+    },
+    "wikidata": {
+      "enabled": true,
+      "interval_minutes": 720
+    },
+    "judiciary": {
+      "enabled": true,
+      "interval_minutes": 1440
+    },
+    "parties": {
+      "enabled": true,
+      "interval_minutes": 1440
+    },
+    "siga": {
+      "enabled": true,
+      "interval_minutes": 720
+    },
+    "mmdce": {
+      "enabled": true,
+      "interval_minutes": 720
+    }
+  }
+}

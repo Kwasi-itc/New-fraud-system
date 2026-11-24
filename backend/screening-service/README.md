@@ -23,7 +23,7 @@ Standalone backend service workspace for extracting Marble's screening domains o
 
 Current location in the workspace:
 
-- `new/backend/screening-service`
+- `backend/screening-service`
 
 This folder now contains:
 
@@ -145,8 +145,12 @@ HTTP surfaces:
 - `GET /metrics`: JSON request metrics snapshot
 - `GET /openapi.yaml`: baseline screening-service OpenAPI spec
 - `GET /docs`: Swagger UI for the embedded screening-service spec
-- `GET /v1/service-info`: active downstream URL wiring
+- `GET /v1/service-info`: active downstream URL wiring (operator-token + auth gated)
 - `POST /internal/v1/tenants/:tenantId/decision-screenings`: decision-engine intake contract
+- `GET /internal/screening-capabilities`: internal screening capability flags
+- `/v1/investigator/tenants/:tenantId/cases/:caseId/...`: platform-session investigator review, match enrichment, and case exclusions
+- `/v1/manual-screenings/...`: platform-session manual search, capabilities, history, match review, and `/monitor`
+- `/v1/private-lists/...`: platform-session tenant private-list CRUD, CSV import, diff, and two-person approval/rejection
 - `POST /internal/screening-status-updates`: expected callback receiver on `decision-engine-service`
 
 Server logging:
@@ -166,8 +170,11 @@ Worker logging:
 Operational expectations:
 
 - run `cmd/server` for API traffic
-- run `cmd/worker` for background processing
-- run `cmd/migrate` before first startup against a fresh database
+- run `cmd/worker` for River background processing (`screening`, `dataset_update_jobs`, `monitored_objects`) and recovery/projection loops
+- run `cmd/case-delivery-worker` for `screening.case_event_outbox` callback delivery
+- run `cmd/migrate` before first startup against a fresh database (migrations `000001_init` through `000023_provider_clients`)
+- run `cmd/provider-server` and `cmd/provider-admin` for the standalone internal provider API/catalog administration
+- run `cmd/source-worker`, `cmd/source-admin`, `cmd/source-import`, `cmd/source-notice`, and `cmd/source-verify` for watchlist source collection and verification
 - `screening-service` expects reachable downstreams for provider, ingestion, inbox, case, and blob integrations when those flows are exercised
 - `.env.example` includes `BLOB_SERVICE_URL` alongside the provider, ingestion, inbox, case, and decision-engine URLs expected by the current runtime
 - `DECISION_ENGINE_URL` is optional, but when configured the worker and review flows publish screening status updates back to the decision engine

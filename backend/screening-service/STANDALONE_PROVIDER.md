@@ -32,6 +32,14 @@ Stop with `docker @providerCompose down`. This preserves the catalog volume. Do 
 
 A namespace is a customer boundary, expressed as a UUID. It is independent of a fraud tenant in standalone mode. Clients receive an explicit list of operations and datasets; possessing a key alone does not grant all source data.
 
+For a quick one-command setup (creates a client, issues a key, and grants all currently registered datasets):
+
+```powershell
+node backend/screening-service/scripts/pep/provision-provider-client.mjs --name "Swagger Test" --key-file sandbox-key.txt
+```
+
+Or run the individual steps manually:
+
 ```powershell
 $providerNamespace = [guid]::NewGuid().ToString()
 $created = docker @providerCompose run --rm provider-admin -action create-client -name 'Sandbox integration' -namespace $providerNamespace -operations 'search,enrich,catalog,freshness,delta' -requests-per-minute 6000 -ttl 720h | ConvertFrom-Json
@@ -93,7 +101,7 @@ Search returns evidence `contract_version: 2`, a `provider_reference`, pinned da
 
 Errors include 400 for invalid input/cursors, 401 for invalid/expired/revoked credentials, 403 for disallowed operations, 404 for unavailable datasets, 410 for unavailable historical record evidence, 429 for quota/concurrency limits, 503 for unavailable dependencies and 504 for an exceeded request deadline. Unauthorized datasets are not silently removed from a requested selection.
 
-Limits: 128 KiB JSON request body; the complete supported catalog (up to 500 selected datasets); 50 returned search matches; catalog/delta page size at most 500; 8 MiB response ceiling. The existing matcher also bounds query work and marks candidate overflow incomplete. The default API deadline is 2 seconds, pool and concurrency are each 8. Allowed API timeout is 10 ms–5 s. Quotas are per client per database minute, shared atomically across replicas; authenticated attempts for allowed operations consume budget, including failed requests. This is a protective request budget, not customer billing or a throughput guarantee.
+Limits: 128 KiB JSON request body; the complete supported catalog (up to 500 selected datasets); 50 returned search matches; catalog/delta page size at most 500; 8 MiB response ceiling. The existing matcher also bounds query work and marks candidate overflow incomplete. The default API deadline is 2 seconds (`PROVIDER_REQUEST_TIMEOUT`), database pool is 8 (`PROVIDER_DATABASE_MAX_CONNS`), and max concurrency is 16 (`PROVIDER_MAX_CONCURRENT`). Allowed API timeout is 10 ms–5 s. Quotas are per client per database minute, shared atomically across replicas; authenticated attempts for allowed operations consume budget, including failed requests. This is a protective request budget, not customer billing or a throughput guarantee.
 
 Cursor authority includes client/key/revision/namespace/selection. Reuse the returned cursor with the same dataset selection. Grant changes or key/client revocation invalidate prior authority; another client cannot reuse a cursor.
 
@@ -115,6 +123,29 @@ The admin CLI requires the catalog owner connection and records client/key/grant
 `provider-source-admin`, `provider-import` and the optional `sources` profile package existing source tooling. Registering a connector does not approve rights or enable collection. Official source operation still requires the existing explicit registration, reviewed rights reference, enablement and entitlement gates described in [source documentation](INTERNAL_PROVIDER_SOURCES.md). No public API route can approve or publish sources. `source-admin -action health` reports standalone workflow support as false; it does not invent fraud workflow tables or receipts.
 
 The API login inherits `screening_provider_reader`: catalog reads, credential digest reads, usage counters and cursor insertion only. It cannot change clients, grants, source data or publications. The collector inherits `screening_provider_collector`: source ingestion/publication/retention capabilities, with no API credential access. Migrations/admin use a separate owner secret. The optional collector login is provisioned by `docker @providerCompose --profile sources up -d provider-source-worker`; no source is automatically registered or activated.
+
+### Scheduled live PEP & public-source refresh
+
+To fetch live online PEP datasets (Parliament, Wikidata PEPs/RCAs, Judiciary, Political Parties, SIGA/SOE, and District MMDCEs—with no prepopulated fallback data) and import them into the standalone provider catalog on a schedule:
+
+```powershell
+# Option A: Run inside the standalone provider Docker Compose stack (sources profile)
+docker @providerCompose --profile sources up -d --build provider-pep-refresher
+
+# Option B: Run from the host (once or looping with per-source intervals + optional control API)
+node backend/screening-service/scripts/pep/refresh-standalone-provider.mjs --once
+node backend/screening-service/scripts/pep/refresh-standalone-provider.mjs --control-port 8092
+```
+
+Per-source refresh durations default to `scripts/pep/refresh-config.json` (`parliament`: 360m, `wikidata`/`siga`/`mmdce`: 720m, `judiciary`/`parties`: 1440m) and can be overridden via `PEP_REFRESH_<SOURCE>_MINUTES` (e.g. `PEP_REFRESH_PARLIAMENT_MINUTES=180`), `PEP_REFRESH_INTERVAL_MINUTES`, or at runtime via the private control API on port `8092` (requires `PEP_REFRESH_ADMIN_TOKEN` $\ge$ 32 chars):
+
+- `GET /v1/refresh/status` — view current per-source schedule, `last_run_at`, and `next_run_at`
+- `PUT /v1/refresh/config` — update `enabled` and `interval_minutes` per source (`{"sources":{"parliament":{"interval_minutes":120}}}`)
+- `POST /v1/refresh/trigger` — trigger an immediate refresh (`{"sources":["parliament","wikidata"]}` or `{}` for all)
+
+For official XML feeds (`provider-source-worker`), worker polling is configurable via `SOURCE_WORKER_POLL_INTERVAL` (default `30s`) and `SOURCE_WORKER_BATCH` (default `4`), while per-feed check intervals are configured via `source-admin -action enable -poll-interval <duration>`.
+
+After importing new datasets, grant any client access with `provider-admin -action grant-dataset -client $providerClient -scope global -dataset <dataset-id>`.
 
 Standalone bootstrap installs the curated source/private-list support DDL from canonical screening migrations 11–23 and records a normalized DDL checksum. It refuses an occupied application database and refuses unknown or changed bootstrap contracts. It is repeatable for this release, **not** a general future schema-upgrade engine. Back up before upgrades and supply a reviewed forward migration for changed releases. The regular fraud migration path remains independently tracked through migration 23.
 

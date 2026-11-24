@@ -115,12 +115,35 @@ services:
     <<: *provider-runtime
     profiles: [sources]
     entrypoint: [/app/source-worker]
-    command: [-mode, poll, -batch, "4", -poll-interval, 30s]
+    command: [-mode, poll, -batch, "${SOURCE_WORKER_BATCH:-4}", -poll-interval, "${SOURCE_WORKER_POLL_INTERVAL:-30s}"]
     environment:
       SOURCE_DATABASE_URL_FILE: /run/secrets/collector-dsn
     secrets: [collector-dsn]
     depends_on:
       provider-collector-login: {condition: service_completed_successfully}
+    restart: unless-stopped
+
+  provider-pep-refresher:
+    image: fraud-screening-provider-pep-refresher:dev
+    build:
+      context: .
+      dockerfile: backend/screening-service/Dockerfile.provider-pep-refresher
+    profiles: [sources]
+    user: "${PROVIDER_RUN_UID:-65532}:${PROVIDER_RUN_GID:-65532}"
+    tmpfs: ["/tmp:size=192m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 768m
+    environment:
+      SOURCE_DATABASE_URL_FILE: /run/secrets/owner-dsn
+      PEP_REFRESH_INTERVAL_MINUTES: "${PEP_REFRESH_INTERVAL_MINUTES:-}"
+      PEP_CONTROL_PORT: "${PEP_CONTROL_PORT:-8092}"
+      PEP_CONTROL_HOST: "0.0.0.0"
+      PEP_REFRESH_ADMIN_TOKEN: "${PEP_REFRESH_ADMIN_TOKEN:-}"
+    ports: ["${PROVIDER_BIND_ADDRESS:-127.0.0.1}:${PEP_CONTROL_PORT:-8092}:8092"]
+    secrets: [owner-dsn]
+    depends_on:
+      provider-migrate: {condition: service_completed_successfully}
     restart: unless-stopped
 
 secrets:

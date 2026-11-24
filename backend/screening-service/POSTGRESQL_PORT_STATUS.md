@@ -69,7 +69,7 @@ conflicting identities and concurrent retries. Provider credentials match and
 fresh login initiation succeeds; user-password sign-in still needs a fresh retry.
 
 - [x] Implement PostgreSQL decision-time screening, forced outcomes and error-only atomic evidence/effects; verified with real APIs/workers. Runtime activation remains explicitly gated by [Phase 8 acceptance](INTERNAL_PROVIDER_ACCEPTANCE.md).
-- [x] Implement the separate source collector, migrations through 22 and scoped provider adapter; disposable regression/recovery verification passes. Production source use remains unapproved.
+- [x] Implement the separate source collector, migrations through 22 (subsequently extended to 23 for `provider_api`) and scoped provider adapter; disposable regression/recovery verification passes. Production source use remains unapproved.
 - [x] Reverify complete retained OFAC SDN/UN/UK snapshots through publication/search/enrichment. EU/Ghana remain fixture-only; independent matching quality and rights/access remain open.
 - [ ] Configure a compatible screening provider before running new live searches; unconfigured capabilities remain unavailable and stored history stays readable.
 - [ ] Add PostgreSQL case/auth Swagger endpoints if required. Their APIs are routed, but main currently has no Swagger pages for those services.
