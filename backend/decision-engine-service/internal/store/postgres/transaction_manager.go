@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -33,6 +34,14 @@ func (m TransactionManager) Run(ctx context.Context, fn func(store ports.Mutatio
 		defer cancel()
 		_ = tx.Rollback(rollbackCtx)
 	}()
+
+	if p, ok := auth.FromContext(ctx); ok && p.IsHuman() {
+		for _, capability := range auth.CurrentCapabilities(ctx) {
+			if err := auth.CheckCapability(ctx, tx, p, capability, true); err != nil {
+				return err
+			}
+		}
+	}
 
 	store := mutationStore{tx: tx}
 	bodyStartedAt := time.Now()

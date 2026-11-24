@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"github.com/google/uuid"
 	"io"
 	"net/http"
@@ -34,6 +35,11 @@ func TestInvestigatorOwnerHTTPJourneys(t *testing.T) {
 		}
 	}
 	for _, owner := range []string{"data-model-service", "ingestion-service", "decision-engine-service", "case-manager-service"} {
+		if owner == "case-manager-service" {
+			if err := authtest.ApplyIdentity(ctx, db, "../../../../auth-service/internal/platform"); err != nil {
+				t.Fatal(err)
+			}
+		}
 		paths, err := filepath.Glob(filepath.Join("..", "..", "..", "..", owner, "internal", "migrations", "metadata", "*.up.sql"))
 		if err != nil || len(paths) == 0 {
 			t.Fatal(owner, err)
@@ -49,7 +55,7 @@ func TestInvestigatorOwnerHTTPJourneys(t *testing.T) {
 	tenant, inbox, caseID := uuid.NewString(), uuid.NewString(), uuid.NewString()
 	execSQL(`INSERT INTO core.tenants(id,name,schema_name,status,created_at,updated_at) VALUES($1,'Review','review_test','active',now(),now())`, tenant)
 	execSQL(`INSERT INTO case_manager.inboxes(id,tenant_id,name,created_at,updated_at) VALUES($1,$2,'Review',now(),now())`, inbox, tenant)
-	execSQL(`INSERT INTO case_manager.inbox_users(id,tenant_id,inbox_id,user_id,created_at) VALUES($1,$2,$3,'analyst',now())`, uuid.NewString(), tenant, inbox)
+	execSQL(`INSERT INTO case_manager.inbox_users(id,tenant_id,inbox_id,user_id,created_at) VALUES($1,$2,$3,$4,now())`, uuid.NewString(), tenant, inbox, journeySubject("analyst"))
 	execSQL(`INSERT INTO case_manager.cases(id,tenant_id,inbox_id,name,status,outcome,type,created_at,updated_at) VALUES($1,$2,$3,'Review','pending','unset','decision',now(),now())`, caseID, tenant, inbox)
 	scenario, iteration := uuid.NewString(), uuid.NewString()
 	execSQL(`INSERT INTO core.scenarios(id,tenant_id,name,trigger_object_type,created_at,updated_at) VALUES($1,$2,'Review','customer',now(),now())`, scenario, tenant)
@@ -80,7 +86,7 @@ func TestInvestigatorOwnerHTTPJourneys(t *testing.T) {
 				defer callback.Close()
 				t.Setenv("DECISION_ENGINE_URL", callback.URL)
 			}
-			endpoint, serviceToken, sign := startInvestigatorServer(t, db, binaries[owner], tenant)
+			endpoint, _, sign := startInvestigatorServer(t, db, binaries[owner], tenant)
 			token := sign("analyst", tenant, "case_investigator")
 			path := endpoint + "/v1/investigator/tenants/" + tenant + "/cases/" + caseID + "/review"
 			request := func(token, resource string, body any) (int, identity.State, string) {
@@ -119,8 +125,12 @@ func TestInvestigatorOwnerHTTPJourneys(t *testing.T) {
 			if !state.Eligible || state.Status != "pending" {
 				t.Fatal(state)
 			}
-			check(401, serviceToken, resource, nil)
-			check(401, sign("analyst", tenant, "viewer"), resource, nil)
+			machineOwner, machineCapability := "decision-engine-service", "decisions:read"
+			if owner == "screening" {
+				machineOwner, machineCapability = "screening-service", "screening:read"
+			}
+			check(403, journeyToken(t, tenant, "case-manager-service", machineOwner, machineCapability), resource, nil)
+			check(403, sign("analyst", tenant, "viewer"), resource, nil)
 			check(403, sign("stranger", tenant, "case_investigator"), resource, nil)
 			check(403, sign("analyst", uuid.NewString(), "case_manager_admin"), resource, nil)
 			check(403, token, uuid.NewString(), nil)
@@ -169,7 +179,7 @@ func TestInvestigatorOwnerHTTPJourneys(t *testing.T) {
 			bad.OperationID = uuid.New()
 			check(409, token, resource, bad)
 			var actor, note, status string
-			if err := db.QueryRow(ctx, `SELECT user_id,additional_note,new_value FROM case_manager.case_events WHERE resource_id=$1`, resource).Scan(&actor, &note, &status); err != nil || actor != "analyst" || note != cmd.Findings || status != action {
+			if err := db.QueryRow(ctx, `SELECT user_id,additional_note,new_value FROM case_manager.case_events WHERE resource_id=$1`, resource).Scan(&actor, &note, &status); err != nil || actor != journeySubject("analyst") || note != cmd.Findings || status != action {
 				t.Fatal(actor, note, status, err)
 			}
 			if err := db.QueryRow(ctx, `SELECT count(*) FROM case_manager.case_events WHERE resource_id=$1`, resource).Scan(&n); err != nil || n != 1 {
@@ -193,9 +203,9 @@ func TestInvestigatorOwnerHTTPJourneys(t *testing.T) {
 			next := identity.Command{OperationID: uuid.New(), ResourceID: fresh, ExpectedVersion: freshState.Version, Action: action, Findings: "New"}
 			check(400, token, fresh, next)
 			execSQL(`UPDATE case_manager.cases SET status='pending' WHERE id=$1`, caseID)
-			execSQL(`DELETE FROM case_manager.inbox_users WHERE inbox_id=$1 AND user_id='analyst'`, inbox)
+			execSQL(`DELETE FROM case_manager.inbox_users WHERE inbox_id=$1 AND user_id='9c420154-db5b-5784-83f6-5a074b89a36e'`, inbox)
 			check(403, token, resource, cmd)
-			execSQL(`INSERT INTO case_manager.inbox_users(id,tenant_id,inbox_id,user_id,created_at) VALUES($1,$2,$3,'analyst',now())`, uuid.NewString(), tenant, inbox)
+			execSQL(`INSERT INTO case_manager.inbox_users(id,tenant_id,inbox_id,user_id,created_at) VALUES($1,$2,$3,$4,now())`, uuid.NewString(), tenant, inbox, journeySubject("analyst"))
 			// Competing first reviews cannot both commit.
 			var wg sync.WaitGroup
 			codes := make(chan int, 2)
@@ -264,7 +274,7 @@ func TestInvestigatorOwnerHTTPJourneys(t *testing.T) {
 					_, err = tx.Exec(ctx, `UPDATE case_manager.cases SET status='closed' WHERE id=$1`, caseID)
 					want = 400
 				case "revoke":
-					_, err = tx.Exec(ctx, `DELETE FROM case_manager.inbox_users WHERE inbox_id=$1 AND user_id='analyst'`, inbox)
+					_, err = tx.Exec(ctx, `DELETE FROM case_manager.inbox_users WHERE inbox_id=$1 AND user_id='9c420154-db5b-5784-83f6-5a074b89a36e'`, inbox)
 				case "unlink":
 					if owner == "core" {
 						_, err = tx.Exec(ctx, `DELETE FROM case_manager.case_decisions WHERE decision_id=$1`, pending)
@@ -289,7 +299,7 @@ func TestInvestigatorOwnerHTTPJourneys(t *testing.T) {
 					execSQL(`UPDATE case_manager.cases SET status='pending' WHERE id=$1`, caseID)
 				}
 				if mutation == "revoke" {
-					execSQL(`INSERT INTO case_manager.inbox_users(id,tenant_id,inbox_id,user_id,created_at) VALUES($1,$2,$3,'analyst',now())`, uuid.NewString(), tenant, inbox)
+					execSQL(`INSERT INTO case_manager.inbox_users(id,tenant_id,inbox_id,user_id,created_at) VALUES($1,$2,$3,$4,now())`, uuid.NewString(), tenant, inbox, journeySubject("analyst"))
 				}
 			}
 		})

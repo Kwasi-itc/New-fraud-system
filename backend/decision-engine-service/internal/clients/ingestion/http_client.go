@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -17,6 +18,7 @@ import (
 )
 
 type HTTPClient struct {
+	Signer  *platformauth.Signer
 	baseURL string
 	client  *http.Client
 }
@@ -43,7 +45,7 @@ func IsStatusError(err error, service string, statusCode int) bool {
 func NewHTTPClient(baseURL string, timeout time.Duration) HTTPClient {
 	return HTTPClient{
 		baseURL: strings.TrimRight(baseURL, "/"),
-		client:  &http.Client{Timeout: timeout},
+		client:  &http.Client{Timeout: timeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
 	}
 }
 
@@ -54,7 +56,7 @@ func (c HTTPClient) GetRecord(ctx context.Context, tenantID, objectType, objectI
 		return ports.TenantRecord{}, fmt.Errorf("create request: %w", err)
 	}
 	attachRequestID(req)
-	resp, err := c.client.Do(req)
+	resp, err := c.do(req)
 	if err != nil {
 		return ports.TenantRecord{}, fmt.Errorf("perform request: %w", err)
 	}
@@ -90,7 +92,7 @@ func (c HTTPClient) ListRecords(ctx context.Context, tenantID, objectType string
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 	attachRequestID(req)
-	resp, err := c.client.Do(req)
+	resp, err := c.do(req)
 	if err != nil {
 		return nil, fmt.Errorf("perform request: %w", err)
 	}
@@ -129,7 +131,7 @@ func (c HTTPClient) QueryRecords(ctx context.Context, tenantID, objectType, fiel
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 	attachRequestID(req)
-	resp, err := c.client.Do(req)
+	resp, err := c.do(req)
 	if err != nil {
 		return nil, fmt.Errorf("perform request: %w", err)
 	}
@@ -168,7 +170,7 @@ func (c HTTPClient) AggregateRecords(ctx context.Context, tenantID string, query
 	req.Header.Set("Content-Type", "application/json")
 	attachRequestID(req)
 	startedAt := time.Now()
-	resp, err := c.client.Do(req)
+	resp, err := c.do(req)
 	if err != nil {
 		slog.Default().Warn("ingestion aggregate request failed",
 			"request_id", requestctx.RequestID(ctx),
@@ -236,3 +238,16 @@ func attachRequestID(req *http.Request) {
 		req.Header.Set(requestIDHeader, requestID)
 	}
 }
+
+func (c HTTPClient) do(req *http.Request) (*http.Response, error) {
+	tenant, err := platformauth.RequestTenant(req)
+	if err != nil {
+		return nil, err
+	}
+	if err = platformauth.AuthorizeServiceRequest(req, tenant, "urn:fraud:ingestion-service", []string{"records:read"}, c.Signer); err != nil {
+		return nil, err
+	}
+	return c.client.Do(req)
+}
+
+func (c HTTPClient) WithSigner(signer *platformauth.Signer) HTTPClient { c.Signer = signer; return c }

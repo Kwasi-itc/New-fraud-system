@@ -17,14 +17,14 @@ const (
 )
 
 type RecurringScheduleConfig struct {
-	Enabled        bool   `json:"enabled"`
-	Frequency      string `json:"frequency"`
-	TimeOfDay      string `json:"time_of_day"`
-	MinuteOfHour   int    `json:"minute_of_hour,omitempty"`
-	DayOfWeek      string `json:"day_of_week,omitempty"`
-	DayOfMonth     int    `json:"day_of_month,omitempty"`
-	Timezone       string `json:"timezone"`
-	CandidateLimit int    `json:"candidate_limit"`
+	Enabled        bool       `json:"enabled"`
+	Frequency      string     `json:"frequency"`
+	TimeOfDay      string     `json:"time_of_day"`
+	MinuteOfHour   int        `json:"minute_of_hour,omitempty"`
+	DayOfWeek      string     `json:"day_of_week,omitempty"`
+	DayOfMonth     int        `json:"day_of_month,omitempty"`
+	Timezone       string     `json:"timezone"`
+	CandidateLimit int        `json:"candidate_limit"`
 	NextRun        *time.Time `json:"-"`
 	LastRun        *time.Time `json:"-"`
 }

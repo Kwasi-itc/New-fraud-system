@@ -614,7 +614,7 @@ func (s dataModelReaderStub) ListIndexJobs(context.Context, string) ([]ports.Man
 func (s dataModelReaderStub) CreateIndexJob(context.Context, string, string, string, []string, string) (ports.ManagedIndexJob, error) {
 	return ports.ManagedIndexJob{}, nil
 }
-func (s dataModelReaderStub) RetryIndexJob(context.Context, string) error {
+func (s dataModelReaderStub) RetryIndexJob(context.Context, string, string) error {
 	return nil
 }
 

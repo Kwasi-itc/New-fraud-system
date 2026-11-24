@@ -3,6 +3,7 @@ package dispatch
 import (
 	"context"
 	"encoding/json"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -20,9 +21,8 @@ func TestScreeningDispatchDoesNotFallbackToGeneralCredential(t *testing.T) {
 	var calls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls.Add(1); w.WriteHeader(204) }))
 	defer server.Close()
-	general := strings.Repeat("g", 32)
-	for _, secret := range []string{"", "short", general} {
-		client := NewHTTPClient(time.Second, "token", general, "", server.URL, "", "").WithScreeningAuthToken(secret)
+	for range 3 {
+		client := NewHTTPClient(time.Second, "", server.URL, "", "").WithSigner(authtest.ServiceSigner(t, "decision-engine-service"))
 		if err := client.SendScreeningExecution(context.Background(), screening.Execution{}); err == nil {
 			t.Fatal("invalid credential accepted")
 		}
@@ -36,7 +36,7 @@ func TestScreeningDispatchErrorsAreSafeForRiver(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "private provider response", http.StatusServiceUnavailable)
 	}))
-	client := NewHTTPClient(time.Second, "token", "private-token", "", server.URL, "", "").WithScreeningAuthToken("synthetic-intake-private-token-32bytes")
+	client := NewHTTPClient(time.Second, "", server.URL, "", "").WithSigner(authtest.ServiceSigner(t, "decision-engine-service"))
 	item := screening.Execution{TenantID: "synthetic", RequestJSON: json.RawMessage(`{}`)}
 	for _, networkFailure := range []bool{false, true} {
 		if networkFailure {
@@ -52,26 +52,30 @@ func TestScreeningDispatchErrorsAreSafeForRiver(t *testing.T) {
 func TestHTTPClientDispatchesJSONRequests(t *testing.T) {
 	t.Parallel()
 
+	signer := authtest.ServiceSigner(t, "decision-engine-service")
+	verifier := authtest.ServiceVerifier(t, signer, "urn:fraud:screening-service")
 	hits := make(chan string, 4)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/internal/v1/tenants/tenant-1/decision-screenings" && r.Header.Get("Authorization") != "Bearer synthetic-intake-private-token-32bytes" {
-			t.Fatalf("authorization header = %q, want Bearer token-1", r.Header.Get("Authorization"))
-		}
-		if r.URL.Path != "/internal/v1/tenants/tenant-1/decision-screenings" && r.Header.Get("Authorization") == "Bearer synthetic-intake-private-token-32bytes" {
-			t.Fatal("intake credential disclosed to another integration")
+		if strings.Contains(r.URL.Path, "/decision-screenings") {
+			p, err := verifier.Verify(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
+			if err != nil || !p.Can("screening:intake") {
+				t.Error("invalid signed intake")
+			}
+		} else if r.Header.Get("Authorization") != "" {
+			t.Error("internal identity disclosed to external integration")
 		}
 		hits <- r.URL.Path
 		w.WriteHeader(http.StatusAccepted)
 	}))
 	defer server.Close()
 
-	client := NewHTTPClient(time.Second, "token", "token-1", server.URL+"/workflow", server.URL, server.URL+"/scoring", server.URL+"/outbox").WithScreeningAuthToken("synthetic-intake-private-token-32bytes")
+	client := NewHTTPClient(time.Second, server.URL+"/workflow", server.URL, server.URL+"/scoring", server.URL+"/outbox").WithSigner(signer)
 	ctx := context.Background()
 	workflowConfig, _ := json.Marshal(map[string]string{"url": server.URL + "/workflow"})
 
 	if err := client.DispatchWorkflowExecution(ctx, workflow.Execution{
 		ID:           "wf-1",
-		TenantID:     "tenant-1",
+		TenantID:     "11111111-1111-4111-8111-111111111111",
 		WorkflowID:   stringPtr("workflow-1"),
 		DecisionID:   "decision-1",
 		ScenarioID:   "scenario-1",
@@ -82,7 +86,7 @@ func TestHTTPClientDispatchesJSONRequests(t *testing.T) {
 	}
 
 	screeningPayload, _ := json.Marshal(map[string]any{"screening": true})
-	if err := client.SendScreeningExecution(ctx, screening.Execution{TenantID: "tenant-1", RequestJSON: screeningPayload}); err != nil {
+	if err := client.SendScreeningExecution(ctx, screening.Execution{TenantID: "11111111-1111-4111-8111-111111111111", RequestJSON: screeningPayload}); err != nil {
 		t.Fatalf("SendScreeningExecution() error = %v", err)
 	}
 
@@ -101,7 +105,7 @@ func TestHTTPClientDispatchesJSONRequests(t *testing.T) {
 
 	want := map[string]bool{
 		"/workflow": false,
-		"/internal/v1/tenants/tenant-1/decision-screenings": false,
+		"/internal/v1/tenants/11111111-1111-4111-8111-111111111111/decision-screenings": false,
 		"/scoring": false,
 		"/outbox":  false,
 	}

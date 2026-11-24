@@ -17,12 +17,12 @@ func TestPhase4AutoAssignmentCapacityAndRefill(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, inbox, _ := fixture(t, db)
 	ctx := context.Background()
-	admin := adminContext(tenant)
+	admin := adminContext(t, db, tenant)
 	enabled := true
 	if _, err := s.UpdateInbox(admin, service.UpdateInboxInput{TenantID: tenant, InboxID: inbox.ID, AutoAssignEnabled: &enabled}); err != nil {
 		t.Fatal(err)
 	}
-	for _, user := range []string{"analyst-1", "analyst-2"} {
+	for _, user := range []string{"2f2e747e-27db-57e8-b365-d06520fe4a76", "ce046d26-69de-593f-893d-c9810a448c58"} {
 		if _, err := s.PutInboxUser(admin, tenant, inbox.ID, user, true, 3); err != nil {
 			t.Fatal(err)
 		}
@@ -56,7 +56,7 @@ func TestPhase4AutoAssignmentCapacityAndRefill(t *testing.T) {
 	if err := db.QueryRow(ctx, `SELECT id FROM case_manager.cases WHERE tenant_id=$1 AND assigned_to IS NULL LIMIT 1`, tenant).Scan(&waiting); err != nil {
 		t.Fatal(err)
 	}
-	user := "analyst-1"
+	user := "2f2e747e-27db-57e8-b365-d06520fe4a76"
 	if err := s.Assign(admin, tenant, waiting, &user, nil); err == nil {
 		t.Fatal("manual assignment overfilled capacity")
 	}
@@ -88,8 +88,8 @@ func TestPhase4AutoAssignmentCapacityAndRefill(t *testing.T) {
 func TestPhase4BulkAuthorizationReplayAndAtomicAudit(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, _, c := fixture(t, db)
-	ctx := userContext(tenant, "analyst-1")
-	private, err := s.CreateInbox(adminContext(tenant), service.CreateInboxInput{TenantID: tenant, Name: "Private"})
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
+	private, err := s.CreateInbox(adminContext(t, db, tenant), service.CreateInboxInput{TenantID: tenant, Name: "Private"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestPhase4BulkAuthorizationReplayAndAtomicAudit(t *testing.T) {
 	if err != nil || !recovered[0].Success || recovered[0].Replayed {
 		t.Fatal("rollback left receipt", recovered, err)
 	}
-	assignee := "analyst-1"
+	assignee := "2f2e747e-27db-57e8-b365-d06520fe4a76"
 	input = service.BulkInput{OperationID: uuid.New(), CaseIDs: []uuid.UUID{c.ID}, Action: "assign", Assignee: &assignee}
 	assigned, err := s.Bulk(ctx, tenant, input)
 	if err != nil || !assigned[0].Success {
@@ -145,7 +145,7 @@ func TestPhase4BulkAuthorizationReplayAndAtomicAudit(t *testing.T) {
 	if err != nil || denied[0].Error != "forbidden" {
 		t.Fatal("bulk destination authorization", denied, err)
 	}
-	if _, err := s.PutInboxUser(adminContext(tenant), tenant, private.ID, assignee, false); err != nil {
+	if _, err := s.PutInboxUser(adminContext(t, db, tenant), tenant, private.ID, assignee, false); err != nil {
 		t.Fatal(err)
 	}
 	moved, err := s.Bulk(ctx, tenant, input)
@@ -161,8 +161,8 @@ func TestPhase4BulkAuthorizationReplayAndAtomicAudit(t *testing.T) {
 func TestPhase4ArchivedTagsAndSLAPolicy(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, inbox, c := fixture(t, db)
-	admin := adminContext(tenant)
-	ctx := userContext(tenant, "analyst-1")
+	admin := adminContext(t, db, tenant)
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
 	tag, err := s.CreateTag(admin, service.CreateTagInput{TenantID: tenant, Name: "Review", Color: "blue"})
 	if err != nil {
 		t.Fatal(err)
@@ -222,7 +222,7 @@ func TestPhase4ArchivedTagsAndSLAPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.PutInboxUser(admin, tenant, destination.ID, "analyst-1", false); err != nil {
+	if _, err := s.PutInboxUser(admin, tenant, destination.ID, "2f2e747e-27db-57e8-b365-d06520fe4a76", false); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.UpdateCase(admin, service.UpdateCaseInput{TenantID: tenant, CaseID: c.ID, InboxID: &destination.ID}, nil); err != nil {

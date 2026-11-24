@@ -15,7 +15,8 @@ import (
 	"testing"
 	"time"
 
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/service"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourcedata"
@@ -61,13 +62,20 @@ func TestManualAuthorizationSignedTenantAndCurrentSession(t *testing.T) {
 		{"investigator", []string{"case_investigator"}, sid.String(), true, 0},
 		{"admin", []string{"case_manager_admin"}, sid.String(), true, 0},
 		{"role denied", []string{"viewer"}, sid.String(), true, 403},
-		{"revoked", []string{"case_investigator"}, sid.String(), false, 403},
+		{"standard reads avoid identity SQL", []string{"case_investigator"}, sid.String(), false, 0},
 		{"no session", []string{"case_investigator"}, "", true, 401},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			claims := identity.Claims{RegisteredClaims: jwt.RegisteredClaims{Subject: actor.String(), Issuer: "test-issuer", Audience: jwt.ClaimStrings{"test-audience"}, IssuedAt: jwt.NewNumericDate(time.Now()), ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute))}, TenantID: tenant.String(), SessionID: tc.session, AuthzVersion: 1, Roles: tc.roles}
+			claims := identity.Claims{RegisteredClaims: jwt.RegisteredClaims{ID: uuid.NewString(), Subject: actor.String(), Issuer: "test-issuer", Audience: jwt.ClaimStrings{"test-audience"}, IssuedAt: jwt.NewNumericDate(time.Now()), ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute))}, PrincipalType: identity.PrincipalUser, Capabilities: []string{"screening:search"}, TenantID: tenant, SessionID: uuid.Nil, AuthzVersion: 1, Roles: tc.roles}
+			if tc.session != "" {
+				claims.SessionID = uuid.MustParse(tc.session)
+			}
+			if tc.name == "role denied" {
+				claims.Capabilities = []string{"screening:read"}
+			}
 			token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 			token.Header["kid"] = "test"
+			token.Header["typ"] = "at+jwt"
 			raw, err := token.SignedString(key)
 			if err != nil {
 				t.Fatal(err)
@@ -77,7 +85,7 @@ func TestManualAuthorizationSignedTenantAndCurrentSession(t *testing.T) {
 			db.allowed = tc.allowed
 			p, err := manualAuthorization(db, verifier, true)(req)
 			if tc.want == 0 {
-				if err != nil || p.TenantID != tenant || p.Subject != actor.String() || db.args[1] != tenant {
+				if err != nil || p.TenantID != tenant || p.Subject != actor.String() || len(db.args) != 0 {
 					t.Fatalf("identity mismatch: %+v %v", p, err)
 				}
 				return
@@ -123,7 +131,7 @@ func TestManualRoutesIdentityAndValidation(t *testing.T) {
 	tenant := uuid.New()
 	stub := &manualStub{}
 	router := gin.New()
-	registerManualRoutes(router, func(*http.Request) (identity.Principal, error) {
+	registerManualRoutes(authtest.DomainRouter(router), func(*http.Request) (identity.Principal, error) {
 		return identity.Principal{TenantID: tenant, Subject: "actor"}, nil
 	}, stub)
 	valid := `{"operation_id":"11111111-1111-4111-8111-111111111111","name":"Jane","entity_type":"Person","threshold":70,"limit":10}`
@@ -153,7 +161,7 @@ func TestManualRoutesDeniedBeforeService(t *testing.T) {
 	for _, code := range []int{401, 403, 503} {
 		stub := &manualStub{}
 		router := gin.New()
-		registerManualRoutes(router, func(*http.Request) (identity.Principal, error) {
+		registerManualRoutes(authtest.DomainRouter(router), func(*http.Request) (identity.Principal, error) {
 			return identity.Principal{}, &identity.Error{Code: code, Message: "denied"}
 		}, stub)
 		res := httptest.NewRecorder()
@@ -167,7 +175,7 @@ func TestManualRoutesDeniedBeforeService(t *testing.T) {
 func TestManualRouteAcceptsCompleteCatalogBeyondOldBodyLimit(t *testing.T) {
 	stub := &manualStub{}
 	router := gin.New()
-	registerManualRoutes(router, func(*http.Request) (identity.Principal, error) {
+	registerManualRoutes(authtest.DomainRouter(router), func(*http.Request) (identity.Principal, error) {
 		return identity.Principal{TenantID: uuid.New(), Subject: "actor"}, nil
 	}, stub)
 	in := service.ManualSearchInput{OperationID: uuid.NewString(), Provider: sourcedata.Provider, Profile: sourcedata.FuzzyProfile, Name: "Fictional Person", EntityType: "Person", Threshold: 70, Limit: 10}
@@ -191,7 +199,7 @@ func TestManualHistoryHTTPBoundary(t *testing.T) {
 	tenant := uuid.New()
 	stub := &manualStub{}
 	router := gin.New()
-	registerManualRoutes(router, func(*http.Request) (identity.Principal, error) {
+	registerManualRoutes(authtest.DomainRouter(router), func(*http.Request) (identity.Principal, error) {
 		return identity.Principal{TenantID: tenant, Subject: "actor"}, nil
 	}, stub)
 	for _, tc := range []struct {
@@ -212,7 +220,7 @@ func TestManualHistoryHTTPBoundary(t *testing.T) {
 		t.Fatal("history identity not derived from auth")
 	}
 	denied := gin.New()
-	registerManualRoutes(denied, func(*http.Request) (identity.Principal, error) {
+	registerManualRoutes(authtest.DomainRouter(denied), func(*http.Request) (identity.Principal, error) {
 		return identity.Principal{}, &identity.Error{Code: 403, Message: "denied"}
 	}, stub)
 	before := stub.calls

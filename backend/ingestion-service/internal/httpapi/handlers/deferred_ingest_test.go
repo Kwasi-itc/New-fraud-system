@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -32,6 +33,7 @@ func TestDeferredIngestHandlerReturnsExecution(t *testing.T) {
 	router.GET("/v1/deferred-ingests/:deferredIngestId", handler.Get)
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/deferred-ingests/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", nil)
+	req = req.WithContext(auth.WithTestPrincipal(req.Context(), auth.Principal{Type: auth.PrincipalUser, TenantID: uuid.MustParse("11111111-1111-1111-1111-111111111111"), Subject: uuid.NewString()}))
 	rec := httptest.NewRecorder()
 
 	router.ServeHTTP(rec, req)

@@ -9,7 +9,7 @@ ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /src/screening-service
 COPY backend/screening-service/go.mod backend/screening-service/go.sum ./
-COPY backend/investigator ../investigator
+COPY backend/platform-auth ../platform-auth
 RUN go mod download
 COPY backend/screening-service/ ./
 ENV CGO_ENABLED=0 GOFLAGS=-buildvcs=false

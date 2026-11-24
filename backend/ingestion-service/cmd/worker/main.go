@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -28,6 +29,10 @@ func main() {
 	cfg, err := app.LoadConfig()
 	if err != nil {
 		logger.Error("failed to load config", "error", err)
+		os.Exit(1)
+	}
+	if err := platformauth.ValidateEnvironment(); err != nil {
+		logger.Error("platform auth configuration invalid", "error", err)
 		os.Exit(1)
 	}
 
@@ -57,7 +62,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	var dataModelReader ports.DataModelReader = datamodel.NewHTTPClientWithCacheLimits(cfg.DataModelServiceURL, cfg.HTTPClientTimeout, cfg.DataModelCacheMaxEntries, cfg.DataModelCacheMaxBytes).WithAuthToken(os.Getenv("DATA_MODEL_SERVICE_TOKEN"))
+	var dataModelReader ports.DataModelReader = datamodel.NewHTTPClientWithCacheLimits(cfg.DataModelServiceURL, cfg.HTTPClientTimeout, cfg.DataModelCacheMaxEntries, cfg.DataModelCacheMaxBytes)
 	if cfg.DataModelReadMode == "sql" {
 		dataModelReader = datamodel.NewContractReader(storepostgres.NewIngestionContractStore(db), dataModelReader, cfg.DataModelCacheMaxEntries, cfg.DataModelCacheMaxBytes)
 	}

@@ -15,7 +15,7 @@ func TestDecisionCaseLookupPermissionsAndRetainedMembership(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, _, item := fixture(t, db)
 	decision := seedDecision(t, db, tenant)
-	ctx := userContext(tenant, "analyst-1")
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
 	if _, err := db.Exec(ctx, "UPDATE case_manager.cases SET snoozed_until=now()+interval '1 hour',boost_reason='new_decision' WHERE id=$1", item.ID); err != nil {
 		t.Fatal(err)
 	}
@@ -23,7 +23,7 @@ func TestDecisionCaseLookupPermissionsAndRetainedMembership(t *testing.T) {
 		t.Fatal(err)
 	}
 	attached, err := s.GetCase(ctx, tenant, item.ID)
-	if err != nil || attached.Status != casepkg.StatusInvestigating || attached.AssignedTo == nil || *attached.AssignedTo != "analyst-1" || attached.BoostReason != nil || attached.SnoozedUntil == nil || attached.Outcome != casepkg.OutcomeUnset {
+	if err != nil || attached.Status != casepkg.StatusInvestigating || attached.AssignedTo == nil || *attached.AssignedTo != "2f2e747e-27db-57e8-b365-d06520fe4a76" || attached.BoostReason != nil || attached.SnoozedUntil == nil || attached.Outcome != casepkg.OutcomeUnset {
 		t.Fatal("human attachment effects", attached, err)
 	}
 	filters := casepkg.WorkspaceFilters{CaseFilters: casepkg.CaseFilters{IncludeSnoozed: true}, DecisionID: &decision}
@@ -46,12 +46,12 @@ func TestDecisionCaseLookupPermissionsAndRetainedMembership(t *testing.T) {
 		t.Fatal(err)
 	}
 	check(1)
-	for _, subject := range []string{"outsider", "analyst-1"} {
+	for _, subject := range []string{"be50d326-8955-5631-93ad-aba09b86faa0", "2f2e747e-27db-57e8-b365-d06520fe4a76"} {
 		otherTenant := tenant
-		if subject == "analyst-1" {
+		if subject == "2f2e747e-27db-57e8-b365-d06520fe4a76" {
 			otherTenant = uuid.New()
 		}
-		page, err := s.WorkspaceQueue(userContext(otherTenant, subject), tenant, filters, 50)
+		page, err := s.WorkspaceQueue(userContext(t, db, otherTenant, subject), tenant, filters, 50)
 		if otherTenant != tenant {
 			if !errors.Is(err, casepkg.ErrForbidden) {
 				t.Fatal("tenant bypass", err)
@@ -108,12 +108,12 @@ func TestDecisionMembershipConcurrentAttachmentAndClosedReplay(t *testing.T) {
 	if err := db.QueryRow(ctx, `SELECT case_id FROM case_manager.case_decisions WHERE decision_id=$1`, decision).Scan(&owner); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.CloseCase(adminContext(tenant), tenant, owner, casepkg.OutcomeFalsePositive, "Investigated"); err != nil {
+	if _, err := s.CloseCase(adminContext(t, db, tenant), tenant, owner, casepkg.OutcomeFalsePositive, "Investigated"); err != nil {
 		t.Fatal(err)
 	}
 	before := count(t, db, "case_events")
 	outbox := count(t, db, "outbox_events")
-	if _, err := s.AddDecision(userContext(tenant, "analyst-1"), service.AddDecisionInput{TenantID: tenant, CaseID: owner, DecisionID: decision}, nil); err != nil {
+	if _, err := s.AddDecision(userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76"), service.AddDecisionInput{TenantID: tenant, CaseID: owner, DecisionID: decision}, nil); err != nil {
 		t.Fatal(err)
 	}
 	if count(t, db, "case_events") != before || count(t, db, "outbox_events") != outbox {
@@ -126,7 +126,7 @@ func TestDecisionMembershipConcurrentAttachmentAndClosedReplay(t *testing.T) {
 	if count(t, db, "cases") != beforeCases {
 		t.Fatal("failed creation left orphan case")
 	}
-	if _, err := s.AddDecision(userContext(uuid.New(), "analyst-1"), service.AddDecisionInput{TenantID: tenant, CaseID: owner, DecisionID: decision}, nil); !errors.Is(err, casepkg.ErrForbidden) {
+	if _, err := s.AddDecision(userContext(t, db, uuid.New(), "2f2e747e-27db-57e8-b365-d06520fe4a76"), service.AddDecisionInput{TenantID: tenant, CaseID: owner, DecisionID: decision}, nil); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatal("cross tenant replay", err)
 	}
 }
@@ -134,7 +134,7 @@ func TestDecisionMembershipConcurrentAttachmentAndClosedReplay(t *testing.T) {
 func TestDecisionTransferHistoryScreeningsAndReplay(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, inbox, source := fixture(t, db)
-	ctx := userContext(tenant, "analyst-1")
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
 	target, err := s.CreateCase(serviceContext(tenant), service.CreateCaseInput{TenantID: tenant, InboxID: inbox.ID, Name: "Correct investigation"}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -176,7 +176,7 @@ func TestDecisionTransferHistoryScreeningsAndReplay(t *testing.T) {
 		t.Fatal(err)
 	}
 	var audit int
-	if err := db.QueryRow(ctx, `SELECT count(*) FROM case_manager.case_events WHERE event_type IN ('decision_transferred_in','decision_transferred_out') AND user_id='analyst-1' AND additional_note=$1`, in.Reason).Scan(&audit); err != nil || audit != 2 {
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM case_manager.case_events WHERE event_type IN ('decision_transferred_in','decision_transferred_out') AND user_id='2f2e747e-27db-57e8-b365-d06520fe4a76' AND additional_note=$1`, in.Reason).Scan(&audit); err != nil || audit != 2 {
 		t.Fatal("missing attributable audit", audit, err)
 	}
 	changed := in
@@ -187,7 +187,7 @@ func TestDecisionTransferHistoryScreeningsAndReplay(t *testing.T) {
 	if err := s.TransferDecision(serviceContext(tenant), in); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatal("service impersonated human", err)
 	}
-	if err := s.TransferDecision(userContext(tenant, "outsider"), in); !errors.Is(err, casepkg.ErrForbidden) {
+	if err := s.TransferDecision(userContext(t, db, tenant, "be50d326-8955-5631-93ad-aba09b86faa0"), in); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatal("receipt bypassed access", err)
 	}
 	// Delayed reviews continue at the new primary and do not recreate old links.
@@ -209,7 +209,7 @@ func TestDecisionTransferConcurrencyAndRollback(t *testing.T) {
 		t.Run(map[bool]string{true: "rollback", false: "competing destinations"}[fail], func(t *testing.T) {
 			db := testDatabase(t, true)
 			s, tenant, inbox, source := fixture(t, db)
-			ctx := adminContext(tenant)
+			ctx := adminContext(t, db, tenant)
 			decision := seedDecision(t, db, tenant)
 			if _, err := s.AddDecision(serviceContext(tenant), service.AddDecisionInput{TenantID: tenant, CaseID: source.ID, DecisionID: decision}, nil); err != nil {
 				t.Fatal(err)
@@ -299,8 +299,8 @@ func TestDecisionMembershipMigrationPreflight(t *testing.T) {
 func TestDecisionTransferDestinationAccessAndLifecycle(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, inbox, source := fixture(t, db)
-	ctx := userContext(tenant, "analyst-1")
-	admin := adminContext(tenant)
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
+	admin := adminContext(t, db, tenant)
 	private, err := s.CreateInbox(admin, service.CreateInboxInput{TenantID: tenant, Name: "Private"})
 	if err != nil {
 		t.Fatal(err)
@@ -317,7 +317,7 @@ func TestDecisionTransferDestinationAccessAndLifecycle(t *testing.T) {
 	if err := s.TransferDecision(ctx, in); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatal("private destination authorized", err)
 	}
-	if _, err := s.PutInboxUser(admin, tenant, private.ID, "analyst-1", true); err != nil {
+	if _, err := s.PutInboxUser(admin, tenant, private.ID, "2f2e747e-27db-57e8-b365-d06520fe4a76", true); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.CloseCase(admin, tenant, target.ID, casepkg.OutcomeFalsePositive, "Completed"); err != nil {
@@ -350,7 +350,7 @@ func TestDecisionTransferDestinationAccessAndLifecycle(t *testing.T) {
 	if err := s.Assign(admin, tenant, target.ID, nil, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.RemoveInboxUser(admin, tenant, private.ID, "analyst-1"); err != nil {
+	if err := s.RemoveInboxUser(admin, tenant, private.ID, "2f2e747e-27db-57e8-b365-d06520fe4a76"); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.TransferDecision(ctx, in); !errors.Is(err, casepkg.ErrForbidden) {

@@ -2,7 +2,7 @@ FROM golang:1.27.4 AS builder
 
 WORKDIR /app/screening-service
 COPY screening-service/go.mod screening-service/go.sum ./
-COPY investigator ../investigator
+COPY platform-auth ../platform-auth
 RUN go mod download
 
 COPY screening-service/ .

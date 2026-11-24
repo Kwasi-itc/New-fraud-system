@@ -16,7 +16,7 @@ import (
 func TestPostgresLifecycleParity(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, inbox, _ := fixture(t, db)
-	ctx := userContext(tenant, "analyst-1")
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
 	for _, bulk := range []bool{false, true} {
 		for _, assigned := range []bool{false, true} {
 			for _, kind := range []casepkg.Type{casepkg.TypeDecision, casepkg.TypeContinuousScreening} {
@@ -26,7 +26,7 @@ func TestPostgresLifecycleParity(t *testing.T) {
 						t.Fatal(err)
 					}
 					if assigned {
-						user := "analyst-1"
+						user := "2f2e747e-27db-57e8-b365-d06520fe4a76"
 						if err := s.Assign(ctx, tenant, c.ID, &user, nil); err != nil {
 							t.Fatal(err)
 						}
@@ -56,7 +56,7 @@ func TestPostgresLifecycleParity(t *testing.T) {
 						}
 						if event.AdditionalNote == "Verified findings" {
 							findings++
-							if event.UserID == nil || *event.UserID != "analyst-1" {
+							if event.UserID == nil || *event.UserID != "2f2e747e-27db-57e8-b365-d06520fe4a76" {
 								t.Fatal("untrusted findings actor")
 							}
 						}
@@ -118,8 +118,8 @@ func TestPostgresLifecycleReopenGuardsAndRollback(t *testing.T) {
 		t.Run(fmt.Sprintf("bulk=%v", bulk), func(t *testing.T) {
 			db := testDatabase(t, true)
 			s, tenant, inbox, c := fixture(t, db)
-			admin := adminContext(tenant)
-			user := "analyst-1"
+			admin := adminContext(t, db, tenant)
+			user := "2f2e747e-27db-57e8-b365-d06520fe4a76"
 			if err := s.Assign(admin, tenant, c.ID, &user, nil); err != nil {
 				t.Fatal(err)
 			}
@@ -152,8 +152,8 @@ func TestPostgresLifecycleReopenGuardsAndRollback(t *testing.T) {
 					t.Fatalf("failed reopen mutated state: %+v %v", item, err)
 				}
 			}
-			unchanged(userContext(tenant, "outsider"))
-			unchanged(userContext(uuid.New(), user))
+			unchanged(userContext(t, db, tenant, "be50d326-8955-5631-93ad-aba09b86faa0"))
+			unchanged(userContext(t, db, uuid.New(), user))
 			unchanged(serviceContext(tenant))
 			if _, err := s.PutInboxUser(admin, tenant, inbox.ID, user, true, 0); err != nil {
 				t.Fatal(err)
@@ -198,7 +198,7 @@ func TestPostgresLifecyclePreservesOwnerDispositions(t *testing.T) {
 	if err := s.HandleScreeningReviewed(serviceContext(tenant), tenant, screening, &decision, match, "pending", nil); err != nil {
 		t.Fatal(err)
 	}
-	ctx := userContext(tenant, "analyst-1")
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
 	var before, after, matchStatus string
 	if err := db.QueryRow(ctx, `SELECT to_jsonb(d)::text FROM core.decisions d WHERE id=$1`, decision).Scan(&before); err != nil {
 		t.Fatal(err)
@@ -220,8 +220,8 @@ func TestPostgresLifecyclePreservesOwnerDispositions(t *testing.T) {
 func TestPostgresLifecycleCloseAtCapacityAndConcurrentRetry(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, inbox, c := fixture(t, db)
-	ctx := userContext(tenant, "analyst-1")
-	if _, err := s.PutInboxUser(adminContext(tenant), tenant, inbox.ID, "analyst-1", true, 0); err != nil {
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
+	if _, err := s.PutInboxUser(adminContext(t, db, tenant), tenant, inbox.ID, "2f2e747e-27db-57e8-b365-d06520fe4a76", true, 0); err != nil {
 		t.Fatal(err)
 	}
 	start := make(chan struct{})
@@ -266,14 +266,14 @@ func TestPostgresLifecycleCloseAtCapacityAndConcurrentRetry(t *testing.T) {
 func TestPostgresLifecycleFailuresAreAtomic(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, _, c := fixture(t, db)
-	ctx := userContext(tenant, "analyst-1")
+	ctx := userContext(t, db, tenant, "2f2e747e-27db-57e8-b365-d06520fe4a76")
 	before, outbox := count(t, db, "case_events"), count(t, db, "outbox_events")
 	for _, comment := range []string{" \t", strings.Repeat("é", 5001)} {
 		if _, err := s.CloseCase(ctx, tenant, c.ID, casepkg.OutcomeFalsePositive, comment); !errors.Is(err, casepkg.ErrValidation) {
 			t.Fatal(err)
 		}
 	}
-	for _, forbidden := range []context.Context{userContext(tenant, "outsider"), userContext(uuid.New(), "analyst-1"), serviceContext(tenant)} {
+	for _, forbidden := range []context.Context{userContext(t, db, tenant, "be50d326-8955-5631-93ad-aba09b86faa0"), userContext(t, db, uuid.New(), "2f2e747e-27db-57e8-b365-d06520fe4a76"), serviceContext(tenant)} {
 		if _, err := s.CloseCase(forbidden, tenant, c.ID, casepkg.OutcomeFalsePositive, "forbidden"); !errors.Is(err, casepkg.ErrForbidden) {
 			t.Fatal(err)
 		}

@@ -193,7 +193,7 @@ The Compose override forces synchronous mode and directs all three database URLs
 test database. `--no-manage-services` records deployment inspection as unavailable.
 The merged Compose project is validated before stopping services or recreating the database.
 The current base file still requires its case-manager authentication variables during parsing
-(`CASE_SERVICE_AUTH_TOKEN`, `CASE_SERVICE_TENANT_IDS`, `CASE_USER_JWT_ISSUER`,
+(`CASE_PLATFORM_ACCESS_TOKEN`, `CASE_SERVICE_TENANT_IDS`, `CASE_USER_JWT_ISSUER`,
 `CASE_USER_JWT_KEYS_FILE`). Supply valid existing configuration; the benchmark does not
 invent authentication credentials or weaken those production requirements. Case-manager
 runtime services stay stopped during this experiment.
@@ -248,7 +248,7 @@ python -m production_replay.benchmark_observation \
   --ingestion-url http://127.0.0.1:8081
 ```
 
-Authentication comes from `SERVICE_AUTH_TOKEN`, or the environment variable named by `--auth-token-env`. The observer performs GET requests only and never resets a database or starts/stops services. It uses its own HTTP connection pool and caps metrics responses at 1 MiB. Network/schema failures are recorded rather than substituted with zero metrics. Exit code 2 indicates incomplete observation.
+Authentication comes from `PLATFORM_ACCESS_TOKEN`, or the environment variable named by `--auth-token-env`. The observer performs GET requests only and never resets a database or starts/stops services. It uses its own HTTP connection pool and caps metrics responses at 1 MiB. Network/schema failures are recorded rather than substituted with zero metrics. Exit code 2 indicates incomplete observation.
 
 Artifacts are `environment.json`, `observations.ndjson`, and `observation-summary.json`. The JSON lines include UTC timestamps, monotonic elapsed time, sampling duration, host/process CPU time, memory, disk and network cumulative counters, output filesystem space, and a numeric projection of known service metric groups. Dynamic endpoint labels are hashed, and arbitrary string values are omitted. The service percentiles retain their endpoint's sampling semantics; they are not full-run percentiles.
 

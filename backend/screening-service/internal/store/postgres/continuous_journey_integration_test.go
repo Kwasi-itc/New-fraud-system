@@ -2,11 +2,7 @@ package postgres_test
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/json"
-	"encoding/pem"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"io"
 	"log/slog"
 	"net"
@@ -25,7 +21,6 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/service"
 	store "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
@@ -45,6 +40,11 @@ func TestContinuousProducerToCaseHTTPJourney(t *testing.T) {
 	tenant, inbox := uuid.NewString(), uuid.NewString()
 	// Same logical DB, independently owned schemas and ordered migrations.
 	for _, owner := range []string{"data-model-service", "ingestion-service", "decision-engine-service", "case-manager-service"} {
+		if owner == "case-manager-service" {
+			if err := authtest.ApplyIdentity(ctx, db, "../../../../auth-service/internal/platform"); err != nil {
+				t.Fatal(err)
+			}
+		}
 		paths, err := filepath.Glob(filepath.Join("..", "..", "..", "..", owner, "internal", "migrations", "metadata", "*.up.sql"))
 		if err != nil || len(paths) == 0 {
 			t.Fatal("missing owner migrations", owner, err)
@@ -74,7 +74,7 @@ func TestContinuousProducerToCaseHTTPJourney(t *testing.T) {
 	if _, err := db.Exec(ctx, `INSERT INTO case_manager.inboxes(id,tenant_id,name,created_at,updated_at) VALUES($1,$2,'Review',now(),now())`, inbox, tenant); err != nil {
 		t.Fatal(err)
 	}
-	endpoint, token := startCaseServer(t, db, binary, tenant)
+	endpoint, _ := startCaseServer(t, db, binary, tenant)
 	driver := riverpgxv5.New(db)
 	migrator, err := rivermigrate.New(driver, nil)
 	if err != nil {
@@ -128,7 +128,7 @@ func TestContinuousProducerToCaseHTTPJourney(t *testing.T) {
 	repo := store.NewCaseEventRepository(db)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	// Actual HTTP rejection persists retry state; no case is created on failed auth.
-	wrong := service.NewCaseDeliveryService(repo, caseclient.NewHTTPClient(endpoint, "incorrect-token", time.Second), logger)
+	wrong := service.NewCaseDeliveryService(repo, caseclient.NewHTTPClient(endpoint, time.Second), logger)
 	if err := wrong.RunBatch(ctx, 1); err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +139,7 @@ func TestContinuousProducerToCaseHTTPJourney(t *testing.T) {
 	if _, err := db.Exec(ctx, `UPDATE screening.case_event_outbox SET available_at=now()`); err != nil {
 		t.Fatal(err)
 	}
-	delivery := service.NewCaseDeliveryService(repo, caseclient.NewHTTPClient(endpoint, token, 5*time.Second), logger)
+	delivery := service.NewCaseDeliveryService(repo, caseclient.NewHTTPClient(endpoint, 5*time.Second).WithSigner(journeySigner(t, "screening-case-delivery-worker")), logger)
 	if err := delivery.RunBatch(ctx, 10); err != nil {
 		t.Fatal(err)
 	}
@@ -258,7 +258,7 @@ func TestContinuousProducerToCaseHTTPJourney(t *testing.T) {
 	badTenant := uuid.NewString()
 	badID := uuid.NewString()
 	bad := ports.ScreeningRequiresReviewCommand{Version: 1, TenantID: badTenant, ScreeningID: badID, EventID: uuid.NewSHA1(uuid.NameSpaceURL, []byte("screening.requires-review/v1/"+badTenant+"/"+badID)).String()}
-	if err := caseclient.NewHTTPClient(endpoint, token, time.Second).PublishScreeningRequiresReview(ctx, bad); err == nil {
+	if err := caseclient.NewHTTPClient(endpoint, time.Second).WithSigner(journeySigner(t, "screening-case-delivery-worker")).PublishScreeningRequiresReview(ctx, bad); err == nil {
 		t.Fatal("cross-tenant callback accepted")
 	}
 }
@@ -279,9 +279,6 @@ func startCaseServer(t *testing.T, db *pgxpool.Pool, binary, tenant string) (str
 	return endpoint, token
 }
 
-const testIntakeToken = "synthetic-intake-private-token-32bytes"
-const testCallbackToken = "synthetic-callback-private-token-32bytes"
-
 func startInvestigatorServer(t *testing.T, db *pgxpool.Pool, binary, tenant string, environment ...string) (string, string, func(string, string, string) string) {
 	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -291,23 +288,6 @@ func startInvestigatorServer(t *testing.T, db *pgxpool.Pool, binary, tenant stri
 	port := listener.Addr().(*net.TCPAddr).Port
 	listener.Close()
 	dir := t.TempDir()
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatal(err)
-	}
-	der, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
-	if err != nil {
-		t.Fatal(err)
-	}
-	keys, err := json.Marshal(map[string]string{"test": string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der}))})
-	if err != nil {
-		t.Fatal(err)
-	}
-	keysPath := filepath.Join(dir, "keys.json")
-	if err := os.WriteFile(keysPath, keys, 0600); err != nil {
-		t.Fatal(err)
-	}
-	const token = "continuous-intake-integration-test-token-32-bytes"
 	cmd := exec.Command(binary)
 	cmd.Dir = dir
 	// Config.ConnString retains the original admin DSN after Database is changed.
@@ -319,9 +299,9 @@ func startInvestigatorServer(t *testing.T, db *pgxpool.Pool, binary, tenant stri
 		query.Set("sslmode", "disable")
 	}
 	dbURL.RawQuery = query.Encode()
-	cmd.Env = append(os.Environ(), "PORT="+strconv.Itoa(port), "DATABASE_URL="+dbURL.String(), "SERVICE_AUTH_MODE=token", "SERVICE_AUTH_TOKEN="+token, "SERVICE_AUTH_TENANT_IDS="+tenant, "USER_JWT_KEYS_FILE="+keysPath, "USER_JWT_ISSUER=intake-test", "USER_JWT_AUDIENCE=intake-test", "GIN_MODE=release")
+	cmd.Env = append(os.Environ(), "PORT="+strconv.Itoa(port), "DATABASE_URL="+dbURL.String(), "GIN_MODE=release")
 	cmd.Env = append(cmd.Env, "DATA_MODEL_SERVICE_URL=http://127.0.0.1:1", "INGESTION_SERVICE_URL=http://127.0.0.1:1")
-	cmd.Env = append(cmd.Env, "SCREENING_INTAKE_TOKEN="+testIntakeToken, "SCREENING_CALLBACK_TOKEN="+testCallbackToken)
+	cmd.Env = append(cmd.Env, journeyEnvironment(t, binary, false)...)
 	cmd.Env = append(cmd.Env, environment...)
 	log, err := os.Create(filepath.Join(dir, "server.log"))
 	if err != nil {
@@ -352,14 +332,7 @@ func startInvestigatorServer(t *testing.T, db *pgxpool.Pool, binary, tenant stri
 		resp.Body.Close()
 		return resp.StatusCode == 200
 	})
-	return endpoint, token, func(subject, tenant, role string) string {
-		claims := jwt.MapClaims{"sub": subject, "tenant_id": tenant, "roles": []string{role}, "iss": "intake-test", "aud": "intake-test", "iat": time.Now().Unix(), "exp": time.Now().Add(time.Hour).Unix()}
-		signed := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-		signed.Header["kid"] = "test"
-		value, err := signed.SignedString(key)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return value
+	return endpoint, journeyHuman(t, db, tenant, "journey-admin", "tenant_admin"), func(subject, tenant, role string) string {
+		return journeyHuman(t, db, tenant, subject, role)
 	}
 }

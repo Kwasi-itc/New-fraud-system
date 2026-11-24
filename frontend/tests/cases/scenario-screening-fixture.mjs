@@ -8,9 +8,9 @@ export async function handleScenarioScreening(req, url, send) {
   if (url.pathname === "/fixture/scenario-internal-provider") { internalProvider = true; send(204); return true; }
   if (!url.pathname.startsWith("/internal/screening-authoring/")) return false;
   const reply = (status, data) => { send(status, data); return true; };
-  if (req.headers.authorization !== "Bearer fixture-screening-authoring-private-token-32" || req.headers["x-screening-user"] !== "analyst" || req.headers["x-screening-version"] !== "1") return reply(401, { error: "Invalid gateway identity" });
+  if (!["Bearer fixture-admin","Bearer fixture-analyst"].includes(req.headers.authorization)) return reply(401, { error: "Invalid gateway identity" });
   if (url.pathname.includes("/decisions/")) {
-    if (req.headers["x-screening-session"] !== "fixture-analyst") return reply(403, { error: "private-session-error" });
+    if (req.headers.authorization !== "Bearer fixture-analyst") return reply(403, { error: "private-session-error" });
     if (url.pathname !== "/internal/screening-authoring/tenants/11111111-1111-4111-8111-111111111111/decisions/44444444-4444-4444-8444-444444444444/screenings") return reply(403, { error: "private-ownership-error" });
     return reply(200, { screening_executions: [] });
   }

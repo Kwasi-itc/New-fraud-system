@@ -5,7 +5,7 @@ package provideraccess
 import (
 	"context"
 	"errors"
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/google/uuid"
 )
 

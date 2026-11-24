@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"io"
 	"net/http"
 
@@ -58,6 +59,12 @@ func writeDecisionEvaluationError(c *gin.Context, code, message string, err erro
 }
 
 func writeAPIError(c *gin.Context, spec apiErrorSpec, code, message string, err error, attrs ...any) {
+	var denied *auth.Error
+	if errors.As(err, &denied) {
+		spec.Status, message = auth.HTTPError(err)
+		spec.Category = "authorization"
+		code = "authorization_denied"
+	}
 	attrs = append(attrs, "error_code", code, "error_category", spec.Category, "http_status", spec.Status)
 	logHandlerFailure(c, message, err, attrs...)
 

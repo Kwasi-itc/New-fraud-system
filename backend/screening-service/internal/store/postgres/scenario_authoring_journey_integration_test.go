@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -34,6 +36,11 @@ func TestSavedScenarioScreeningQueuesAuthorizedExecution(t *testing.T) {
 		}
 	}
 	for _, owner := range []string{"data-model-service", "ingestion-service", "decision-engine-service", "case-manager-service"} {
+		if owner == "case-manager-service" {
+			if err := authtest.ApplyIdentity(ctx, db, "../../../../auth-service/internal/platform"); err != nil {
+				t.Fatal(err)
+			}
+		}
 		paths, err := filepath.Glob(filepath.Join("..", "..", "..", "..", owner, "internal", "migrations", "metadata", "*.up.sql"))
 		if err != nil || len(paths) == 0 {
 			t.Fatal(owner, err)
@@ -46,13 +53,7 @@ func TestSavedScenarioScreeningQueuesAuthorizedExecution(t *testing.T) {
 			execSQL(string(raw))
 		}
 	}
-	for _, name := range []string{"schema.sql", "schema_v2.sql"} {
-		raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "auth-service", "internal", "platform", name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		execSQL(string(raw))
-	}
+	/* Identity was installed before dependent case migrations. */
 	migrator, err := rivermigrate.New(riverpgxv5.New(db), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -77,8 +78,8 @@ func TestSavedScenarioScreeningQueuesAuthorizedExecution(t *testing.T) {
 	for _, field := range []string{"nationality_text", "country_text", "registration_text"} {
 		execSQL(`INSERT INTO core.model_fields(id,tenant_id,table_id,name,data_type,created_at,updated_at) VALUES($1,$2,$3,$4,'string',now(),now())`, uuid.NewString(), tenant, table, field)
 	}
-	const serviceToken = "continuous-intake-integration-test-token-32-bytes"
-	const authoringToken = "synthetic-authoring-journey-private-token-32-bytes"
+
+	authoringToken := journeySignHuman(t, auth.Principal{Subject: user, TenantID: uuid.MustParse(tenant), SessionID: uuid.MustParse(session), AuthzVersion: 1}, "platform_admin", "case_investigator")
 	model := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/recognize" {
 			var body map[string]string
@@ -97,11 +98,11 @@ func TestSavedScenarioScreeningQueuesAuthorizedExecution(t *testing.T) {
 			json.NewEncoder(w).Encode(matches)
 			return
 		}
-		if r.URL.Path == "/internal/screening-capabilities" && r.Header.Get("Authorization") == "Bearer "+testIntakeToken {
+		if r.URL.Path == "/internal/screening-capabilities" && journeyVerifyRequest(t, r, "decision-engine-service", "screening-service", "screening:intake") {
 			io.WriteString(w, `{"matching_settings_supported":true,"address_supported":true,"birth_date_supported":true,"nationality_supported":true,"country_supported":true,"registration_number_supported":true}`)
 			return
 		}
-		if r.URL.Path != "/v1/tenants/"+tenant+"/data-model" || r.Header.Get("Authorization") != "Bearer "+serviceToken {
+		if r.URL.Path != "/v1/tenants/"+tenant+"/data-model" || !journeyVerifyRequest(t, r, "decision-engine-service", "data-model-service", "models:read") {
 			http.Error(w, "unexpected metadata request", 403)
 			return
 		}
@@ -109,7 +110,7 @@ func TestSavedScenarioScreeningQueuesAuthorizedExecution(t *testing.T) {
 		io.WriteString(w, `{"data_model":{"revision_id":"synthetic-1","tables":{"transaction":{"name":"transaction","fields":{"registration_text":{"name":"registration_text","data_type":"string","nullable":true},"nationality_text":{"name":"nationality_text","data_type":"string","nullable":true},"country_text":{"name":"country_text","data_type":"string","nullable":true},"birth_text":{"name":"birth_text","data_type":"string","nullable":true},"beneficiary_name":{"name":"beneficiary_name","data_type":"string","nullable":true},"other":{"name":"other","data_type":"string","nullable":true}},"links_to_single":{}}}}}`)
 	}))
 	defer model.Close()
-	endpoint, token, _ := startInvestigatorServer(t, db, binary, tenant, "SCREENING_AUTHORING_TOKEN="+authoringToken, "DATA_MODEL_SERVICE_URL="+model.URL, "DATA_MODEL_SERVICE_TOKEN="+serviceToken, "SCREENING_SERVICE_URL="+model.URL, "SCREENING_NAME_RECOGNITION_URL="+model.URL+"/recognize")
+	endpoint, token, _ := startInvestigatorServer(t, db, binary, tenant, "DATA_MODEL_SERVICE_URL="+model.URL, "SCREENING_SERVICE_URL="+model.URL, "SCREENING_NAME_RECOGNITION_URL="+model.URL+"/recognize")
 	client := &http.Client{Timeout: 10 * time.Second}
 	request := func(method, path, bearer string, body any, want int) map[string]any {
 		t.Helper()
@@ -123,9 +124,6 @@ func TestSavedScenarioScreeningQueuesAuthorizedExecution(t *testing.T) {
 		}
 		req.Header.Set("Authorization", "Bearer "+bearer)
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("X-Screening-User", user)
-		req.Header.Set("X-Screening-Session", session)
-		req.Header.Set("X-Screening-Version", "1")
 		resp, err := client.Do(req)
 		if err != nil {
 			t.Fatal(err)
@@ -154,7 +152,7 @@ func TestSavedScenarioScreeningQueuesAuthorizedExecution(t *testing.T) {
 	organization := save("Organization", true, "approve")
 	save("Person", false, "approve")
 	save("Person", true, "review")
-	request("GET", base, token, nil, 401)
+	request("GET", base, journeyHuman(t, db, tenant, "restricted-investigator", "case_investigator"), nil, 403)
 	request("GET", "/internal/screening-authoring/tenants/"+uuid.NewString()+"/scenarios/"+scenario, authoringToken, nil, 403)
 	evaluate := func(fields map[string]any, want int) map[string]any {
 		t.Helper()
@@ -253,7 +251,9 @@ func TestSavedScenarioScreeningQueuesAuthorizedExecution(t *testing.T) {
 	}
 	execSQL(`DROP TRIGGER reject_journey_queue ON river_job`)
 	execSQL(`UPDATE identity.sessions SET revoked_at=now() WHERE id=$1`, session)
-	request("GET", base, authoringToken, nil, 403)
+	request("GET", base, authoringToken, nil, 200) // Stateless read retains the signed snapshot.
+	request("PUT", base+"/configs/"+person["id"].(string), authoringToken, map[string]any{"id": person["id"], "name": "Revoked change", "enabled": true, "entity_type": "Person", "name_field": "beneficiary_name", "outcomes": []string{"approve"}, "inbox_id": inbox, "updated_at": person["updated_at"]}, 403)
+	execSQL(`UPDATE identity.sessions SET revoked_at=NULL WHERE id=$1`, session)
 	t.Run("local worker provider and case delivery", func(t *testing.T) {
 		runAuthoredScreeningWorkers(t, db, tenant, inbox, endpoint, token, authoringToken, func(name string) string {
 			out := evaluate(map[string]any{"beneficiary_name": name}, 200)

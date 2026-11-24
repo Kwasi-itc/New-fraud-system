@@ -9,7 +9,7 @@ import (
 	"errors"
 	"time"
 
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/internalprovider"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/provideraccess"

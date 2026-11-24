@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -23,6 +24,10 @@ func main() {
 	cfg, err := app.LoadConfig()
 	if err != nil {
 		logger.Error("failed to load config", "error", err)
+		os.Exit(1)
+	}
+	if err := platformauth.ValidateEnvironment(); err != nil {
+		logger.Error("platform auth configuration invalid", "error", err)
 		os.Exit(1)
 	}
 

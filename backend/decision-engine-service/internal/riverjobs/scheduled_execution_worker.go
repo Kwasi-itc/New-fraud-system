@@ -2,6 +2,7 @@ package riverjobs
 
 import (
 	"context"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"time"
 
 	"github.com/riverqueue/river"
@@ -22,6 +23,7 @@ func NewScheduledExecutionWorker(runner ScheduledExecutionRunner) ScheduledExecu
 }
 
 func (w *ScheduledExecutionWorker) Work(ctx context.Context, job *river.Job[ScheduledExecutionArgs]) error {
+	ctx = platformauth.WithOrigin(ctx, job.Args.Origin)
 	return w.runner.RunScheduledExecution(ctx, job.Args.ExecutionID)
 }
 

@@ -92,7 +92,7 @@ def _add_services(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--data-model-url", default=os.getenv("DATA_MODEL_URL", "http://127.0.0.1:8080"))
     parser.add_argument("--ingestion-url", default=os.getenv("INGESTION_URL", "http://127.0.0.1:8081"))
     parser.add_argument("--decision-engine-url", default=os.getenv("DECISION_ENGINE_URL", "http://127.0.0.1:8082"))
-    parser.add_argument("--auth-token", default=os.getenv("SERVICE_AUTH_TOKEN"))
+    parser.add_argument("--auth-token", default=os.getenv("PLATFORM_ACCESS_TOKEN"))
     parser.add_argument("--timeout", type=float, default=30.0)
 
 

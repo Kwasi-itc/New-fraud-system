@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"log/slog"
 	"net/http"
 	"time"
@@ -22,22 +23,24 @@ type App struct {
 }
 
 func New(cfg Config, logger *slog.Logger) (*App, error) {
-	verifier, tenantIDs, err := cfg.APIAuth()
+	verifier, err := cfg.APIAuth()
 	if err != nil {
 		return nil, err
 	}
 	gin.SetMode(cfg.GinMode)
+	if err := platformauth.ValidateEnvironment(); err != nil {
+		return nil, err
+	}
 
 	db, err := storepostgres.NewPool(context.Background(), cfg.DatabaseURL)
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Info("database pool initialized", "event", "database.pool_initialized", "pool_max_connections", db.Config().MaxConns, "user_auth_enabled", verifier != nil, "integration_tenant_count", len(tenantIDs))
+	logger.Info("database pool initialized", "event", "database.pool_initialized", "pool_max_connections", db.Config().MaxConns, "user_auth_enabled", verifier != nil)
 	router := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
-		UserVerifier: verifier, ServiceTenantIDs: tenantIDs, RequestTimeout: 15 * time.Second,
-		AuthMode:            cfg.ServiceAuthMode,
-		AuthToken:           cfg.ServiceAuthToken,
+		Verifier: verifier.Platform(), UserVerifier: verifier, RequestTimeout: 15 * time.Second,
+
 		DecisionEngineURL:   cfg.DecisionEngineURL,
 		ScreeningServiceURL: cfg.ScreeningServiceURL,
 		IngestionServiceURL: cfg.IngestionServiceURL,

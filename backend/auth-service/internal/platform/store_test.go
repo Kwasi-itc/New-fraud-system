@@ -3,13 +3,8 @@ package platform
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
 	"encoding/json"
 	"errors"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"io"
 	"log/slog"
 	"net/http"
@@ -20,9 +15,18 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func fixture(t *testing.T) (Store, uuid.UUID) {
+	return fixtureVersion(t, SchemaVersion)
+}
+
+func fixtureVersion(t *testing.T, version int) (Store, uuid.UUID) {
 	t.Helper()
 	dsn := os.Getenv("AUTH_PREFLIGHT_TEST_DATABASE_URL")
 	if dsn == "" {
@@ -70,11 +74,19 @@ func fixture(t *testing.T) (Store, uuid.UUID) {
 		}
 	}
 	s := Store{db}
-	if err = s.Migrate(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if err = s.Migrate(ctx); err != nil {
-		t.Fatal("idempotent migration", err)
+	if version == SchemaVersion {
+		if err = s.Migrate(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if err = s.Migrate(ctx); err != nil {
+			t.Fatal("idempotent migration", err)
+		}
+	} else if version == 5 {
+		if _, err = db.Exec(ctx, schema+schemaV2+schemaV3+schemaV4+schemaV5+schemaV5Seed); err != nil {
+			t.Fatal(err)
+		}
+	} else {
+		t.Fatal("unsupported fixture version")
 	}
 	tenant := uuid.New()
 	if _, err = db.Exec(ctx, `INSERT INTO core.tenants(id,name,schema_name,status,created_at,updated_at) VALUES($1,'Test',$2,'active',now(),now())`, tenant, "tenant_"+strings.ReplaceAll(tenant.String(), "-", "")); err != nil {
@@ -106,7 +118,7 @@ func allowed(t *testing.T, s Store, v Session, admin bool) bool {
 func TestPlatformSessionsAndPermissions(t *testing.T) {
 	s, tenant := fixture(t)
 	ctx := context.Background()
-	admin, adminRaw := provision(t, s, tenant, "admin", "tenant_admin", "case_manager_admin")
+	admin, adminRaw := provision(t, s, tenant, "admin", "tenant_admin")
 	user, userRaw := provision(t, s, tenant, "analyst", "case_investigator")
 	if _, err := s.CreateSession(ctx, "https://provider.test", "unknown"); !errors.Is(err, ErrDenied) {
 		t.Fatal("unknown identity accepted", err)
@@ -286,18 +298,26 @@ func TestConcurrentLastAdmin(t *testing.T) {
 func TestHTTPPermissions(t *testing.T) {
 	s, tenant := fixture(t)
 	_, raw := provision(t, s, tenant, "analyst", "case_investigator")
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	key, publicKey := clientTestKey(t)
+	verifier, proxyToken := testBFFAndPlatform(t, "test", publicKey)
+	current, err := s.Resolve(context.Background(), raw)
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := httptest.NewServer(Server{Store: s, ProxyToken: strings.Repeat("x", 32), Key: key, KeyID: "test", Issuer: "platform", Audience: "case-manager", Logger: slog.New(slog.NewTextHandler(io.Discard, nil))}.Handler())
+	humanToken := testHumanToken(t, "test", key, current)
+	server := httptest.NewServer(Server{Store: s, Verifier: verifier, Key: key, KeyID: "test", Issuer: auth.PlatformIssuer, Audience: auth.PlatformAudience, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))}.Handler())
 	defer server.Close()
 	for _, tc := range []struct {
 		path, token, body string
 		status            int
-	}{{"session", "", `{}`, 401}, {"session", strings.Repeat("x", 32), `{"session":"bad"}`, 401}, {"members/list", strings.Repeat("x", 32), `{"session":"` + raw + `","after":"00000000-0000-0000-0000-000000000000"}`, 403}, {"session", strings.Repeat("x", 32), `{"session":"` + raw + `","roles":["tenant_admin"]}`, 400}} {
-		req, _ := http.NewRequest("POST", server.URL+"/internal/"+tc.path, strings.NewReader(tc.body))
+	}{{"internal/session", "", `{}`, 401}, {"internal/session", proxyToken, `{"session":"bad"}`, 401}, {"internal/members/list", proxyToken, `{"session":"` + raw + `"}`, 404}, {"v1/account/profile", proxyToken, `{}`, 403}, {"v1/tenants/" + tenant.String() + "/members", humanToken, `{}`, 403}} {
+		method := http.MethodPost
+		if strings.HasSuffix(tc.path, "/members") || strings.HasSuffix(tc.path, "/profile") {
+			method = http.MethodGet
+		}
+		req, _ := http.NewRequest(method, server.URL+"/"+tc.path, strings.NewReader(tc.body))
 		req.Header.Set("Authorization", "Bearer "+tc.token)
+		req.Header.Set("Content-Type", "application/json")
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatal(err)
@@ -308,7 +328,7 @@ func TestHTTPPermissions(t *testing.T) {
 		}
 	}
 	req, _ := http.NewRequest("POST", server.URL+"/internal/session", strings.NewReader(`{"session":"`+raw+`"}`))
-	req.Header.Set("Authorization", "Bearer "+strings.Repeat("x", 32))
+	req.Header.Set("Authorization", "Bearer "+proxyToken)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -317,6 +337,51 @@ func TestHTTPPermissions(t *testing.T) {
 	var out map[string]any
 	if err = json.NewDecoder(resp.Body).Decode(&out); err != nil || out["access_token"] == nil {
 		t.Fatal("missing private access token", err)
+	}
+	req, _ = http.NewRequest("GET", server.URL+"/v1/account/profile", nil)
+	req.Header.Set("Authorization", "Bearer "+humanToken)
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("human profile route status %d", resp.StatusCode)
+	}
+	req, _ = http.NewRequest("POST", server.URL+"/internal/session", strings.NewReader(`{"session":"`+raw+`"}`))
+	req.Header.Set("Authorization", "Bearer "+humanToken)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 401 {
+		t.Fatalf("human token accessed bootstrap route: %d", resp.StatusCode)
+	}
+	req, _ = http.NewRequest("PUT", server.URL+"/v1/account/profile", strings.NewReader(`{"session":"`+raw+`","name":"Forged","version":1}`))
+	req.Header.Set("Authorization", "Bearer "+humanToken)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 400 {
+		t.Fatalf("caller-supplied session was not rejected: %d", resp.StatusCode)
+	}
+	if err = s.Logout(context.Background(), raw); err != nil {
+		t.Fatal(err)
+	}
+	req, _ = http.NewRequest("GET", server.URL+"/v1/account/profile", nil)
+	req.Header.Set("Authorization", "Bearer "+humanToken)
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 403 {
+		t.Fatalf("revoked session still authorized profile route: %d", resp.StatusCode)
 	}
 }
 

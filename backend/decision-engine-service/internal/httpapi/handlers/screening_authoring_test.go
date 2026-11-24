@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"net/http/httptest"
@@ -27,6 +28,7 @@ func TestScreeningAuthoringRejectsInvalidInputBeforePersistence(t *testing.T) {
 		req.Header.Set("X-Screening-User", uuid.NewString())
 		req.Header.Set("X-Screening-Session", uuid.NewString())
 		req.Header.Set("X-Screening-Version", "1")
+		req = req.WithContext(auth.WithTestPrincipal(req.Context(), auth.Principal{Type: auth.PrincipalUser, Subject: uuid.NewString(), SessionID: uuid.New(), AuthzVersion: 1, Capabilities: map[string]bool{"screening:write": true}}))
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 		if w.Code != tc.want {

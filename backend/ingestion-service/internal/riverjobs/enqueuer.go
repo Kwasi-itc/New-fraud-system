@@ -2,6 +2,7 @@ package riverjobs
 
 import (
 	"context"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"time"
 
 	"github.com/google/uuid"
@@ -77,10 +78,10 @@ func (e RiverUploadLogEnqueuer) enqueue(ctx context.Context, tx pgx.Tx, uploadLo
 	}
 	var err error
 	if tx != nil {
-		_, err = e.client.InsertTx(ctx, tx, UploadLogArgs{UploadLogID: uploadLogID}, opts)
+		_, err = e.client.InsertTx(ctx, tx, UploadLogArgs{Origin: platformauth.CaptureOrigin(ctx), UploadLogID: uploadLogID}, opts)
 		return err
 	}
-	_, err = e.client.Insert(ctx, UploadLogArgs{UploadLogID: uploadLogID}, opts)
+	_, err = e.client.Insert(ctx, UploadLogArgs{Origin: platformauth.CaptureOrigin(ctx), UploadLogID: uploadLogID}, opts)
 	return err
 }
 
@@ -128,10 +129,10 @@ func (e RiverDeferredIngestEnqueuer) enqueue(ctx context.Context, tx pgx.Tx, def
 	}
 	var err error
 	if tx != nil {
-		_, err = e.client.InsertTx(ctx, tx, DeferredIngestArgs{DeferredIngestID: deferredIngestID}, opts)
+		_, err = e.client.InsertTx(ctx, tx, DeferredIngestArgs{Origin: platformauth.CaptureOrigin(ctx), DeferredIngestID: deferredIngestID}, opts)
 		return err
 	}
-	_, err = e.client.Insert(ctx, DeferredIngestArgs{DeferredIngestID: deferredIngestID}, opts)
+	_, err = e.client.Insert(ctx, DeferredIngestArgs{Origin: platformauth.CaptureOrigin(ctx), DeferredIngestID: deferredIngestID}, opts)
 	return err
 }
 

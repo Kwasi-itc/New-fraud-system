@@ -3,7 +3,8 @@ package app
 import (
 	"context"
 	"fmt"
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"log/slog"
 	"net/http"
 	"time"
@@ -26,6 +27,9 @@ type App struct {
 
 func New(cfg Config, logger *slog.Logger) (*App, error) {
 	gin.SetMode(cfg.GinMode)
+	if err := platformauth.ValidateEnvironment(); err != nil {
+		return nil, err
+	}
 
 	db, err := storepostgres.NewPool(context.Background(), cfg.DatabaseURL)
 	if err != nil {
@@ -57,7 +61,7 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		e = privatelists.CheckDatabaseBinding(check, db, privateWriter)
 		if e == nil {
 			var contract bool
-			e = privateWriter.QueryRow(check, `SELECT CASE WHEN to_regprocedure('identity.authorize_roles_v1(text,uuid,uuid,bigint,text[],boolean)') IS NULL THEN false ELSE has_function_privilege(current_user,'identity.authorize_roles_v1(text,uuid,uuid,bigint,text[],boolean)','EXECUTE') END`).Scan(&contract)
+			e = privateWriter.QueryRow(check, `SELECT CASE WHEN to_regprocedure('identity.authorize_capability_v1(text,uuid,uuid,bigint,text,boolean)') IS NULL THEN false ELSE has_function_privilege(current_user,'identity.authorize_capability_v1(text,uuid,uuid,bigint,text,boolean)','EXECUTE') END`).Scan(&contract)
 			if e == nil && !contract {
 				e = fmt.Errorf("auth owner role contract unavailable")
 			}
@@ -70,16 +74,13 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		}
 	}
 	router := httpapi.NewRouter(logger, db, httpapi.RouterConfig{
-		RemoteProvider:         cfg.RemoteProvider,
-		PrivateListWriter:      privateWriter,
-		PrivateListPolicy:      cfg.PrivateListPolicy,
-		ScreeningIntakeToken:   cfg.ScreeningIntakeToken,
-		ScreeningCallbackToken: cfg.ScreeningCallbackToken,
-		ScreeningOperatorToken: cfg.ScreeningOperatorToken,
-		InvestigatorVerifier:   verifier,
-		CaseServiceAuthToken:   cfg.CaseServiceAuthToken,
-		AuthMode:               cfg.ServiceAuthMode,
-		AuthToken:              cfg.ServiceAuthToken,
+		Verifier:          verifier,
+		RemoteProvider:    cfg.RemoteProvider,
+		PrivateListWriter: privateWriter,
+		PrivateListPolicy: cfg.PrivateListPolicy,
+
+		InvestigatorVerifier: verifier,
+
 		ScreeningProviderURL:   cfg.ScreeningProviderURL,
 		ScreeningProviderURLs:  cfg.ScreeningProviderURLs,
 		OpenSanctionsAPIHost:   cfg.OpenSanctionsAPIHost,

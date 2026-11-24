@@ -1,12 +1,6 @@
 # EC2 main stack, one public gateway. Compose 2.24.4+ supports !reset/!override.
 x-private-api: &private-api
-  SERVICE_AUTH_MODE: token
-  SERVICE_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:?Run node docker/setup-postgres-ec2.mjs first}
   GIN_MODE: release
-
-x-screening-tokens: &screening-tokens
-  SCREENING_INTAKE_TOKEN: ${SCREENING_INTAKE_TOKEN:?Configure screening intake token}
-  SCREENING_CALLBACK_TOKEN: ${SCREENING_CALLBACK_TOKEN:?Configure screening callback token}
 
 x-ec2-origins: &ec2-origins
   SERVICE_ALLOWED_ORIGINS: ${GATEWAY_PUBLIC_ORIGIN:-http://localhost:${POSTGRES_GATEWAY_PORT:-8088}}
@@ -15,12 +9,16 @@ x-ec2-origins: &ec2-origins
 services:
   auth-service:
     environment:
+      AUTH_TOKEN_ENDPOINT_URL: ${GATEWAY_PUBLIC_ORIGIN:-http://localhost:${POSTGRES_GATEWAY_PORT:-8088}}/oauth/token
       <<: *ec2-origins
       AUTH_DEFAULT_TENANT_ID: ${AUTH_DEFAULT_TENANT_ID:-}
       OIDC_ISSUER_URL: ${GATEWAY_PUBLIC_ORIGIN:-http://localhost:${POSTGRES_GATEWAY_PORT:-8088}}/identity/realms/fraud
       OIDC_BACKCHANNEL_ORIGIN: http://keycloak:8080
       OIDC_REDIRECT_URL: ${GATEWAY_PUBLIC_ORIGIN:-http://localhost:${POSTGRES_GATEWAY_PORT:-8088}}/api/auth/callback
       AUTH_APP_ORIGIN: ${GATEWAY_PUBLIC_ORIGIN:-http://localhost:${POSTGRES_GATEWAY_PORT:-8088}}
+
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
 
   keycloak:
     ports: !reset []
@@ -34,62 +32,111 @@ services:
       test: [CMD, /bin/bash, -c, "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /identity/health/ready HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3; head -n 1 <&3 | grep -q '200'"]
 
   data-model-service:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/data-model-service.env
     ports: !reset []
     environment:
       <<: *ec2-origins
 
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/data-model-service-private.pem:/run/secrets/data-model-service-private.pem:ro
+
   ingestion-service:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/ingestion-service.env
     ports: !reset []
     environment:
       <<: [*private-api, *ec2-origins]
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/ingestion-service-private.pem:/run/secrets/ingestion-service-private.pem:ro
+
   ingestion-worker:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/ingestion-worker.env
     environment: *private-api
+
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/ingestion-worker-private.pem:/run/secrets/ingestion-worker-private.pem:ro
 
   decision-engine-service:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/decision-engine-service.env
     ports: !reset []
     environment:
-      <<: [*private-api, *screening-tokens, *ec2-origins]
-      SCREENING_AUTHORING_TOKEN: ${SCREENING_AUTHORING_TOKEN:?Configure screening authoring token}
+      <<: [*private-api, *ec2-origins]
       GEOIP_MMDB_PATH: ""
-    volumes: !override
-      - ${CASE_USER_JWT_KEYS_FILE:?Configure platform public keys}:/run/secrets/case-user-public-keys.json:ro
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/decision-engine-service-private.pem:/run/secrets/decision-engine-service-private.pem:ro
   decision-engine-worker:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/decision-engine-worker.env
     restart: unless-stopped
     environment:
-      <<: [*private-api, *screening-tokens]
+      <<: *private-api
       GEOIP_MMDB_PATH: ""
-    volumes: !reset []
+
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/decision-engine-worker-private.pem:/run/secrets/decision-engine-worker-private.pem:ro
 
   screening-service:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/screening-service.env
     ports: !reset []
     environment:
-      <<: [*private-api, *screening-tokens, *ec2-origins]
-      SCREENING_OPERATOR_TOKEN: ${SCREENING_OPERATOR_TOKEN:?Configure screening operator token}
+      <<: [*private-api, *ec2-origins]
       SCREENING_PROVIDER_URL: ${SCREENING_PROVIDER_URL:-}
       SCREENING_PROVIDER_URLS: ${SCREENING_PROVIDER_URLS:-}
       OPENSANCTIONS_API_HOST: ${OPENSANCTIONS_API_HOST:-}
       OPENSANCTIONS_AUTH_METHOD: ${OPENSANCTIONS_AUTH_METHOD:-}
       OPENSANCTIONS_API_KEY: ${OPENSANCTIONS_API_KEY:-}
       OPENSANCTIONS_SCOPE: ${OPENSANCTIONS_SCOPE:-default}
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/screening-service-private.pem:/run/secrets/screening-service-private.pem:ro
+
   screening-worker:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/screening-worker.env
     environment:
-      <<: [*private-api, *screening-tokens]
-      SCREENING_OPERATOR_TOKEN: ${SCREENING_OPERATOR_TOKEN:?Configure screening operator token}
+      <<: *private-api
       SCREENING_PROVIDER_URL: ${SCREENING_PROVIDER_URL:-}
       SCREENING_PROVIDER_URLS: ${SCREENING_PROVIDER_URLS:-}
       OPENSANCTIONS_API_HOST: ${OPENSANCTIONS_API_HOST:-}
       OPENSANCTIONS_AUTH_METHOD: ${OPENSANCTIONS_AUTH_METHOD:-}
       OPENSANCTIONS_API_KEY: ${OPENSANCTIONS_API_KEY:-}
       OPENSANCTIONS_SCOPE: ${OPENSANCTIONS_SCOPE:-default}
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/screening-worker-private.pem:/run/secrets/screening-worker-private.pem:ro
+
   screening-case-delivery-worker:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/screening-case-delivery-worker.env
     environment: *private-api
 
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/screening-case-delivery-worker-private.pem:/run/secrets/screening-case-delivery-worker-private.pem:ro
+
   case-manager-service:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/case-manager-service.env
     ports: !reset []
     environment:
       <<: *ec2-origins
 
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/case-manager-service-private.pem:/run/secrets/case-manager-service-private.pem:ro
+
   frontend:
+    env_file:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/frontend-bff.env
     ports: !reset []
     build:
       args:
@@ -103,13 +150,14 @@ services:
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
       CASE_SESSION_COOKIE: ${CASE_SESSION_COOKIE:-fraud_session}
       INGESTION_SERVICE_URL: http://ingestion-service:8081
-      INGESTION_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN}
-      SCREENING_AUTHORING_TOKEN: ${SCREENING_AUTHORING_TOKEN}
-      SCREENING_OPERATOR_TOKEN: ${SCREENING_OPERATOR_TOKEN}
       NEXT_PUBLIC_DATA_MODEL_SERVICE_URL: ""
       NEXT_PUBLIC_INGESTION_SERVICE_URL: ""
       NEXT_PUBLIC_DECISION_ENGINE_SERVICE_URL: ""
       NEXT_PUBLIC_DATA_MODEL_TENANT_ID: ""
+
+    volumes:
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ./.local/${COMPOSE_PROJECT_NAME:-new-fraud-system}/frontend-bff-private.pem:/run/secrets/frontend-bff-private.pem:ro
 
   root-tenant-setup:
     image: node:22-alpine

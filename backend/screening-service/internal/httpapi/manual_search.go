@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"io"
 	"net/http"
 	"slices"
 	"sort"
 	"strings"
 
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/clients/provider"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/provideraccess"
@@ -33,7 +34,7 @@ type manualIdentityDB interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
 }
 
-func registerManualSearch(router *gin.Engine, db *pgxpool.Pool, verifier *identity.Verifier, svc manualService, queueReady bool, capabilities provider.ManualCapabilities) {
+func registerManualSearch(router *platformauth.Router, db *pgxpool.Pool, verifier *identity.Verifier, svc manualService, queueReady bool, capabilities provider.ManualCapabilities) {
 	registerManualRoutes(router, manualAuthorization(db, verifier, queueReady && db != nil), svc, capabilities)
 }
 
@@ -53,11 +54,14 @@ func manualAuthorization(db manualIdentityDB, verifier *identity.Verifier, ready
 		if err != nil {
 			return p, &identity.Error{Code: 403, Message: "An investigator role is required."}
 		}
-		return p, identity.CheckIdentity(r.Context(), db, p, false)
+		if !p.Can("screening:search") {
+			return p, identity.Forbidden()
+		}
+		return p, nil
 	}
 }
 
-func registerManualRoutes(router *gin.Engine, authorize manualAuthorizer, svc manualService, catalog ...provider.ManualCapabilities) {
+func registerManualRoutes(router *platformauth.Router, authorize manualAuthorizer, svc manualService, catalog ...provider.ManualCapabilities) {
 	handle := func(c *gin.Context) {
 		c.Header("Cache-Control", "private, no-store")
 		p, err := authorize(c.Request)
@@ -197,10 +201,10 @@ func registerManualRoutes(router *gin.Engine, authorize manualAuthorizer, svc ma
 		}
 		c.JSON(200, manualView(details))
 	}
-	router.POST("/v1/manual-screenings", handle)
-	router.POST("/v1/manual-screenings/:id/matches/:matchId/enrich", handle)
-	router.GET("/v1/manual-screenings", handle)
-	router.GET("/v1/manual-screenings/:id", handle)
+	router.POST("/v1/manual-screenings", platformauth.Policy{Capability: "screening:search", PrincipalType: platformauth.PrincipalUser}, handle)
+	router.POST("/v1/manual-screenings/:id/matches/:matchId/enrich", platformauth.Policy{Capability: "screening:search", PrincipalType: platformauth.PrincipalUser}, handle)
+	router.GET("/v1/manual-screenings", platformauth.Policy{Capability: "screening:search", PrincipalType: platformauth.PrincipalUser}, handle)
+	router.GET("/v1/manual-screenings/:id", platformauth.Policy{Capability: "screening:search", PrincipalType: platformauth.PrincipalUser}, handle)
 }
 
 func manualCapabilityAllows(cap provider.ManualCapabilities, in service.ManualSearchInput) bool {

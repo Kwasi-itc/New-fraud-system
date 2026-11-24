@@ -13,14 +13,14 @@ async function proxy(request: Request, context: Context) {
     const identity = await platformSession();
     if (!identity) return failure(401, "Sign in required.");
     const { session } = identity;
-    const canEdit = session.roles.includes("platform_admin");
-    if (!session.roles.some(r => ["platform_viewer", "platform_builder", "platform_publisher", "platform_admin"].includes(r))) return failure(403, "Platform access required.");
-    if (request.method !== "GET" && !canEdit) return failure(403, "A platform administrator must save live workflow changes.");
+    const canEdit = session.capabilities.includes("workflows:write");
+    if (!session.capabilities.includes("workflows:read")) return failure(403,"Access required.");
+    if (request.method !== "GET" && !canEdit) return failure(403, "Workflow editing permission is required.");
     const { path } = await context.params;
     if (path[0] !== "scenarios" || !uuid.test(path[1] ?? "") ||
       (request.method === "GET" ? path.length !== 2 : path.length !== 4 || path[2] !== "rules" || !uuid.test(path[3]))) return failure(400, "Invalid workflow path.");
-    const base = process.env.DECISION_ENGINE_SERVICE_URL, token = process.env.WORKFLOW_AUTHORING_TOKEN;
-    if (!base || !token || token.length < 32) return failure(503, "Workflow authoring is not configured.");
+    const base = process.env.DECISION_ENGINE_SERVICE_URL;
+    if (!base) return failure(503, "Workflow authoring is not configured.");
     let body: Uint8Array<ArrayBuffer> | undefined;
     if (request.method !== "GET") {
       const chunks: Uint8Array[] = []; let length = 0;
@@ -35,7 +35,7 @@ async function proxy(request: Request, context: Context) {
     }
     const response = await fetch(`${base.replace(/\/$/, "")}/internal/workflow-authoring/tenants/${encodeURIComponent(session.tenant_id)}/${path.join("/")}`, {
       method: request.method, body,
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", "X-Workflow-User": session.user_id, "X-Workflow-Session": session.id, "X-Workflow-Version": String(session.version) },
+      headers: { Authorization: `Bearer ${identity.access_token}`, "Content-Type": "application/json" },
       cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(15000),
     });
     if (response.status >= 300 && response.status < 400) return failure(502, "Unexpected service redirect.");

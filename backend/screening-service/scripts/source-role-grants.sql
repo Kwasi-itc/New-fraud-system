@@ -22,7 +22,7 @@ GRANT INSERT ON screening.source_publication_delivery TO screening_private_write
 GRANT USAGE ON SEQUENCE screening.source_publications_id_seq,screening.source_lifecycle_audit_id_seq,screening.private_list_audit_id_seq TO screening_private_writer;
 GRANT USAGE ON SCHEMA identity TO screening_private_writer;
 GRANT SELECT(id,display_name) ON identity.users TO screening_private_writer;
-GRANT EXECUTE ON FUNCTION identity.authorize_roles_v1(text,uuid,uuid,bigint,text[],boolean) TO screening_private_writer;
+GRANT EXECUTE ON FUNCTION identity.authorize_capability_v1(text,uuid,uuid,bigint,text,boolean) TO screening_private_writer;
 GRANT SELECT,INSERT,UPDATE ON screening.source_connections,screening.source_import_runs,screening.source_datasets,screening.source_versions TO screening_source_collector;
 GRANT SELECT ON screening.source_grants TO screening_source_collector;
 GRANT SELECT,INSERT,DELETE ON screening.source_records,screening.source_names,screening.source_identifiers,screening.source_artifacts,screening.source_version_artifacts TO screening_source_collector;
@@ -39,5 +39,5 @@ GRANT SELECT,INSERT ON screening.reviewed_notice_audit TO screening_notice_opera
 GRANT SELECT,INSERT,DELETE ON screening.source_retention_holds TO screening_notice_operator;
 GRANT USAGE ON SEQUENCE screening.reviewed_notice_audit_id_seq TO screening_notice_operator;
 GRANT USAGE ON SCHEMA identity TO screening_notice_operator;
-GRANT EXECUTE ON FUNCTION identity.authorize_roles_v1(text,uuid,uuid,bigint,text[],boolean) TO screening_notice_operator;
+GRANT EXECUTE ON FUNCTION identity.authorize_capability_v1(text,uuid,uuid,bigint,text,boolean) TO screening_notice_operator;
 COMMIT;

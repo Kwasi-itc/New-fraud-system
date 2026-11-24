@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/access"
 	casepkg "github.com/Kwasi-itc/New-fraud-system/backend/case-manager-service/internal/domain/case"
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"os"
@@ -36,8 +36,7 @@ func TestPlatformIdentityRevokesCaseAndOwnerCommands(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	t.Setenv("USER_REQUIRE_SESSION", "true")
-	principal := access.Principal{Kind: access.User, Subject: user.String(), TenantID: tenant, Admin: true, SessionID: sid, AuthzVersion: 1}
+	principal := access.Principal{Capabilities: map[string]bool{"cases:read": true, "cases:review": true, "cases:access-all": true, "inboxes:manage": true}, Kind: access.User, Subject: user.String(), TenantID: tenant, Admin: true, SessionID: sid, AuthzVersion: 1}
 	userCtx := access.WithPrincipal(ctx, principal)
 	if _, err = s.CreateComment(userCtx, tenant, c.ID, "Verified active session", nil); err != nil {
 		t.Fatal(err)
@@ -51,7 +50,7 @@ func TestPlatformIdentityRevokesCaseAndOwnerCommands(t *testing.T) {
 	if _, err = s.CreateComment(userCtx, tenant, c.ID, "Revoked", nil); !errors.Is(err, casepkg.ErrForbidden) {
 		t.Fatal("case command not denied", err)
 	}
-	_, err = identity.Run(ctx, db, identity.Principal{Subject: user.String(), TenantID: tenant, Admin: true, SessionID: sid, AuthzVersion: 1}, tenant, c.ID, "resource", "core", nil, func(context.Context, pgx.Tx, *identity.Command) (identity.State, error) {
+	_, err = identity.Run(ctx, db, identity.Principal{Type: identity.PrincipalUser, Capabilities: map[string]bool{"cases:read": true, "cases:review": true, "cases:access-all": true}, Subject: user.String(), TenantID: tenant, Admin: true, SessionID: sid, AuthzVersion: 1}, tenant, c.ID, "resource", "core", nil, func(context.Context, pgx.Tx, *identity.Command) (identity.State, error) {
 		t.Fatal("revoked owner action executed")
 		return identity.State{}, nil
 	})

@@ -1,3 +1,5 @@
+> Authentication configuration has changed. Follow the [current platform authentication guide](../../docs/authentication/README.md); static-token and auth-opt-out examples below are historical and no longer work.
+
 # Case Manager Service
 
 Identity update (2026-10-06): Docker uses the [platform auth service](../auth-service/PLATFORM_AUTH.md).

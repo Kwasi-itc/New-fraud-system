@@ -3,7 +3,7 @@ FROM golang:1.25.0 AS builder
 WORKDIR /app/data-model-service
 
 COPY data-model-service/go.mod data-model-service/go.sum ./
-COPY investigator ../investigator
+COPY platform-auth ../platform-auth
 RUN go mod download
 
 COPY data-model-service/ .

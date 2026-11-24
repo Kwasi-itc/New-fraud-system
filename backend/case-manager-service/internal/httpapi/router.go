@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"log/slog"
 	"time"
 
@@ -15,11 +16,12 @@ import (
 )
 
 type RouterConfig struct {
-	UserVerifier        *access.Verifier
-	ServiceTenantIDs    []uuid.UUID
-	RequestTimeout      time.Duration
-	AuthMode            string
-	AuthToken           string
+	PolicyObserver func([]platformauth.RoutePolicy)
+	Verifier       platformauth.TokenVerifier
+	UserVerifier   *access.Verifier
+
+	RequestTimeout time.Duration
+
 	DecisionEngineURL   string
 	ScreeningServiceURL string
 	IngestionServiceURL string
@@ -38,7 +40,13 @@ type systemClock struct{}
 func (systemClock) Now() time.Time { return time.Now().UTC() }
 
 func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Engine {
-	router := gin.New()
+	engine := gin.New()
+	router := platformauth.NewRouter(engine, cfg.Verifier)
+	router.UseAuthenticated(func(c *gin.Context) {
+		p := platformauth.PrincipalFromContext(c)
+		c.Request = c.Request.WithContext(access.WithPrincipal(c.Request.Context(), access.FromPlatform(*p)))
+		c.Next()
+	})
 	router.Use(requestContextMiddleware(logger))
 	router.Use(recoverRequest())
 	if cfg.RequestTimeout <= 0 {
@@ -47,8 +55,8 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	router.Use(requestDeadline(cfg.RequestTimeout))
 
 	healthHandler := handlers.NewHealthHandler(logger, db)
-	router.GET("/healthz", healthHandler.Healthz)
-	router.GET("/readyz", healthHandler.Readyz)
+	router.GET("/healthz", platformauth.Policy{Public: true}, healthHandler.Healthz)
+	router.GET("/readyz", platformauth.Policy{Public: true}, healthHandler.Readyz)
 
 	caseService := service.NewCaseService(uuidGenerator{}, systemClock{}, storepostgres.NewRepositories(db), storepostgres.NewUnitOfWork(db))
 	caseHandler := handlers.NewCaseHandler(caseService)
@@ -57,8 +65,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	integrationHandler := handlers.NewIntegrationHandler(caseService)
 
 	v1 := router.Group("/v1")
-	v1.Use(userMiddleware(cfg.UserVerifier, db))
-	v1.GET("/service-info", func(c *gin.Context) {
+	v1.GET("/service-info", platformauth.Policy{Capability: "services:read"}, func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"service":                "case-manager-service",
 			"decision_engine_url":    cfg.DecisionEngineURL,
@@ -70,67 +77,72 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		})
 	})
 
-	v1.GET("/tenants/:tenantId/inboxes", inboxHandler.List)
-	v1.POST("/tenants/:tenantId/inboxes", inboxHandler.Create)
-	v1.GET("/tenants/:tenantId/inboxes/:inboxId", inboxHandler.Get)
-	v1.PATCH("/tenants/:tenantId/inboxes/:inboxId", inboxHandler.Update)
-	v1.GET("/tenants/:tenantId/inboxes/:inboxId/users", inboxHandler.ListUsers)
-	v1.PUT("/tenants/:tenantId/inboxes/:inboxId/users/:userId", inboxHandler.PutUser)
-	v1.DELETE("/tenants/:tenantId/inboxes/:inboxId/users/:userId", inboxHandler.RemoveUser)
-	v1.GET("/tenants/:tenantId/case-queue", caseHandler.Queue)
-	v1.GET("/tenants/:tenantId/case-analytics", caseHandler.Analytics)
-	v1.GET("/tenants/:tenantId/case-session", caseHandler.Session)
-	v1.POST("/tenants/:tenantId/decision-case-memberships", caseHandler.DecisionSelections)
-	v1.POST("/tenants/:tenantId/manual-screening-investigations", caseHandler.InvestigateManualScreening)
-	v1.POST("/tenants/:tenantId/case-bulk", caseHandler.Bulk)
-	v1.GET("/tenants/:tenantId/cases/:caseId/evidence-access/:kind/:resourceId", caseHandler.EvidenceAccess)
-	v1.GET("/tenants/:tenantId/cases/:caseId/overview", caseHandler.Overview)
-	v1.POST("/tenants/:tenantId/cases/:caseId/explore", caseHandler.Explore)
-	v1.POST("/tenants/:tenantId/cases/:caseId/explore/attach", caseHandler.AttachExploredDecision)
-	v1.GET("/tenants/:tenantId/cases/:caseId/reports", caseHandler.ListReports)
-	v1.POST("/tenants/:tenantId/cases/:caseId/reports", caseHandler.CreateReport)
-	v1.GET("/tenants/:tenantId/cases/:caseId/reports/:reportId", caseHandler.GetReport)
-	v1.PATCH("/tenants/:tenantId/cases/:caseId/reports/:reportId", caseHandler.UpdateReport)
-	v1.POST("/tenants/:tenantId/cases/:caseId/reports/:reportId/complete", caseHandler.CompleteReport)
-	v1.GET("/tenants/:tenantId/cases/:caseId/reports/:reportId/export", caseHandler.GetReport)
-	v1.GET("/tenants/:tenantId/cases/:caseId/links/:kind", caseHandler.Links)
-	v1.POST("/tenants/:tenantId/cases/:caseId/close", caseHandler.Close)
-	v1.GET("/tenants/:tenantId/cases", caseHandler.List)
-	v1.POST("/tenants/:tenantId/cases", caseHandler.Create)
-	v1.GET("/tenants/:tenantId/cases/:caseId", caseHandler.Get)
-	v1.PATCH("/tenants/:tenantId/cases/:caseId", caseHandler.Update)
-	v1.POST("/tenants/:tenantId/cases/:caseId/decisions", caseHandler.AddDecision)
-	v1.POST("/tenants/:tenantId/cases/:caseId/decision-transfers", caseHandler.TransferDecision)
-	v1.GET("/tenants/:tenantId/cases/:caseId/events", caseHandler.ListEvents)
-	v1.POST("/tenants/:tenantId/cases/:caseId/comments", caseHandler.CreateComment)
-	v1.POST("/tenants/:tenantId/cases/:caseId/tags", caseHandler.AddTag)
-	v1.DELETE("/tenants/:tenantId/cases/:caseId/tags/:tagId", caseHandler.RemoveTag)
-	v1.POST("/tenants/:tenantId/cases/:caseId/files", caseHandler.AddFile)
-	v1.POST("/tenants/:tenantId/cases/:caseId/uploads", caseHandler.StartUpload)
-	v1.PUT("/tenants/:tenantId/cases/:caseId/uploads/:uploadId/content", caseHandler.UploadContent)
-	v1.POST("/tenants/:tenantId/cases/:caseId/uploads/:uploadId/finalize", caseHandler.FinalizeUpload)
-	v1.GET("/tenants/:tenantId/cases/:caseId/files/:fileId/download", caseHandler.DownloadEvidence)
-	v1.POST("/tenants/:tenantId/cases/:caseId/assign", caseHandler.Assign)
-	v1.POST("/tenants/:tenantId/cases/:caseId/unassign", caseHandler.Unassign)
-	v1.POST("/tenants/:tenantId/cases/:caseId/snooze", caseHandler.Snooze)
-	v1.POST("/tenants/:tenantId/cases/:caseId/unsnooze", caseHandler.Unsnooze)
-	v1.POST("/tenants/:tenantId/cases/:caseId/escalate", caseHandler.Escalate)
-	v1.GET("/tenants/:tenantId/tags", tagHandler.List)
-	v1.POST("/tenants/:tenantId/tags", tagHandler.Create)
-	v1.PATCH("/tenants/:tenantId/tags/:tagId", tagHandler.Update)
-	v1.DELETE("/tenants/:tenantId/tags/:tagId", tagHandler.Archive)
+	v1.GET("/tenants/:tenantId/inboxes", platformauth.Policy{Capability: "inboxes:read", PrincipalType: platformauth.PrincipalUser}, inboxHandler.List)
+	v1.POST("/tenants/:tenantId/inboxes", platformauth.Policy{Capability: "inboxes:manage", PrincipalType: platformauth.PrincipalUser}, inboxHandler.Create)
+	v1.GET("/tenants/:tenantId/inboxes/:inboxId", platformauth.Policy{Capability: "inboxes:read", PrincipalType: platformauth.PrincipalUser}, inboxHandler.Get)
+	v1.PATCH("/tenants/:tenantId/inboxes/:inboxId", platformauth.Policy{Capability: "inboxes:manage", PrincipalType: platformauth.PrincipalUser}, inboxHandler.Update)
+	v1.GET("/tenants/:tenantId/inboxes/:inboxId/users", platformauth.Policy{Capability: "inboxes:manage", PrincipalType: platformauth.PrincipalUser}, inboxHandler.ListUsers)
+	v1.PUT("/tenants/:tenantId/inboxes/:inboxId/users/:userId", platformauth.Policy{Capability: "inboxes:manage", PrincipalType: platformauth.PrincipalUser}, inboxHandler.PutUser)
+	v1.DELETE("/tenants/:tenantId/inboxes/:inboxId/users/:userId", platformauth.Policy{Capability: "inboxes:manage", PrincipalType: platformauth.PrincipalUser}, inboxHandler.RemoveUser)
+	v1.GET("/tenants/:tenantId/case-queue", platformauth.Policy{Capability: "cases:read", PrincipalType: platformauth.PrincipalUser}, caseHandler.Queue)
+	v1.GET("/tenants/:tenantId/case-analytics", platformauth.Policy{Capability: "cases:read", PrincipalType: platformauth.PrincipalUser}, caseHandler.Analytics)
+	v1.GET("/tenants/:tenantId/case-session", platformauth.Policy{Capability: "cases:read", PrincipalType: platformauth.PrincipalUser}, caseHandler.Session)
+	v1.POST("/tenants/:tenantId/decision-case-memberships", platformauth.Policy{Capability: "cases:read", PrincipalType: platformauth.PrincipalUser}, caseHandler.DecisionSelections)
+	v1.POST("/tenants/:tenantId/manual-screening-investigations", platformauth.Policy{Capability: "cases:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.InvestigateManualScreening)
+	v1.POST("/tenants/:tenantId/case-bulk", platformauth.Policy{Capability: "cases:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.Bulk)
+	v1.GET("/tenants/:tenantId/cases/:caseId/evidence-access/:kind/:resourceId", platformauth.Policy{Capability: "cases:read", PrincipalType: platformauth.PrincipalUser}, caseHandler.EvidenceAccess)
+	v1.GET("/tenants/:tenantId/cases/:caseId/overview", platformauth.Policy{Capability: "cases:read", PrincipalType: platformauth.PrincipalUser}, caseHandler.Overview)
+	v1.POST("/tenants/:tenantId/cases/:caseId/explore", platformauth.Policy{Capability: "cases:read", PrincipalType: platformauth.PrincipalUser}, caseHandler.Explore)
+	v1.POST("/tenants/:tenantId/cases/:caseId/explore/attach", platformauth.Policy{Capability: "cases:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.AttachExploredDecision)
+	v1.GET("/tenants/:tenantId/cases/:caseId/reports", platformauth.Policy{Capability: "reports:read", PrincipalType: platformauth.PrincipalUser}, caseHandler.ListReports)
+	v1.POST("/tenants/:tenantId/cases/:caseId/reports", platformauth.Policy{Capability: "reports:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.CreateReport)
+	v1.GET("/tenants/:tenantId/cases/:caseId/reports/:reportId", platformauth.Policy{Capability: "reports:read", PrincipalType: platformauth.PrincipalUser}, caseHandler.GetReport)
+	v1.PATCH("/tenants/:tenantId/cases/:caseId/reports/:reportId", platformauth.Policy{Capability: "reports:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.UpdateReport)
+	v1.POST("/tenants/:tenantId/cases/:caseId/reports/:reportId/complete", platformauth.Policy{Capability: "reports:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.CompleteReport)
+	v1.GET("/tenants/:tenantId/cases/:caseId/reports/:reportId/export", platformauth.Policy{Capability: "reports:export", PrincipalType: platformauth.PrincipalUser}, caseHandler.GetReport)
+	v1.GET("/tenants/:tenantId/cases/:caseId/links/:kind", platformauth.Policy{Capability: "cases:read", PrincipalType: platformauth.PrincipalUser}, caseHandler.Links)
+	v1.POST("/tenants/:tenantId/cases/:caseId/close", platformauth.Policy{Capability: "cases:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.Close)
+	v1.GET("/tenants/:tenantId/cases", platformauth.Policy{Capability: "cases:read"}, clientCaseRead(db, caseHandler.List))
+	v1.POST("/tenants/:tenantId/cases", platformauth.Policy{Capability: "cases:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.Create)
+	v1.GET("/tenants/:tenantId/cases/:caseId", platformauth.Policy{Capability: "cases:read"}, clientCaseRead(db, caseHandler.Get))
+	v1.PATCH("/tenants/:tenantId/cases/:caseId", platformauth.Policy{Capability: "cases:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.Update)
+	v1.POST("/tenants/:tenantId/cases/:caseId/decisions", platformauth.Policy{Capability: "cases:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.AddDecision)
+	v1.POST("/tenants/:tenantId/cases/:caseId/decision-transfers", platformauth.Policy{Capability: "cases:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.TransferDecision)
+	v1.GET("/tenants/:tenantId/cases/:caseId/events", platformauth.Policy{Capability: "cases:read", PrincipalType: platformauth.PrincipalUser}, caseHandler.ListEvents)
+	v1.POST("/tenants/:tenantId/cases/:caseId/comments", platformauth.Policy{Capability: "cases:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.CreateComment)
+	v1.POST("/tenants/:tenantId/cases/:caseId/tags", platformauth.Policy{Capability: "cases:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.AddTag)
+	v1.DELETE("/tenants/:tenantId/cases/:caseId/tags/:tagId", platformauth.Policy{Capability: "cases:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.RemoveTag)
+	v1.POST("/tenants/:tenantId/cases/:caseId/files", platformauth.Policy{Capability: "cases:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.AddFile)
+	v1.POST("/tenants/:tenantId/cases/:caseId/uploads", platformauth.Policy{Capability: "cases:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.StartUpload)
+	v1.PUT("/tenants/:tenantId/cases/:caseId/uploads/:uploadId/content", platformauth.Policy{Capability: "cases:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.UploadContent)
+	v1.POST("/tenants/:tenantId/cases/:caseId/uploads/:uploadId/finalize", platformauth.Policy{Capability: "cases:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.FinalizeUpload)
+	v1.GET("/tenants/:tenantId/cases/:caseId/files/:fileId/download", platformauth.Policy{Capability: "cases:read", PrincipalType: platformauth.PrincipalUser}, caseHandler.DownloadEvidence)
+	v1.POST("/tenants/:tenantId/cases/:caseId/assign", platformauth.Policy{Capability: "cases:assign", PrincipalType: platformauth.PrincipalUser}, caseHandler.Assign)
+	v1.POST("/tenants/:tenantId/cases/:caseId/unassign", platformauth.Policy{Capability: "cases:assign", PrincipalType: platformauth.PrincipalUser}, caseHandler.Unassign)
+	v1.POST("/tenants/:tenantId/cases/:caseId/snooze", platformauth.Policy{Capability: "cases:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.Snooze)
+	v1.POST("/tenants/:tenantId/cases/:caseId/unsnooze", platformauth.Policy{Capability: "cases:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.Unsnooze)
+	v1.POST("/tenants/:tenantId/cases/:caseId/escalate", platformauth.Policy{Capability: "cases:write", PrincipalType: platformauth.PrincipalUser}, caseHandler.Escalate)
+	v1.GET("/tenants/:tenantId/tags", platformauth.Policy{Capability: "cases:read", PrincipalType: platformauth.PrincipalUser}, tagHandler.List)
+	v1.POST("/tenants/:tenantId/tags", platformauth.Policy{Capability: "inboxes:manage", PrincipalType: platformauth.PrincipalUser}, tagHandler.Create)
+	v1.PATCH("/tenants/:tenantId/tags/:tagId", platformauth.Policy{Capability: "inboxes:manage", PrincipalType: platformauth.PrincipalUser}, tagHandler.Update)
+	v1.DELETE("/tenants/:tenantId/tags/:tagId", platformauth.Policy{Capability: "inboxes:manage", PrincipalType: platformauth.PrincipalUser}, tagHandler.Archive)
 	callbacks := router.Group("/v1/screening-events")
-	callbacks.Use(authMiddleware(AuthConfig{Mode: cfg.AuthMode, Token: cfg.AuthToken, TenantIDs: cfg.ServiceTenantIDs}))
-	callbacks.POST("/reviewed", integrationHandler.ScreeningReviewed)
-	callbacks.POST("/requires-review", integrationHandler.ScreeningRequiresReview)
-	callbacks.POST("/evidence-uploaded", integrationHandler.ScreeningEvidenceUploaded)
+	callbacks.POST("/reviewed", platformauth.Policy{Capability: "cases:events-write", PrincipalType: platformauth.PrincipalService, BodyTenant: true}, integrationHandler.ScreeningReviewed)
+	callbacks.POST("/requires-review", platformauth.Policy{Capability: "cases:events-write", PrincipalType: platformauth.PrincipalService, BodyTenant: true}, integrationHandler.ScreeningRequiresReview)
+	callbacks.POST("/evidence-uploaded", platformauth.Policy{Capability: "cases:events-write", PrincipalType: platformauth.PrincipalService, BodyTenant: true}, integrationHandler.ScreeningEvidenceUploaded)
 
 	internal := router.Group("/internal")
-	internal.Use(authMiddleware(AuthConfig{Mode: cfg.AuthMode, Token: cfg.AuthToken, TenantIDs: cfg.ServiceTenantIDs}))
-	internal.GET("/v1/tenants/:tenantId/inboxes/:inboxId", inboxHandler.Get)
-	internal.POST("/v1/workflow-actions", integrationHandler.WorkflowAction)
-	internal.POST("/v1/ai-case-reviews/:reviewId/run", integrationHandler.NotImplemented)
-	internal.POST("/v1/auto-assignment/run", integrationHandler.NotImplemented)
+	internal.GET("/v1/tenants/:tenantId/inboxes/:inboxId", platformauth.Policy{Capability: "inboxes:read", PrincipalType: platformauth.PrincipalService}, inboxHandler.Get)
+	internal.POST("/v1/workflow-actions", platformauth.Policy{Capability: "workflows:execute", PrincipalType: platformauth.PrincipalService, BodyTenant: true}, integrationHandler.WorkflowAction)
+	internal.POST("/v1/ai-case-reviews/:reviewId/run", platformauth.Policy{Capability: "workflows:execute", PrincipalType: platformauth.PrincipalService, BodyTenant: true}, integrationHandler.NotImplemented)
+	internal.POST("/v1/auto-assignment/run", platformauth.Policy{Capability: "workflows:execute", PrincipalType: platformauth.PrincipalService, BodyTenant: true}, integrationHandler.NotImplemented)
 
-	return router
+	registerClientInboxAccess(router, db)
+	if err := router.ValidateCoverage(); err != nil {
+		panic(err)
+	}
+	if cfg.PolicyObserver != nil {
+		cfg.PolicyObserver(router.Inventory())
+	}
+	return engine
 }

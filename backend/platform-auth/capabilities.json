@@ -1,0 +1,376 @@
+[
+  {
+    "name": "roles:read",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "roles:manage",
+    "human": true,
+    "service": false,
+    "client": "",
+    "reserved": true
+  },
+  {
+    "name": "roles:assign",
+    "human": true,
+    "service": false,
+    "client": "",
+    "reserved": true
+  },
+  {
+    "name": "members:read",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "members:manage",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "invitations:manage",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "sessions:manage",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "audit:read",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "clients:manage",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "clients:approve-sensitive",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "models:read",
+    "human": true,
+    "service": true,
+    "client": ""
+  },
+  {
+    "name": "models:write",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "models:publish",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "records:read",
+    "human": true,
+    "service": true,
+    "client": "sensitive"
+  },
+  {
+    "name": "records:export",
+    "human": true,
+    "service": true,
+    "client": "sensitive"
+  },
+  {
+    "name": "ingest:write",
+    "human": true,
+    "service": true,
+    "client": "normal"
+  },
+  {
+    "name": "ingest:read",
+    "human": true,
+    "service": true,
+    "client": ""
+  },
+  {
+    "name": "scenarios:read",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "scenarios:write",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "scenarios:publish",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "decisions:evaluate",
+    "human": true,
+    "service": true,
+    "client": "normal"
+  },
+  {
+    "name": "decisions:read",
+    "human": true,
+    "service": true,
+    "client": "normal"
+  },
+  {
+    "name": "workflows:read",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "workflows:write",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "screening:read",
+    "human": true,
+    "service": true,
+    "client": ""
+  },
+  {
+    "name": "screening:write",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "screening:review",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "screening:admin",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "screening:search",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "inboxes:read",
+    "human": true,
+    "service": true,
+    "client": ""
+  },
+  {
+    "name": "inboxes:manage",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "cases:read",
+    "human": true,
+    "service": false,
+    "client": "sensitive"
+  },
+  {
+    "name": "cases:write",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "cases:review",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "cases:assign",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "cases:access-all",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "reports:read",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "reports:write",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "reports:export",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "lists:read",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "lists:write",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "sources:read",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "sources:manage",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "executions:read",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "executions:manage",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "metrics:read",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "services:read",
+    "human": true,
+    "service": true,
+    "client": ""
+  },
+  {
+    "name": "auth:bootstrap",
+    "human": false,
+    "service": true,
+    "client": ""
+  },
+  {
+    "name": "tenants:provision",
+    "human": false,
+    "service": true,
+    "client": ""
+  },
+  {
+    "name": "models:contract-read",
+    "human": false,
+    "service": true,
+    "client": ""
+  },
+  {
+    "name": "cases:events-write",
+    "human": false,
+    "service": true,
+    "client": ""
+  },
+  {
+    "name": "workflows:execute",
+    "human": false,
+    "service": true,
+    "client": ""
+  },
+  {
+    "name": "screening:intake",
+    "human": false,
+    "service": true,
+    "client": ""
+  },
+  {
+    "name": "screening:callback",
+    "human": false,
+    "service": true,
+    "client": ""
+  },
+  {
+    "name": "ingestion:events",
+    "human": false,
+    "service": true,
+    "client": ""
+  },
+  {
+    "name": "platform:reconcile",
+    "human": false,
+    "service": true,
+    "client": ""
+  },
+  {
+    "name": "private-lists:read",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "private-lists:import",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "private-lists:approve",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "source-notices:read",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "clients:read",
+    "human": true,
+    "service": false,
+    "client": ""
+  },
+  {
+    "name": "models:index-write",
+    "human": true,
+    "service": true,
+    "client": ""
+  }
+]

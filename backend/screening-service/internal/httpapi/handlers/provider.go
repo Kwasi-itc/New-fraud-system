@@ -19,7 +19,7 @@ func NewProviderHandler(service service.ScreeningService) ProviderHandler {
 func (h ProviderHandler) GetCatalog(c *gin.Context) {
 	item, err := h.service.GetDatasetCatalog(c.Request.Context(), c.Query("provider"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.Data(http.StatusOK, "application/json", item.RawPayload)
@@ -28,7 +28,7 @@ func (h ProviderHandler) GetCatalog(c *gin.Context) {
 func (h ProviderHandler) GetFreshness(c *gin.Context) {
 	item, err := h.service.GetDatasetFreshness(c.Request.Context(), c.Query("provider"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.Data(http.StatusOK, "application/json", item.RawPayload)

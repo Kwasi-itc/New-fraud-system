@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	"github.com/google/uuid"
 	"net/http"
 	"strings"
 	"time"
@@ -13,16 +15,17 @@ import (
 )
 
 type HTTPClient struct {
+	Signer  *platformauth.Signer
 	baseURL string
-	token   string
-	client  *http.Client
+
+	client *http.Client
 }
 
-func NewHTTPClient(baseURL, token string, timeout time.Duration) HTTPClient {
+func NewHTTPClient(baseURL string, timeout time.Duration) HTTPClient {
 	return HTTPClient{
 		baseURL: strings.TrimRight(baseURL, "/"),
-		token:   token,
-		client:  &http.Client{Timeout: timeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
+
+		client: &http.Client{Timeout: timeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
 	}
 }
 
@@ -39,8 +42,8 @@ func (c HTTPClient) PublishScreeningEvidenceUploaded(ctx context.Context, comman
 }
 
 func (c HTTPClient) post(ctx context.Context, path string, payload any) error {
-	if c.baseURL == "" || c.token == "" {
-		return fmt.Errorf("case integration URL and token are required")
+	if c.baseURL == "" {
+		return fmt.Errorf("case integration URL is required")
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -51,7 +54,15 @@ func (c HTTPClient) post(ctx context.Context, path string, payload any) error {
 		return fmt.Errorf("create case request: invalid request")
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+c.token)
+	var envelope struct {
+		TenantID uuid.UUID `json:"tenant_id"`
+	}
+	if err = json.Unmarshal(body, &envelope); err != nil {
+		return err
+	}
+	if err = platformauth.AuthorizeServiceRequest(req, envelope.TenantID, "urn:fraud:case-manager-service", []string{"cases:events-write"}, c.Signer); err != nil {
+		return err
+	}
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("execute case request: transport failure")
@@ -62,3 +73,5 @@ func (c HTTPClient) post(ctx context.Context, path string, payload any) error {
 	}
 	return nil
 }
+
+func (c HTTPClient) WithSigner(signer *platformauth.Signer) HTTPClient { c.Signer = signer; return c }

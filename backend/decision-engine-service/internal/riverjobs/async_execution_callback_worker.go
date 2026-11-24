@@ -2,6 +2,7 @@ package riverjobs
 
 import (
 	"context"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"time"
 
 	"github.com/riverqueue/river"
@@ -22,6 +23,7 @@ func NewAsyncDecisionExecutionCallbackWorker(runner AsyncDecisionExecutionCallba
 }
 
 func (w *AsyncDecisionExecutionCallbackWorker) Work(ctx context.Context, job *river.Job[AsyncDecisionExecutionCallbackArgs]) error {
+	ctx = platformauth.WithOrigin(ctx, job.Args.Origin)
 	return w.runner.DeliverAsyncExecutionCallback(ctx, job.Args.TenantID, job.Args.ExecutionID)
 }
 

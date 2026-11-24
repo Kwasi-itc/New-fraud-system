@@ -20,7 +20,7 @@ func NewInternalDecisionHandler(service service.ScreeningService) InternalDecisi
 func (h InternalDecisionHandler) Create(c *gin.Context) {
 	var body createScreeningRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 
@@ -56,7 +56,7 @@ func (h InternalDecisionHandler) Create(c *gin.Context) {
 	if body.ProviderConfig != nil {
 		raw, err := jsonMarshal(body.ProviderConfig)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			screeningError(c, err)
 			return
 		}
 		request.ProviderConfig = raw
@@ -64,7 +64,7 @@ func (h InternalDecisionHandler) Create(c *gin.Context) {
 
 	item, err := h.service.CreateScreening(c.Request.Context(), c.Param("tenantId"), request)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, item)

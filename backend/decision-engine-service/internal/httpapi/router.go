@@ -2,9 +2,9 @@ package httpapi
 
 import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/clients/namerecognition"
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"log/slog"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -25,18 +25,16 @@ import (
 )
 
 type RouterConfig struct {
-	ProviderTransport                   *lookup.Transport
-	InternalScreeningPolicy             service.InlinePolicy
-	NameRecognitionURL                  string
-	NameRecognitionToken                string
-	ScreeningServiceURL                 string
-	ScreeningIntakeToken                string
-	ScreeningCallbackToken              string
-	WorkflowAuthoringToken              string
-	ScreeningAuthoringToken             string
-	InvestigatorVerifier                *identity.Verifier
-	AuthMode                            string
-	AuthToken                           string
+	PolicyObserver          func([]platformauth.RoutePolicy)
+	Verifier                platformauth.TokenVerifier
+	ProviderTransport       *lookup.Transport
+	InternalScreeningPolicy service.InlinePolicy
+	NameRecognitionURL      string
+	NameRecognitionToken    string
+	ScreeningServiceURL     string
+
+	InvestigatorVerifier *identity.Verifier
+
 	AllowedOrigins                      []string
 	DataModelServiceURL                 string
 	IngestionServiceURL                 string
@@ -103,7 +101,8 @@ func dbPoolStatsProvider(db *pgxpool.Pool) service.DBPoolStatsProvider {
 }
 
 func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Engine {
-	router := gin.New()
+	engine := gin.New()
+	router := platformauth.NewRouter(engine, cfg.Verifier)
 	router.Use(requestContextMiddleware(logger))
 	router.Use(corsMiddleware(cfg.AllowedOrigins))
 	router.Use(gin.Recovery())
@@ -111,8 +110,8 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	registerDocsRoutes(router)
 
 	healthHandler := handlers.NewHealthHandler(logger, db)
-	router.GET("/healthz", healthHandler.Healthz)
-	router.GET("/readyz", healthHandler.Readyz)
+	router.GET("/healthz", platformauth.Policy{Public: true}, healthHandler.Healthz)
+	router.GET("/readyz", platformauth.Policy{Public: true}, healthHandler.Readyz)
 
 	var txManager ports.TransactionManager
 	var scenarioRepo ports.ScenarioRepository
@@ -187,7 +186,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		scoringEnqueuer = riverjobs.NewRiverScoringRequestEnqueuer(riverClient, 1, cfg.ScoringDispatchQueueName)
 		outboxEnqueuer = riverjobs.NewRiverOutboxEventEnqueuer(riverClient, 1, cfg.OutboxQueueName)
 	}
-	dataModelReader = datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout).WithAuthToken(os.Getenv("DATA_MODEL_SERVICE_TOKEN"))
+	dataModelReader = datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
 	tenantDataReader = tenantdata.NewReader(cfg.TenantDataReadMode, db, dataModelReader, cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
 
 	scenarioService := service.NewScenarioService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo)
@@ -259,21 +258,21 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	workflowHandler := handlers.NewWorkflowHandler(workflowService)
 	workflowRuleHandler := handlers.NewWorkflowRuleHandler(workflowRuleService)
 	// Dedicated gateway credential: never use the browser-visible legacy API token.
-	if db != nil && len(cfg.WorkflowAuthoringToken) >= 32 {
+	if db != nil {
 		author := handlers.WorkflowAuthoringHandler{Service: service.WorkflowAuthoringService{Store: storepostgres.WorkflowAuthoringRepository{DB: db}, Cache: cacheInvalidator}}
-		group := router.Group("/internal/workflow-authoring", authMiddleware(AuthConfig{Mode: "token", Token: cfg.WorkflowAuthoringToken}))
-		group.GET("/tenants/:tenantId/scenarios/:scenarioId", author.Handle)
-		group.PUT("/tenants/:tenantId/scenarios/:scenarioId/rules/:ruleId", author.Handle)
-		group.DELETE("/tenants/:tenantId/scenarios/:scenarioId/rules/:ruleId", author.Handle)
+		group := router.Group("/internal/workflow-authoring")
+		group.GET("/tenants/:tenantId/scenarios/:scenarioId", platformauth.Policy{Capability: "workflows:read", PrincipalType: platformauth.PrincipalUser}, author.Handle)
+		group.PUT("/tenants/:tenantId/scenarios/:scenarioId/rules/:ruleId", platformauth.Policy{Capability: "workflows:write", PrincipalType: platformauth.PrincipalUser}, author.Handle)
+		group.DELETE("/tenants/:tenantId/scenarios/:scenarioId/rules/:ruleId", platformauth.Policy{Capability: "workflows:write", PrincipalType: platformauth.PrincipalUser}, author.Handle)
 	}
 	snoozeHandler := handlers.NewSnoozeHandler(snoozeService)
-	if db != nil && len(cfg.ScreeningAuthoringToken) >= 32 {
-		author := handlers.ScreeningAuthoringHandler{Service: service.ScreeningAuthoringService{InternalInlineSupported: decisionService.InlineScreening != nil, NameRecognitionSupported: decisionService.NameRecognizer != nil, Capabilities: screeningcapabilities.Reader(cfg.ScreeningServiceURL, cfg.ScreeningIntakeToken, cfg.HTTPClientTimeout), Store: storepostgres.ScreeningAuthoringRepository{DB: db}, Cache: cacheInvalidator}}
-		group := router.Group("/internal/screening-authoring", authMiddleware(AuthConfig{Mode: "token", Token: cfg.ScreeningAuthoringToken}))
-		group.GET("/tenants/:tenantId/scenarios/:scenarioId", author.Handle)
-		group.PUT("/tenants/:tenantId/scenarios/:scenarioId/configs/:configId", author.Handle)
+	if db != nil {
+		author := handlers.ScreeningAuthoringHandler{Service: service.ScreeningAuthoringService{InternalInlineSupported: decisionService.InlineScreening != nil, NameRecognitionSupported: decisionService.NameRecognizer != nil, Capabilities: screeningcapabilities.Reader(cfg.ScreeningServiceURL, cfg.HTTPClientTimeout), Store: storepostgres.ScreeningAuthoringRepository{DB: db}, Cache: cacheInvalidator}}
+		group := router.Group("/internal/screening-authoring")
+		group.GET("/tenants/:tenantId/scenarios/:scenarioId", platformauth.Policy{Capability: "screening:read", PrincipalType: platformauth.PrincipalUser}, author.Handle)
+		group.PUT("/tenants/:tenantId/scenarios/:scenarioId/configs/:configId", platformauth.Policy{Capability: "screening:write", PrincipalType: platformauth.PrincipalUser}, author.Handle)
 		read := handlers.ScreeningReadHandler{Store: storepostgres.ScreeningReadRepository{DB: db}}
-		group.GET("/tenants/:tenantId/decisions/:decisionId/screenings", read.List)
+		group.GET("/tenants/:tenantId/decisions/:decisionId/screenings", platformauth.Policy{Capability: "screening:read", PrincipalType: platformauth.PrincipalUser}, read.List)
 	}
 	outboxHandler := handlers.NewOutboxHandler(outboxService)
 	executionHandler := handlers.NewExecutionHandler(executionService)
@@ -284,15 +283,8 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 	runtimeMetricsHandler := handlers.NewRuntimeMetricsHandler(decisionService)
 
 	v1 := router.Group("/v1")
-	v1.Use(workflowConfigurationBoundary(cfg.WorkflowAuthoringToken))
-	v1.Use(screeningConfigurationBoundary(cfg.ScreeningAuthoringToken))
-	v1.Use(screeningExecutionBoundary(cfg.ScreeningAuthoringToken))
-	v1.Use(authMiddleware(AuthConfig{
-		Mode:  cfg.AuthMode,
-		Token: cfg.AuthToken,
-	}))
-	v1.GET("/admin/runtime-metrics", runtimeMetricsHandler.Get)
-	v1.GET("/service-info", func(c *gin.Context) {
+	v1.GET("/admin/runtime-metrics", platformauth.Policy{Capability: "metrics:read"}, runtimeMetricsHandler.Get)
+	v1.GET("/service-info", platformauth.Policy{Capability: "services:read"}, func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"service":                "decision-engine-service",
 			"data_model_service_url": cfg.DataModelServiceURL,
@@ -301,125 +293,132 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 			"geoip_enabled":          cfg.GeoIPLookup != nil,
 		})
 	})
-	v1.GET("/rule-functions", validationHandler.ListRuleFunctions)
-	v1.GET("/tenants/:tenantId/scenarios", scenarioHandler.ListScenarios)
-	v1.POST("/tenants/:tenantId/scenarios", scenarioHandler.CreateScenario)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId", scenarioHandler.GetScenario)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/editor-identifiers", accessorHandler.ListByScenario)
-	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId", scenarioHandler.UpdateScenario)
-	v1.DELETE("/tenants/:tenantId/scenarios/:scenarioId", scenarioHandler.DeleteScenario)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/copy", scenarioHandler.CopyScenario)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/rules/latest", scenarioHandler.ListLatestRules)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/ast-ai-description", scenarioHandler.DescribeASTWithAI)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/generate-ast", scenarioHandler.GenerateRuleWithAI)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/iterations", scenarioHandler.ListIterations)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/iterations/metadata", scenarioHandler.ListIterationMetadata)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/iterations", scenarioHandler.CreateIteration)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId", scenarioHandler.GetIteration)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/draft", scenarioHandler.CreateDraftFromIteration)
-	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId", scenarioHandler.UpdateIteration)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/commit", publicationHandler.CommitIteration)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/deactivate", publicationHandler.DeactivateIteration)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/publications", publicationHandler.ListPublications)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/publications", publicationHandler.ExecutePublicationAction)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/publications/preparation", publicationHandler.GetPreparationStatus)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/publications/preparation", publicationHandler.StartPreparation)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules", ruleHandler.ListRules)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/rule-groups", ruleHandler.ListRuleGroups)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules", ruleHandler.CreateRule)
-	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules/:ruleId", ruleHandler.UpdateRule)
-	v1.DELETE("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules/:ruleId", ruleHandler.DeleteRule)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules/:ruleId/ai-description", scenarioHandler.DescribeRuleWithAI)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/validate", validationHandler.ValidateIteration)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/evaluate", decisionHandler.EvaluateScenario)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/decisions", decisionHandler.ListDecisionsByScenario)
-	v1.GET("/tenants/:tenantId/decisions/count", decisionHandler.CountDecisions)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/test-runs", testRunHandler.ListByScenario)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/test-runs", testRunHandler.Create)
-	v1.GET("/tenants/:tenantId/test-runs/:testRunId", testRunHandler.Get)
-	v1.POST("/tenants/:tenantId/test-runs/:testRunId/cancel", testRunHandler.Cancel)
-	v1.GET("/tenants/:tenantId/test-runs/:testRunId/decision-data-by-score", testRunHandler.DecisionSummaries)
-	v1.GET("/tenants/:tenantId/test-runs/:testRunId/data-by-rule-execution", testRunHandler.RuleStats)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/workflows", workflowHandler.ListByScenario)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/workflows", workflowHandler.Create)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/workflows/reorder", workflowHandler.Reorder)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/workflows/:workflowId", workflowHandler.Get)
-	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/workflows/:workflowId", workflowHandler.Update)
-	v1.DELETE("/tenants/:tenantId/scenarios/:scenarioId/workflows/:workflowId", workflowHandler.Delete)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules", workflowRuleHandler.ListByScenario)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules", workflowRuleHandler.Create)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/reorder", workflowRuleHandler.Reorder)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId", workflowRuleHandler.Get)
-	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId", workflowRuleHandler.Update)
-	v1.DELETE("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId", workflowRuleHandler.Delete)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId/conditions", workflowRuleHandler.CreateCondition)
-	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId/conditions/:conditionId", workflowRuleHandler.UpdateCondition)
-	v1.DELETE("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId/conditions/:conditionId", workflowRuleHandler.DeleteCondition)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId/actions", workflowRuleHandler.CreateAction)
-	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId/actions/:actionId", workflowRuleHandler.UpdateAction)
-	v1.DELETE("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId/actions/:actionId", workflowRuleHandler.DeleteAction)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/screening-configs", screeningHandler.ListConfigsByScenario)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/screening-configs", screeningHandler.CreateConfig)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/screening-configs/:configId", screeningHandler.GetConfig)
-	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/screening-configs/:configId", screeningHandler.UpdateConfig)
-	v1.DELETE("/tenants/:tenantId/scenarios/:scenarioId/screening-configs/:configId", screeningHandler.DeleteConfig)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/scoring-configs", scoringHandler.ListConfigsByScenario)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/scoring-configs", scoringHandler.CreateConfig)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/scoring-configs/:configId", scoringHandler.GetConfig)
-	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/scoring-configs/:configId", scoringHandler.UpdateConfig)
-	v1.DELETE("/tenants/:tenantId/scenarios/:scenarioId/scoring-configs/:configId", scoringHandler.DeleteConfig)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/rule-snoozes", snoozeHandler.ListActive)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/rule-snoozes", snoozeHandler.Create)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/recurring-schedule", executionHandler.GetRecurringSchedule)
-	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/recurring-schedule", executionHandler.UpdateRecurringSchedule)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions", executionHandler.ListScheduledExecutionsByScenario)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions/status-summary", executionHandler.GetScheduledExecutionStatusSummary)
-	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions/:executionId", executionHandler.GetScheduledExecution)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions/:executionId/retry", executionHandler.RetryScheduledExecution)
-	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions", executionHandler.CreateScheduledExecution)
-	v1.GET("/tenants/:tenantId/platform/custom-lists", platformHandler.ListCustomLists)
-	v1.POST("/tenants/:tenantId/platform/custom-lists", platformHandler.CreateCustomList)
-	v1.GET("/tenants/:tenantId/platform/custom-lists/:listId", platformHandler.GetCustomList)
-	v1.PUT("/tenants/:tenantId/platform/custom-lists/:listId", platformHandler.UpdateCustomList)
-	v1.DELETE("/tenants/:tenantId/platform/custom-lists/:listId", platformHandler.DeleteCustomList)
-	v1.GET("/tenants/:tenantId/platform/custom-lists/:listId/entries", platformHandler.ListCustomListEntries)
-	v1.POST("/tenants/:tenantId/platform/custom-lists/:listId/entries", platformHandler.CreateCustomListEntry)
-	v1.POST("/tenants/:tenantId/platform/custom-lists/:listId/entries/import", platformHandler.ImportCustomListEntries)
-	v1.PUT("/tenants/:tenantId/platform/custom-lists/:listId/entries/:entryId", platformHandler.UpdateCustomListEntry)
-	v1.DELETE("/tenants/:tenantId/platform/custom-lists/:listId/entries/:entryId", platformHandler.DeleteCustomListEntry)
-	v1.GET("/tenants/:tenantId/platform/custom-list-entries", platformHandler.ListCustomListEntries)
-	v1.GET("/tenants/:tenantId/platform/record-tags", platformHandler.ListRecordTags)
-	v1.POST("/tenants/:tenantId/platform/record-tags", platformHandler.CreateRecordTag)
-	v1.POST("/tenants/:tenantId/platform/risk-snapshots", platformHandler.CreateRiskSnapshot)
-	v1.GET("/tenants/:tenantId/platform/ip-flags", platformHandler.ListIPFlags)
-	v1.POST("/tenants/:tenantId/platform/ip-flags", platformHandler.CreateIPFlag)
-	v1.GET("/tenants/:tenantId/decisions/:decisionId", decisionHandler.GetDecision)
-	v1.GET("/tenants/:tenantId/decisions", decisionHandler.ListDecisions)
-	v1.POST("/tenants/:tenantId/decisions", decisionHandler.CreateDecision)
-	v1.POST("/tenants/:tenantId/decisions/all", decisionHandler.CreateAllDecisions)
-	v1.GET("/tenants/:tenantId/decisions/:decisionId/workflow-executions", workflowHandler.ListByDecision)
-	v1.GET("/tenants/:tenantId/decisions/:decisionId/screening-executions", screeningHandler.ListExecutionsByDecision)
-	v1.GET("/tenants/:tenantId/screening-executions/:executionId", screeningHandler.GetExecution)
-	v1.POST("/tenants/:tenantId/screening-executions/:executionId/status", screeningHandler.UpdateExecutionStatus)
-	v1.POST("/tenants/:tenantId/screening-executions/:executionId/retry", screeningHandler.RetryExecution)
-	v1.GET("/tenants/:tenantId/decisions/:decisionId/scoring-requests", scoringHandler.ListRequestsByDecision)
-	v1.GET("/tenants/:tenantId/scoring-requests/:requestId", scoringHandler.GetRequest)
-	v1.POST("/tenants/:tenantId/scoring-requests/:requestId/status", scoringHandler.UpdateRequestStatus)
-	v1.POST("/tenants/:tenantId/scoring-requests/:requestId/retry", scoringHandler.RetryRequest)
-	v1.GET("/tenants/:tenantId/outbox-events", outboxHandler.ListByTenant)
-	v1.GET("/tenants/:tenantId/async-decision-executions", executionHandler.ListAsyncDecisionExecutionsByTenant)
-	v1.GET("/tenants/:tenantId/async-decision-executions/status-summary", executionHandler.GetAsyncDecisionExecutionStatusSummary)
-	v1.GET("/tenants/:tenantId/async-decision-executions/:executionId", executionHandler.GetAsyncDecisionExecution)
-	v1.POST("/tenants/:tenantId/async-decision-executions/:executionId/retry", executionHandler.RetryAsyncDecisionExecution)
-	v1.POST("/tenants/:tenantId/async-decision-executions", executionHandler.CreateAsyncDecisionExecution)
-	v1.POST("/tenants/:tenantId/test-runs/:testRunId/evaluate", testRunHandler.Evaluate)
-	v1.POST("/tenants/:tenantId/ingestion-events/record-ingested", decisionHandler.HandleRecordIngested)
+	v1.GET("/rule-functions", platformauth.Policy{Capability: "scenarios:read"}, validationHandler.ListRuleFunctions)
+	v1.GET("/tenants/:tenantId/scenarios", platformauth.Policy{Capability: "scenarios:read"}, scenarioHandler.ListScenarios)
+	v1.POST("/tenants/:tenantId/scenarios", platformauth.Policy{Capability: "scenarios:write", PrincipalType: platformauth.PrincipalUser}, scenarioHandler.CreateScenario)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId", platformauth.Policy{Capability: "scenarios:read"}, scenarioHandler.GetScenario)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/editor-identifiers", platformauth.Policy{Capability: "scenarios:read"}, accessorHandler.ListByScenario)
+	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId", platformauth.Policy{Capability: "scenarios:write", PrincipalType: platformauth.PrincipalUser}, scenarioHandler.UpdateScenario)
+	v1.DELETE("/tenants/:tenantId/scenarios/:scenarioId", platformauth.Policy{Capability: "scenarios:write", PrincipalType: platformauth.PrincipalUser}, scenarioHandler.DeleteScenario)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/copy", platformauth.Policy{Capability: "scenarios:write", PrincipalType: platformauth.PrincipalUser}, scenarioHandler.CopyScenario)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/rules/latest", platformauth.Policy{Capability: "scenarios:read"}, scenarioHandler.ListLatestRules)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/ast-ai-description", platformauth.Policy{Capability: "scenarios:write", PrincipalType: platformauth.PrincipalUser}, scenarioHandler.DescribeASTWithAI)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/generate-ast", platformauth.Policy{Capability: "scenarios:write", PrincipalType: platformauth.PrincipalUser}, scenarioHandler.GenerateRuleWithAI)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/iterations", platformauth.Policy{Capability: "scenarios:read"}, scenarioHandler.ListIterations)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/iterations/metadata", platformauth.Policy{Capability: "scenarios:read"}, scenarioHandler.ListIterationMetadata)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/iterations", platformauth.Policy{Capability: "scenarios:write", PrincipalType: platformauth.PrincipalUser}, scenarioHandler.CreateIteration)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId", platformauth.Policy{Capability: "scenarios:read"}, scenarioHandler.GetIteration)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/draft", platformauth.Policy{Capability: "scenarios:write", PrincipalType: platformauth.PrincipalUser}, scenarioHandler.CreateDraftFromIteration)
+	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId", platformauth.Policy{Capability: "scenarios:write", PrincipalType: platformauth.PrincipalUser}, scenarioHandler.UpdateIteration)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/commit", platformauth.Policy{Capability: "scenarios:publish", PrincipalType: platformauth.PrincipalUser}, publicationHandler.CommitIteration)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/deactivate", platformauth.Policy{Capability: "scenarios:publish", PrincipalType: platformauth.PrincipalUser}, publicationHandler.DeactivateIteration)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/publications", platformauth.Policy{Capability: "scenarios:read"}, publicationHandler.ListPublications)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/publications", platformauth.Policy{Capability: "scenarios:publish", PrincipalType: platformauth.PrincipalUser}, publicationHandler.ExecutePublicationAction)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/publications/preparation", platformauth.Policy{Capability: "scenarios:read"}, publicationHandler.GetPreparationStatus)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/publications/preparation", platformauth.Policy{Capability: "scenarios:publish", PrincipalType: platformauth.PrincipalUser}, publicationHandler.StartPreparation)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules", platformauth.Policy{Capability: "scenarios:read"}, ruleHandler.ListRules)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/rule-groups", platformauth.Policy{Capability: "scenarios:read"}, ruleHandler.ListRuleGroups)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules", platformauth.Policy{Capability: "scenarios:write", PrincipalType: platformauth.PrincipalUser}, ruleHandler.CreateRule)
+	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules/:ruleId", platformauth.Policy{Capability: "scenarios:write", PrincipalType: platformauth.PrincipalUser}, ruleHandler.UpdateRule)
+	v1.DELETE("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules/:ruleId", platformauth.Policy{Capability: "scenarios:write", PrincipalType: platformauth.PrincipalUser}, ruleHandler.DeleteRule)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules/:ruleId/ai-description", platformauth.Policy{Capability: "scenarios:read"}, scenarioHandler.DescribeRuleWithAI)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/validate", platformauth.Policy{Capability: "scenarios:write", PrincipalType: platformauth.PrincipalUser}, validationHandler.ValidateIteration)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/evaluate", platformauth.Policy{Capability: "decisions:evaluate"}, decisionHandler.EvaluateScenario)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/decisions", platformauth.Policy{Capability: "decisions:read"}, decisionHandler.ListDecisionsByScenario)
+	v1.GET("/tenants/:tenantId/decisions/count", platformauth.Policy{Capability: "decisions:read"}, decisionHandler.CountDecisions)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/test-runs", platformauth.Policy{Capability: "scenarios:read"}, testRunHandler.ListByScenario)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/test-runs", platformauth.Policy{Capability: "scenarios:write", PrincipalType: platformauth.PrincipalUser}, testRunHandler.Create)
+	v1.GET("/tenants/:tenantId/test-runs/:testRunId", platformauth.Policy{Capability: "scenarios:read"}, testRunHandler.Get)
+	v1.POST("/tenants/:tenantId/test-runs/:testRunId/cancel", platformauth.Policy{Capability: "scenarios:write", PrincipalType: platformauth.PrincipalUser}, testRunHandler.Cancel)
+	v1.GET("/tenants/:tenantId/test-runs/:testRunId/decision-data-by-score", platformauth.Policy{Capability: "scenarios:read"}, testRunHandler.DecisionSummaries)
+	v1.GET("/tenants/:tenantId/test-runs/:testRunId/data-by-rule-execution", platformauth.Policy{Capability: "scenarios:read"}, testRunHandler.RuleStats)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/workflows", platformauth.Policy{Capability: "workflows:read", PrincipalType: platformauth.PrincipalUser}, workflowHandler.ListByScenario)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/workflows", platformauth.Policy{Capability: "workflows:write", PrincipalType: platformauth.PrincipalUser}, workflowHandler.Create)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/workflows/reorder", platformauth.Policy{Capability: "workflows:write", PrincipalType: platformauth.PrincipalUser}, workflowHandler.Reorder)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/workflows/:workflowId", platformauth.Policy{Capability: "workflows:read", PrincipalType: platformauth.PrincipalUser}, workflowHandler.Get)
+	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/workflows/:workflowId", platformauth.Policy{Capability: "workflows:write", PrincipalType: platformauth.PrincipalUser}, workflowHandler.Update)
+	v1.DELETE("/tenants/:tenantId/scenarios/:scenarioId/workflows/:workflowId", platformauth.Policy{Capability: "workflows:write", PrincipalType: platformauth.PrincipalUser}, workflowHandler.Delete)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules", platformauth.Policy{Capability: "workflows:read", PrincipalType: platformauth.PrincipalUser}, workflowRuleHandler.ListByScenario)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules", platformauth.Policy{Capability: "workflows:write", PrincipalType: platformauth.PrincipalUser}, workflowRuleHandler.Create)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/reorder", platformauth.Policy{Capability: "workflows:write", PrincipalType: platformauth.PrincipalUser}, workflowRuleHandler.Reorder)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId", platformauth.Policy{Capability: "workflows:read", PrincipalType: platformauth.PrincipalUser}, workflowRuleHandler.Get)
+	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId", platformauth.Policy{Capability: "workflows:write", PrincipalType: platformauth.PrincipalUser}, workflowRuleHandler.Update)
+	v1.DELETE("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId", platformauth.Policy{Capability: "workflows:write", PrincipalType: platformauth.PrincipalUser}, workflowRuleHandler.Delete)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId/conditions", platformauth.Policy{Capability: "workflows:write", PrincipalType: platformauth.PrincipalUser}, workflowRuleHandler.CreateCondition)
+	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId/conditions/:conditionId", platformauth.Policy{Capability: "workflows:write", PrincipalType: platformauth.PrincipalUser}, workflowRuleHandler.UpdateCondition)
+	v1.DELETE("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId/conditions/:conditionId", platformauth.Policy{Capability: "workflows:write", PrincipalType: platformauth.PrincipalUser}, workflowRuleHandler.DeleteCondition)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId/actions", platformauth.Policy{Capability: "workflows:write", PrincipalType: platformauth.PrincipalUser}, workflowRuleHandler.CreateAction)
+	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId/actions/:actionId", platformauth.Policy{Capability: "workflows:write", PrincipalType: platformauth.PrincipalUser}, workflowRuleHandler.UpdateAction)
+	v1.DELETE("/tenants/:tenantId/scenarios/:scenarioId/workflow-rules/:ruleId/actions/:actionId", platformauth.Policy{Capability: "workflows:write", PrincipalType: platformauth.PrincipalUser}, workflowRuleHandler.DeleteAction)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/screening-configs", platformauth.Policy{Capability: "screening:read", PrincipalType: platformauth.PrincipalUser}, screeningHandler.ListConfigsByScenario)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/screening-configs", platformauth.Policy{Capability: "screening:write", PrincipalType: platformauth.PrincipalUser}, screeningHandler.CreateConfig)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/screening-configs/:configId", platformauth.Policy{Capability: "screening:read", PrincipalType: platformauth.PrincipalUser}, screeningHandler.GetConfig)
+	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/screening-configs/:configId", platformauth.Policy{Capability: "screening:write", PrincipalType: platformauth.PrincipalUser}, screeningHandler.UpdateConfig)
+	v1.DELETE("/tenants/:tenantId/scenarios/:scenarioId/screening-configs/:configId", platformauth.Policy{Capability: "screening:write", PrincipalType: platformauth.PrincipalUser}, screeningHandler.DeleteConfig)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/scoring-configs", platformauth.Policy{Capability: "screening:read", PrincipalType: platformauth.PrincipalUser}, scoringHandler.ListConfigsByScenario)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/scoring-configs", platformauth.Policy{Capability: "screening:write", PrincipalType: platformauth.PrincipalUser}, scoringHandler.CreateConfig)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/scoring-configs/:configId", platformauth.Policy{Capability: "screening:read", PrincipalType: platformauth.PrincipalUser}, scoringHandler.GetConfig)
+	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/scoring-configs/:configId", platformauth.Policy{Capability: "screening:write", PrincipalType: platformauth.PrincipalUser}, scoringHandler.UpdateConfig)
+	v1.DELETE("/tenants/:tenantId/scenarios/:scenarioId/scoring-configs/:configId", platformauth.Policy{Capability: "screening:write", PrincipalType: platformauth.PrincipalUser}, scoringHandler.DeleteConfig)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/rule-snoozes", platformauth.Policy{Capability: "scenarios:read"}, snoozeHandler.ListActive)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/rule-snoozes", platformauth.Policy{Capability: "scenarios:write", PrincipalType: platformauth.PrincipalUser}, snoozeHandler.Create)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/recurring-schedule", platformauth.Policy{Capability: "scenarios:read"}, executionHandler.GetRecurringSchedule)
+	v1.PUT("/tenants/:tenantId/scenarios/:scenarioId/recurring-schedule", platformauth.Policy{Capability: "scenarios:write", PrincipalType: platformauth.PrincipalUser}, executionHandler.UpdateRecurringSchedule)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions", platformauth.Policy{Capability: "executions:read", PrincipalType: platformauth.PrincipalUser}, executionHandler.ListScheduledExecutionsByScenario)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions/status-summary", platformauth.Policy{Capability: "executions:read", PrincipalType: platformauth.PrincipalUser}, executionHandler.GetScheduledExecutionStatusSummary)
+	v1.GET("/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions/:executionId", platformauth.Policy{Capability: "executions:read", PrincipalType: platformauth.PrincipalUser}, executionHandler.GetScheduledExecution)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions/:executionId/retry", platformauth.Policy{Capability: "executions:manage", PrincipalType: platformauth.PrincipalUser}, executionHandler.RetryScheduledExecution)
+	v1.POST("/tenants/:tenantId/scenarios/:scenarioId/scheduled-executions", platformauth.Policy{Capability: "executions:manage", PrincipalType: platformauth.PrincipalUser}, executionHandler.CreateScheduledExecution)
+	v1.GET("/tenants/:tenantId/platform/custom-lists", platformauth.Policy{Capability: "lists:read", PrincipalType: platformauth.PrincipalUser}, platformHandler.ListCustomLists)
+	v1.POST("/tenants/:tenantId/platform/custom-lists", platformauth.Policy{Capability: "lists:write", PrincipalType: platformauth.PrincipalUser}, platformHandler.CreateCustomList)
+	v1.GET("/tenants/:tenantId/platform/custom-lists/:listId", platformauth.Policy{Capability: "lists:read", PrincipalType: platformauth.PrincipalUser}, platformHandler.GetCustomList)
+	v1.PUT("/tenants/:tenantId/platform/custom-lists/:listId", platformauth.Policy{Capability: "lists:write", PrincipalType: platformauth.PrincipalUser}, platformHandler.UpdateCustomList)
+	v1.DELETE("/tenants/:tenantId/platform/custom-lists/:listId", platformauth.Policy{Capability: "lists:write", PrincipalType: platformauth.PrincipalUser}, platformHandler.DeleteCustomList)
+	v1.GET("/tenants/:tenantId/platform/custom-lists/:listId/entries", platformauth.Policy{Capability: "lists:read", PrincipalType: platformauth.PrincipalUser}, platformHandler.ListCustomListEntries)
+	v1.POST("/tenants/:tenantId/platform/custom-lists/:listId/entries", platformauth.Policy{Capability: "lists:write", PrincipalType: platformauth.PrincipalUser}, platformHandler.CreateCustomListEntry)
+	v1.POST("/tenants/:tenantId/platform/custom-lists/:listId/entries/import", platformauth.Policy{Capability: "lists:write", PrincipalType: platformauth.PrincipalUser}, platformHandler.ImportCustomListEntries)
+	v1.PUT("/tenants/:tenantId/platform/custom-lists/:listId/entries/:entryId", platformauth.Policy{Capability: "lists:write", PrincipalType: platformauth.PrincipalUser}, platformHandler.UpdateCustomListEntry)
+	v1.DELETE("/tenants/:tenantId/platform/custom-lists/:listId/entries/:entryId", platformauth.Policy{Capability: "lists:write", PrincipalType: platformauth.PrincipalUser}, platformHandler.DeleteCustomListEntry)
+	v1.GET("/tenants/:tenantId/platform/custom-list-entries", platformauth.Policy{Capability: "scenarios:read"}, platformHandler.ListCustomListEntries)
+	v1.GET("/tenants/:tenantId/platform/record-tags", platformauth.Policy{Capability: "lists:read", PrincipalType: platformauth.PrincipalUser}, platformHandler.ListRecordTags)
+	v1.POST("/tenants/:tenantId/platform/record-tags", platformauth.Policy{Capability: "lists:write", PrincipalType: platformauth.PrincipalUser}, platformHandler.CreateRecordTag)
+	v1.POST("/tenants/:tenantId/platform/risk-snapshots", platformauth.Policy{Capability: "lists:write", PrincipalType: platformauth.PrincipalUser}, platformHandler.CreateRiskSnapshot)
+	v1.GET("/tenants/:tenantId/platform/ip-flags", platformauth.Policy{Capability: "lists:read", PrincipalType: platformauth.PrincipalUser}, platformHandler.ListIPFlags)
+	v1.POST("/tenants/:tenantId/platform/ip-flags", platformauth.Policy{Capability: "lists:write", PrincipalType: platformauth.PrincipalUser}, platformHandler.CreateIPFlag)
+	v1.GET("/tenants/:tenantId/decisions/:decisionId", platformauth.Policy{Capability: "decisions:read"}, decisionHandler.GetDecision)
+	v1.GET("/tenants/:tenantId/decisions", platformauth.Policy{Capability: "decisions:read"}, decisionHandler.ListDecisions)
+	v1.POST("/tenants/:tenantId/decisions", platformauth.Policy{Capability: "decisions:evaluate"}, decisionHandler.CreateDecision)
+	v1.POST("/tenants/:tenantId/decisions/all", platformauth.Policy{Capability: "decisions:evaluate"}, decisionHandler.CreateAllDecisions)
+	v1.GET("/tenants/:tenantId/decisions/:decisionId/workflow-executions", platformauth.Policy{Capability: "executions:read", PrincipalType: platformauth.PrincipalUser}, workflowHandler.ListByDecision)
+	v1.GET("/tenants/:tenantId/decisions/:decisionId/screening-executions", platformauth.Policy{Capability: "executions:read", PrincipalType: platformauth.PrincipalUser}, screeningHandler.ListExecutionsByDecision)
+	v1.GET("/tenants/:tenantId/screening-executions/:executionId", platformauth.Policy{Capability: "executions:read", PrincipalType: platformauth.PrincipalUser}, screeningHandler.GetExecution)
+	v1.POST("/tenants/:tenantId/screening-executions/:executionId/status", platformauth.Policy{Capability: "executions:manage", PrincipalType: platformauth.PrincipalUser}, screeningHandler.UpdateExecutionStatus)
+	v1.POST("/tenants/:tenantId/screening-executions/:executionId/retry", platformauth.Policy{Capability: "executions:manage", PrincipalType: platformauth.PrincipalUser}, screeningHandler.RetryExecution)
+	v1.GET("/tenants/:tenantId/decisions/:decisionId/scoring-requests", platformauth.Policy{Capability: "executions:read", PrincipalType: platformauth.PrincipalUser}, scoringHandler.ListRequestsByDecision)
+	v1.GET("/tenants/:tenantId/scoring-requests/:requestId", platformauth.Policy{Capability: "executions:read", PrincipalType: platformauth.PrincipalUser}, scoringHandler.GetRequest)
+	v1.POST("/tenants/:tenantId/scoring-requests/:requestId/status", platformauth.Policy{Capability: "executions:manage", PrincipalType: platformauth.PrincipalUser}, scoringHandler.UpdateRequestStatus)
+	v1.POST("/tenants/:tenantId/scoring-requests/:requestId/retry", platformauth.Policy{Capability: "executions:manage", PrincipalType: platformauth.PrincipalUser}, scoringHandler.RetryRequest)
+	v1.GET("/tenants/:tenantId/outbox-events", platformauth.Policy{Capability: "executions:read", PrincipalType: platformauth.PrincipalUser}, outboxHandler.ListByTenant)
+	v1.GET("/tenants/:tenantId/async-decision-executions", platformauth.Policy{Capability: "executions:read", PrincipalType: platformauth.PrincipalUser}, executionHandler.ListAsyncDecisionExecutionsByTenant)
+	v1.GET("/tenants/:tenantId/async-decision-executions/status-summary", platformauth.Policy{Capability: "executions:read", PrincipalType: platformauth.PrincipalUser}, executionHandler.GetAsyncDecisionExecutionStatusSummary)
+	v1.GET("/tenants/:tenantId/async-decision-executions/:executionId", platformauth.Policy{Capability: "executions:read", PrincipalType: platformauth.PrincipalUser}, executionHandler.GetAsyncDecisionExecution)
+	v1.POST("/tenants/:tenantId/async-decision-executions/:executionId/retry", platformauth.Policy{Capability: "executions:manage", PrincipalType: platformauth.PrincipalUser}, executionHandler.RetryAsyncDecisionExecution)
+	v1.POST("/tenants/:tenantId/async-decision-executions", platformauth.Policy{Capability: "executions:manage", PrincipalType: platformauth.PrincipalUser}, executionHandler.CreateAsyncDecisionExecution)
+	v1.POST("/tenants/:tenantId/test-runs/:testRunId/evaluate", platformauth.Policy{Capability: "scenarios:write", PrincipalType: platformauth.PrincipalUser}, testRunHandler.Evaluate)
+	v1.POST("/tenants/:tenantId/ingestion-events/record-ingested", platformauth.Policy{Capability: "ingestion:events", PrincipalType: platformauth.PrincipalService, BodyTenant: true}, decisionHandler.HandleRecordIngested)
 
 	internal := router.Group("/internal")
-	internal.Use(screeningServiceBoundary(cfg.ScreeningCallbackToken, cfg.AuthToken, cfg.ScreeningAuthoringToken, cfg.ScreeningIntakeToken))
-	internal.POST("/screening-status-updates", internalScreeningHandler.UpdateStatus)
+	internal.POST("/screening-status-updates", platformauth.Policy{Capability: "screening:callback", PrincipalType: platformauth.PrincipalService, BodyTenant: true}, internalScreeningHandler.UpdateStatus)
 
-	return router
+	router.GET("/v1/tenants/:tenantId/cases/:caseId/evidence/decisions/:decisionId", platformauth.Policy{Capability: "cases:read", PrincipalType: platformauth.PrincipalUser}, platformauth.CaseEvidence(db, "core", "decisionId", decisionHandler.GetDecision))
+
+	if err := router.ValidateCoverage(); err != nil {
+		panic(err)
+	}
+	if cfg.PolicyObserver != nil {
+		cfg.PolicyObserver(router.Inventory())
+	}
+	return engine
 }
 
 func max(a, b int) int {

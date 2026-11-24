@@ -2,16 +2,17 @@ package httpapi
 
 import (
 	"context"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"strconv"
 
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	store "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func registerCaseExclusions(router *gin.Engine, db *pgxpool.Pool, verifier *identity.Verifier) {
+func registerCaseExclusions(router *platformauth.Router, db *pgxpool.Pool, verifier *identity.Verifier) {
 	authorize := manualAuthorization(db, verifier, db != nil)
 	registerCaseExclusionRoutes(router, authorize, func(ctx context.Context, p identity.Principal, tenant, caseID uuid.UUID, operation, cursor string, limit int) (store.CaseExclusionPage, error) {
 		return store.ReadCaseExclusions(ctx, db, p, tenant, caseID, operation, cursor, limit)
@@ -20,8 +21,8 @@ func registerCaseExclusions(router *gin.Engine, db *pgxpool.Pool, verifier *iden
 
 type caseExclusionReader func(context.Context, identity.Principal, uuid.UUID, uuid.UUID, string, string, int) (store.CaseExclusionPage, error)
 
-func registerCaseExclusionRoutes(router *gin.Engine, authorize manualAuthorizer, read caseExclusionReader) {
-	router.GET("/v1/investigator/tenants/:tenantId/cases/:caseId/exclusions", func(c *gin.Context) {
+func registerCaseExclusionRoutes(router *platformauth.Router, authorize manualAuthorizer, read caseExclusionReader) {
+	router.GET("/v1/investigator/tenants/:tenantId/cases/:caseId/exclusions", platformauth.Policy{Capability: "cases:read", PrincipalType: platformauth.PrincipalUser}, func(c *gin.Context) {
 		c.Header("Cache-Control", "private, no-store")
 		p, err := authorize(c.Request)
 		if err != nil {

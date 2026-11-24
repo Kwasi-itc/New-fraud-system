@@ -401,7 +401,7 @@ def main() -> None:
     parser.add_argument("--count", type=int, default=100)
     parser.add_argument("--concurrency-levels", default=env_default("DECISION_CREATE_CONCURRENCY_LEVELS", DEFAULT_CONCURRENCY_LEVELS))
     parser.add_argument("--progress-every", type=int, default=100)
-    parser.add_argument("--auth-token", default=os.getenv("SERVICE_AUTH_TOKEN", ""))
+    parser.add_argument("--auth-token", default=os.getenv("PLATFORM_ACCESS_TOKEN", ""))
     parser.add_argument("--timeout", type=float, default=30.0)
     parser.add_argument("--wait-timeout-ms", type=int, default=int(env_default("ASYNC_WAIT_TIMEOUT_MS", "0")))
     parser.add_argument("--callback-url", default=env_default("ASYNC_CALLBACK_URL", ""))

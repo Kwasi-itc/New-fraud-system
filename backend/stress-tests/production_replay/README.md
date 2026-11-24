@@ -28,7 +28,7 @@ py -3 -m venv .venv-replay
 ```
 
 Use your actual published service ports and a private or otherwise appropriately
-protected connection. Set `SERVICE_AUTH_TOKEN` in the environment if API
+protected connection. Set `PLATFORM_ACCESS_TOKEN` in the environment if API
 authentication is enabled; do not put tokens in URLs. By default this runner
 does not encrypt or HMAC-tokenize identifiers, and no key file is required.
 It still drops transaction fields not used by the internal model/rules.

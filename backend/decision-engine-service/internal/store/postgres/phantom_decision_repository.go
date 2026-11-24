@@ -8,7 +8,9 @@ import (
 
 type PhantomDecisionRepository struct{ q queryable }
 
-func NewPhantomDecisionRepository(q queryable) PhantomDecisionRepository { return PhantomDecisionRepository{q: q} }
+func NewPhantomDecisionRepository(q queryable) PhantomDecisionRepository {
+	return PhantomDecisionRepository{q: q}
+}
 
 func (r PhantomDecisionRepository) Create(ctx context.Context, item decision.PhantomDecision) (decision.PhantomDecision, error) {
 	const stmt = `
@@ -32,7 +34,9 @@ func (r PhantomDecisionRepository) ListByTestRun(ctx context.Context, tenantID, 
 		order by created_at desc
 	`
 	rows, err := r.q.Query(ctx, stmt, tenantID, testRunID)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
 	var items []decision.PhantomDecision
 	for rows.Next() {

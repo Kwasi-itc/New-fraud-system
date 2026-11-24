@@ -1,0 +1,13 @@
+**/.env
+**/.env.*
+**/.git
+**/.local
+**/.vscode
+**/.idea
+**/.DS_Store
+**/.bin
+**/bin
+**/__pycache__
+**/*.test
+**/*.log
+**/coverage.out

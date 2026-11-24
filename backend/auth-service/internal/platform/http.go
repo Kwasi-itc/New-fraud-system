@@ -3,7 +3,6 @@ package platform
 import (
 	"context"
 	"crypto/rsa"
-	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/auth-service/internal/oidcprovider"
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
@@ -23,12 +23,15 @@ type Server struct {
 	Store                   Store
 	DefaultTenantID         uuid.UUID
 	Provider                *oidcprovider.Provider
-	ProxyToken              string
+	Verifier                *auth.Verifier
+	Replay                  *auth.ReplayCache
+	TokenEndpointURL        string
 	Key                     *rsa.PrivateKey
 	KeyID, Issuer, Audience string
 	Logger                  *slog.Logger
 	Invitations             *InvitationService
 	DebugLoginErrors        bool
+	PolicyObserver          func([]auth.RoutePolicy)
 }
 
 func SigningKey(path string) (*rsa.PrivateKey, error) {
@@ -43,9 +46,11 @@ func SigningKey(path string) (*rsa.PrivateKey, error) {
 	return key, nil
 }
 func (s Server) Handler() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(204) })
-	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
+	mux := newRouteRegistry()
+	s.authorizationRoutes(mux)
+	s.accountRoutes(mux)
+	mux.HandlePublic("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(204) })
+	mux.HandlePublic("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 		defer cancel()
 		var version int
@@ -55,27 +60,30 @@ func (s Server) Handler() http.Handler {
 		}
 		w.WriteHeader(204)
 	})
-	mux.HandleFunc("POST /internal/login/start", s.start)
-	mux.HandleFunc("POST /internal/login/complete", s.complete)
-	mux.HandleFunc("POST /internal/session", s.resolve)
-	mux.HandleFunc("POST /internal/logout", s.logout)
-	mux.HandleFunc("POST /internal/sessions/list", s.sessions)
-	mux.HandleFunc("POST /internal/sessions/revoke", s.revokeSessions)
-	mux.HandleFunc("POST /internal/members/list", s.members)
-	mux.HandleFunc("POST /internal/members/change", s.change)
-	mux.HandleFunc("POST /internal/invitations/start", s.invitationStart)
-	mux.HandleFunc("POST /internal/invitations/list", s.invitations)
-	mux.HandleFunc("POST /internal/invitations/change", s.invitationChange)
-	mux.HandleFunc("POST /internal/audit/list", s.auditList)
+	mux.HandleBootstrap("POST /internal/login/start", s.start)
+	mux.HandleBootstrap("POST /internal/login/complete", s.complete)
+	mux.HandleBootstrap("POST /internal/session", s.resolve)
+	mux.HandleBootstrap("POST /internal/invitations/start", s.invitationStart)
+	if s.PolicyObserver != nil {
+		s.PolicyObserver(mux.Inventory())
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "private, no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Content-Type", "application/json")
 		requestID := uuid.NewString()
 		w.Header().Set("X-Request-ID", requestID)
-		if strings.HasPrefix(r.URL.Path, "/internal/") && (len(s.ProxyToken) < 32 || subtle.ConstantTimeCompare([]byte(r.Header.Get("Authorization")), []byte("Bearer "+s.ProxyToken)) != 1) {
-			http.Error(w, "unauthorized", 401)
-			return
+		if strings.HasPrefix(r.URL.Path, "/internal/") {
+			raw, e := auth.Bearer(r.Header.Get("Authorization"))
+			if e != nil || s.Verifier == nil {
+				http.Error(w, "unauthorized", 401)
+				return
+			}
+			caller, e := s.Verifier.Verify(raw)
+			if e != nil || !caller.IsService() || caller.Subject != "frontend-bff" || !caller.Can("auth:bootstrap") {
+				http.Error(w, "unauthorized", 401)
+				return
+			}
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 		defer cancel()
@@ -148,7 +156,7 @@ func (s Server) complete(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &in) {
 		return
 	}
-	s.Logger.Info("Completing OIDC login", "state", in.State, "binding", in.Binding)
+	s.Logger.Info("Completing OIDC login")
 	l, err := s.Store.ConsumeLogin(r.Context(), in.State, in.Binding, s.Provider.Issuer())
 	if err != nil {
 		detail := fmt.Errorf("consume login transaction (state, browser binding, issuer, or expiration mismatch): %w", err)
@@ -156,7 +164,7 @@ func (s Server) complete(w http.ResponseWriter, r *http.Request) {
 		s.failWithDetail(w, err, detail)
 		return
 	}
-	s.Logger.Info("Consuming login transaction", "state", in.State, "binding", in.Binding)
+	s.Logger.Info("Consuming login transaction")
 	id, err := s.Provider.Exchange(r.Context(), in.Code, l.Verifier, l.Nonce)
 	if err != nil {
 		s.Logger.Error("OIDC exchange failed", "error", err)
@@ -172,7 +180,7 @@ func (s Server) complete(w http.ResponseWriter, r *http.Request) {
 		}
 		raw, err = s.Invitations.Accept(r.Context(), l.InvitationDigest, id)
 	} else {
-		raw, err = s.Store.CreateSessionForTenant(r.Context(), id.Issuer, id.Subject, s.DefaultTenantID)
+		raw, err = s.Store.CreateSessionForIdentity(r.Context(), id, s.DefaultTenantID)
 	}
 	if err != nil {
 		detail := fmt.Errorf("create login session: %w", err)
@@ -207,39 +215,31 @@ func (s Server) resolve(w http.ResponseWriter, r *http.Request) {
 	if v.Expires.Before(expires) {
 		expires = v.Expires
 	}
-	claims := jwt.MapClaims{"iss": s.Issuer, "aud": s.Audience, "sub": v.UserID.String(), "tenant_id": v.TenantID.String(), "roles": v.Roles, "sid": v.ID.String(), "authz_version": v.Version, "iat": now.Unix(), "exp": expires.Unix()}
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	token.Header["kid"] = s.KeyID
-	signed, err := token.SignedString(s.Key)
+	claims := auth.Claims{RegisteredClaims: jwt.RegisteredClaims{Issuer: s.Issuer, Audience: jwt.ClaimStrings{s.Audience}, Subject: v.UserID.String(), ID: uuid.NewString(), IssuedAt: jwt.NewNumericDate(now), ExpiresAt: jwt.NewNumericDate(expires)}, PrincipalType: auth.PrincipalUser, TenantID: v.TenantID, Roles: v.Roles, Capabilities: v.Capabilities, SessionID: v.ID, AuthzVersion: v.Version}
+	signed, err := auth.SignAccessToken(s.Key, s.KeyID, claims)
 	if err != nil {
 		s.fail(w, err)
 		return
 	}
 	respond(w, map[string]any{"session": v, "access_token": signed})
 }
-func (s Server) logout(w http.ResponseWriter, r *http.Request) {
-	var in sessionRequest
-	if !decode(w, r, &in) {
-		return
-	}
-	if err := s.Store.Logout(r.Context(), in.Session); err != nil {
-		s.fail(w, err)
+func (s Server) accountLogout(w http.ResponseWriter, r *http.Request, p auth.Principal) {
+	if _, err := s.Store.RevokeSessionsForPrincipal(r.Context(), p, p.SessionID, false); err != nil {
+		s.authorizationError(w, err)
 		return
 	}
 	w.WriteHeader(204)
 }
 
-func (s Server) sessions(w http.ResponseWriter, r *http.Request) {
-	var in struct {
-		Session string    `json:"session"`
-		After   uuid.UUID `json:"after"`
-	}
-	if !decode(w, r, &in) {
+func (s Server) accountSessions(w http.ResponseWriter, r *http.Request, p auth.Principal) {
+	after, err := optionalUUID(r.URL.Query().Get("after"))
+	if err != nil {
+		http.Error(w, "invalid cursor", 400)
 		return
 	}
-	items, err := s.Store.Sessions(r.Context(), in.Session, in.After)
+	items, err := s.Store.SessionsForPrincipal(r.Context(), p, after)
 	if err != nil {
-		s.fail(w, err)
+		s.authorizationError(w, err)
 		return
 	}
 	next := ""
@@ -249,11 +249,10 @@ func (s Server) sessions(w http.ResponseWriter, r *http.Request) {
 	}
 	respond(w, map[string]any{"items": items, "next_after": next})
 }
-func (s Server) revokeSessions(w http.ResponseWriter, r *http.Request) {
+func (s Server) accountRevokeSessions(w http.ResponseWriter, r *http.Request, p auth.Principal) {
 	var in struct {
-		Session string    `json:"session"`
-		Target  uuid.UUID `json:"target"`
-		All     bool      `json:"all"`
+		Target uuid.UUID `json:"target"`
+		All    bool      `json:"all"`
 	}
 	if !decode(w, r, &in) {
 		return
@@ -262,24 +261,22 @@ func (s Server) revokeSessions(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Choose one session or all sessions", 400)
 		return
 	}
-	current, err := s.Store.RevokeSessions(r.Context(), in.Session, in.Target, in.All)
+	current, err := s.Store.RevokeSessionsForPrincipal(r.Context(), p, in.Target, in.All)
 	if err != nil {
-		s.fail(w, err)
+		s.authorizationError(w, err)
 		return
 	}
 	respond(w, map[string]bool{"signed_out": current})
 }
-func (s Server) members(w http.ResponseWriter, r *http.Request) {
-	var in struct {
-		Session string    `json:"session"`
-		After   uuid.UUID `json:"after"`
-	}
-	if !decode(w, r, &in) {
+func (s Server) accountMembers(w http.ResponseWriter, r *http.Request, p auth.Principal) {
+	after, err := optionalUUID(r.URL.Query().Get("after"))
+	if err != nil {
+		http.Error(w, "invalid cursor", 400)
 		return
 	}
-	items, err := s.Store.Members(r.Context(), in.Session, in.After)
+	items, err := s.Store.FilteredMembersForPrincipal(r.Context(), p, after, r.URL.Query().Get("query"), r.URL.Query().Get("role"))
 	if err != nil {
-		s.fail(w, err)
+		s.authorizationError(w, err)
 		return
 	}
 	next := ""
@@ -289,9 +286,8 @@ func (s Server) members(w http.ResponseWriter, r *http.Request) {
 	}
 	respond(w, map[string]any{"items": items, "next_after": next})
 }
-func (s Server) change(w http.ResponseWriter, r *http.Request) {
+func (s Server) accountMemberChange(w http.ResponseWriter, r *http.Request, p auth.Principal) {
 	var in struct {
-		Session string    `json:"session"`
 		User    uuid.UUID `json:"user_id"`
 		Version int64     `json:"version"`
 		Roles   []string  `json:"roles"`
@@ -304,8 +300,8 @@ func (s Server) change(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "active is required", 400)
 		return
 	}
-	if err := s.Store.ChangeMember(r.Context(), in.Session, in.User, in.Version, in.Roles, *in.Active); err != nil {
-		s.fail(w, err)
+	if err := s.Store.ChangeMemberForPrincipal(r.Context(), p, in.User, in.Version, in.Roles, *in.Active); err != nil {
+		s.authorizationError(w, err)
 		return
 	}
 	w.WriteHeader(204)

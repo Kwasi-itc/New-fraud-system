@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/provideraccess"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourcedata"
@@ -88,7 +88,7 @@ func (p Provider) authorize(ctx context.Context, s provideraccess.Scope) error {
 			}
 			return nil
 		}
-		return identity.CheckIdentity(ctx, p.DB, s.Principal(), false)
+		return identity.CheckCapability(ctx, p.DB, s.Principal(), "screening:search", false)
 	}
 	return nil
 }

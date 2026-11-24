@@ -1,3 +1,5 @@
+> Authentication configuration has changed. Follow the [current platform authentication guide](../../docs/authentication/README.md); static-token and auth-opt-out examples below are historical and no longer work.
+
 # Auth and Case Manager integration contract
 
 Status: partial implementation handoff, 2026-10-06. The current implemented

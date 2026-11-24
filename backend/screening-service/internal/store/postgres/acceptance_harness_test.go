@@ -3,12 +3,8 @@ package postgres_test
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha256"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/internalprovider"
@@ -27,7 +23,6 @@ import (
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourcedata"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourceingest"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
@@ -35,7 +30,8 @@ import (
 )
 
 type acceptanceHarness struct {
-	modelURL, receiverURL, keysFile                   string
+	test                                              *testing.T
+	modelURL, receiverURL                             string
 	f                                                 internalFixture
 	decisionURL, screeningURL, token, human, scenario string
 	client                                            *http.Client
@@ -73,7 +69,7 @@ func newAcceptanceHarness(t *testing.T, count int, configure ...func(internalFix
 			t.Skip("acceptance requires freshly built " + name)
 		}
 	}
-	h := &acceptanceHarness{f: newInternalFixture(t), client: &http.Client{Timeout: 10 * time.Second}, workflowReceipts: map[string]bool{}, eventReceipts: map[string]bool{}}
+	h := &acceptanceHarness{test: t, f: newInternalFixture(t), client: &http.Client{Timeout: 10 * time.Second}, workflowReceipts: map[string]bool{}, eventReceipts: map[string]bool{}}
 	ctx := context.Background()
 	db := h.f.db
 	providerEnvironment := []string{}
@@ -212,7 +208,7 @@ func newAcceptanceHarness(t *testing.T, count int, configure ...func(internalFix
 			}
 			h.workflowReceipts[id] = true
 		case "/events":
-			if r.Header.Get("Authorization") != "Bearer continuous-intake-integration-test-token-32-bytes" {
+			if r.Header.Get("Authorization") != "" {
 				w.WriteHeader(401)
 				return
 			}
@@ -232,37 +228,22 @@ func newAcceptanceHarness(t *testing.T, count int, configure ...func(internalFix
 	h.receiverURL = receiver.URL
 	workflowCfg, _ := json.Marshal(map[string]string{"url": receiver.URL + "/workflow"})
 	exec(`INSERT INTO core.workflows(id,tenant_id,scenario_id,name,allowed_outcomes,action_type,action_config,active,created_at,updated_at) VALUES($1,$2,$3,'Acceptance receipt','{approve,review,block_and_review,decline}','emit_event',$4,true,now(),now())`, uuid.NewString(), tenant, h.scenario, workflowCfg)
-	key, e := rsa.GenerateKey(rand.Reader, 2048)
-	if e != nil {
-		t.Fatal(e)
-	}
-	pub, e := x509.MarshalPKIXPublicKey(&key.PublicKey)
-	if e != nil {
-		t.Fatal(e)
-	}
-	keys, _ := json.Marshal(map[string]string{"acceptance": string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pub}))})
-	keysFile := filepath.Join(t.TempDir(), "keys.json")
-	h.keysFile = keysFile
-	if e = os.WriteFile(keysFile, keys, 0600); e != nil {
-		t.Fatal(e)
-	}
-	p := h.f.a.Principal()
-	claims := jwt.MapClaims{"sub": p.Subject, "tenant_id": tenant, "sid": p.SessionID.String(), "authz_version": p.AuthzVersion, "roles": []string{"case_investigator"}, "iss": "intake-test", "aud": "intake-test", "iat": time.Now().Unix(), "exp": time.Now().Add(time.Hour).Unix()}
-	signed := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	signed.Header["kid"] = "acceptance"
-	h.human, e = signed.SignedString(key)
-	if e != nil {
-		t.Fatal(e)
-	}
-	h.screeningURL, h.token, _ = startInvestigatorServer(t, db, os.Getenv("SCREENING_INTEGRATION_BINARY"), tenant, withProvider("DATABASE_URL="+acceptanceDSN(db, 4), "USER_JWT_KEYS_FILE="+keysFile, "USER_REQUIRE_SESSION=true", "SCREENING_PROVIDER_URL=", "OPENSANCTIONS_API_HOST=", "OPENSANCTIONS_API_KEY=")...)
+	h.human = journeySignHuman(t, h.f.a.Principal(), "case_investigator")
+	h.screeningURL, h.token, _ = startInvestigatorServer(t, db, os.Getenv("SCREENING_INTEGRATION_BINARY"), tenant, withProvider("DATABASE_URL="+acceptanceDSN(db, 4), "SCREENING_PROVIDER_URL=", "OPENSANCTIONS_API_HOST=", "OPENSANCTIONS_API_KEY=")...)
 	h.decisionURL, _, _ = startInvestigatorServer(t, db, os.Getenv("DECISION_INTEGRATION_BINARY"), tenant, withProvider("DATABASE_URL="+acceptanceDSN(db, 16), "DATA_MODEL_SERVICE_URL="+model.URL, "INTERNAL_SCREENING_INLINE_ENABLED=true", "INTERNAL_SCREENING_FAILURE_POLICY=error", "INTERNAL_SCREENING_TIMEOUT=2s", "RULE_EVALUATION_CONCURRENCY=2")...)
 	caseURL, _ := startCaseServer(t, db, os.Getenv("CASE_MANAGER_INTEGRATION_BINARY"), tenant)
-	h.stopWorkers = append(h.stopWorkers, startJourneyWorker(t, db, os.Getenv("SCREENING_WORKER_INTEGRATION_BINARY"), withProvider("DATABASE_URL="+acceptanceDSN(db, 4), "GOMAXPROCS=2", "SCREENING_PROVIDER_URL=", "OPENSANCTIONS_API_HOST=", "OPENSANCTIONS_API_KEY=", "CASE_SERVICE_URL="+caseURL, "CASE_SERVICE_AUTH_TOKEN="+h.token, "DECISION_ENGINE_URL="+h.decisionURL)...))
+	h.stopWorkers = append(h.stopWorkers, startJourneyWorker(t, db, os.Getenv("SCREENING_WORKER_INTEGRATION_BINARY"), withProvider("DATABASE_URL="+acceptanceDSN(db, 4), "GOMAXPROCS=2", "SCREENING_PROVIDER_URL=", "OPENSANCTIONS_API_HOST=", "OPENSANCTIONS_API_KEY=", "CASE_SERVICE_URL="+caseURL, "DECISION_ENGINE_URL="+h.decisionURL)...))
 	h.stopWorkers = append(h.stopWorkers, startJourneyWorker(t, db, os.Getenv("DECISION_WORKER_INTEGRATION_BINARY"), withProvider("DATABASE_URL="+acceptanceDSN(db, 4), "GOMAXPROCS=2", "OUTBOX_PUBLISHER_URL="+receiver.URL+"/events", "WORKFLOW_DISPATCH_QUEUE_WORKERS=4", "OUTBOX_QUEUE_WORKERS=8", "RIVER_FETCH_COOLDOWN=5ms", "RIVER_FETCH_POLL_INTERVAL=100ms", "SCREENING_SERVICE_URL="+h.screeningURL)...))
 	return h
 }
 
 func (h *acceptanceHarness) request(method, path, token string, body any) (int, []byte, error) {
+	if token == h.human {
+		token = journeySignHuman(h.test, h.f.a.Principal(), "case_investigator")
+	}
+	if token == h.token {
+		token = journeyHuman(h.test, h.f.db, h.f.a.Tenant().String(), "journey-admin", "tenant_admin")
+	}
 	raw, e := json.Marshal(body)
 	if e != nil {
 		return 0, nil, e

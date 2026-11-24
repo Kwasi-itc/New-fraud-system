@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -52,6 +53,10 @@ func main() {
 		logger.Error("failed to load config", "error", err)
 		os.Exit(1)
 	}
+	if err := platformauth.ValidateEnvironment(); err != nil {
+		logger.Error("platform auth configuration invalid", "error", err)
+		os.Exit(1)
+	}
 
 	db, err := storepostgres.NewPool(context.Background(), cfg.DatabaseURL)
 	if err != nil {
@@ -80,10 +85,10 @@ func main() {
 	providers := providerregistry.New(db, providerClient)
 	providers.Remote = cfg.RemoteProvider
 	ingestionReader := ingestionclient.NewHTTPClient(cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
-	inboxReader := inboxclient.NewHTTPClient(cfg.InboxServiceURL, cfg.CaseServiceAuthToken, cfg.HTTPClientTimeout)
-	casePublisher := caseclient.NewHTTPClient(cfg.CaseServiceURL, cfg.CaseServiceAuthToken, cfg.HTTPClientTimeout)
+	inboxReader := inboxclient.NewHTTPClient(cfg.InboxServiceURL, cfg.HTTPClientTimeout)
+	casePublisher := caseclient.NewHTTPClient(cfg.CaseServiceURL, cfg.HTTPClientTimeout)
 	blobStore := blobclient.NewHTTPClient(cfg.BlobServiceURL, cfg.HTTPClientTimeout)
-	decisionPublisher := decisionclient.NewHTTPClient(cfg.DecisionEngineURL, "token", cfg.ScreeningCallbackToken, cfg.HTTPClientTimeout)
+	decisionPublisher := decisionclient.NewHTTPClient(cfg.DecisionEngineURL, cfg.HTTPClientTimeout)
 	workers := river.NewWorkers()
 	riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{
 		Workers: workers,

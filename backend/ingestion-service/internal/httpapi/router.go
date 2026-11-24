@@ -1,8 +1,8 @@
 package httpapi
 
 import (
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"log/slog"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,8 +20,9 @@ import (
 )
 
 type RouterConfig struct {
-	AuthMode                       string
-	AuthToken                      string
+	PolicyObserver func([]platformauth.RoutePolicy)
+	Verifier       platformauth.TokenVerifier
+
 	AllowedOrigins                 []string
 	DataModelServiceURL            string
 	DataModelReadMode              string
@@ -52,7 +53,8 @@ func (systemClock) Now() time.Time {
 }
 
 func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg RouterConfig) *gin.Engine {
-	router := gin.New()
+	engine := gin.New()
+	router := platformauth.NewRouter(engine, cfg.Verifier)
 	router.Use(corsMiddleware(cfg.AllowedOrigins))
 	router.Use(requestContextMiddleware(logger))
 	router.Use(gin.Recovery())
@@ -63,8 +65,8 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 	}
 
 	healthHandler := handlers.NewHealthHandler(logger, db)
-	router.GET("/healthz", healthHandler.Healthz)
-	router.GET("/readyz", healthHandler.Readyz)
+	router.GET("/healthz", platformauth.Policy{Public: true}, healthHandler.Healthz)
+	router.GET("/readyz", platformauth.Policy{Public: true}, healthHandler.Readyz)
 	readMetrics := newReadMetricsCollector(dbPoolStatsFromPool(db), dbPoolStatsFromPool(readDB), readDB == db)
 	readMetrics.SetThresholds(cfg.OverloadThresholds)
 	var writePathLimiter chan struct{}
@@ -72,7 +74,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 		writePathLimiter = make(chan struct{}, cfg.WritePathConcurrencyLimit)
 	}
 
-	var dataModelReader ports.DataModelReader = datamodel.NewHTTPClientWithCacheLimits(cfg.DataModelServiceURL, cfg.HTTPClientTimeout, cfg.DataModelCacheMaxEntries, cfg.DataModelCacheMaxBytes).WithAuthToken(os.Getenv("DATA_MODEL_SERVICE_TOKEN"))
+	var dataModelReader ports.DataModelReader = datamodel.NewHTTPClientWithCacheLimits(cfg.DataModelServiceURL, cfg.HTTPClientTimeout, cfg.DataModelCacheMaxEntries, cfg.DataModelCacheMaxBytes)
 	if cfg.DataModelReadMode == "sql" {
 		dataModelReader = datamodel.NewContractReader(storepostgres.NewIngestionContractStore(db), dataModelReader, cfg.DataModelCacheMaxEntries, cfg.DataModelCacheMaxBytes)
 	}
@@ -138,27 +140,29 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 	})
 
 	v1 := router.Group("/v1")
-	v1.Use(authMiddleware(AuthConfig{
-		Mode:  cfg.AuthMode,
-		Token: cfg.AuthToken,
-	}))
-	v1.POST("/tenants/:tenantId/ingest/:objectType", ingestHandler.PostIngest)
-	v1.PATCH("/tenants/:tenantId/ingest/:objectType", ingestHandler.PatchIngest)
-	v1.POST("/tenants/:tenantId/ingest/:objectType/batch", ingestHandler.PostBatchIngest)
-	v1.PATCH("/tenants/:tenantId/ingest/:objectType/batch", ingestHandler.PatchBatchIngest)
-	v1.GET("/admin/read-metrics", readMetricsHandler.Get)
-	v1.GET("/admin/deferred-ingest-metrics", deferredIngestMetricsHandler.Get)
+	v1.POST("/tenants/:tenantId/ingest/:objectType", platformauth.Policy{Capability: "ingest:write"}, ingestHandler.PostIngest)
+	v1.PATCH("/tenants/:tenantId/ingest/:objectType", platformauth.Policy{Capability: "ingest:write"}, ingestHandler.PatchIngest)
+	v1.POST("/tenants/:tenantId/ingest/:objectType/batch", platformauth.Policy{Capability: "ingest:write"}, ingestHandler.PostBatchIngest)
+	v1.PATCH("/tenants/:tenantId/ingest/:objectType/batch", platformauth.Policy{Capability: "ingest:write"}, ingestHandler.PatchBatchIngest)
+	v1.GET("/admin/read-metrics", platformauth.Policy{Capability: "metrics:read"}, readMetricsHandler.Get)
+	v1.GET("/admin/deferred-ingest-metrics", platformauth.Policy{Capability: "metrics:read"}, deferredIngestMetricsHandler.Get)
 	readRoutes := v1.Group("")
-	readRoutes.GET("/tenants/:tenantId/records/:objectType", readMetrics.middleware("list_records"), ingestHandler.ListRecords)
-	readRoutes.GET("/tenants/:tenantId/records/:objectType/search", readMetrics.middleware("query_records"), ingestHandler.QueryRecords)
-	readRoutes.GET("/tenants/:tenantId/records/:objectType/:objectId", readMetrics.middleware("get_record"), ingestHandler.GetRecord)
-	readRoutes.POST("/tenants/:tenantId/query/aggregate", readMetrics.middleware("aggregate_records"), ingestHandler.AggregateRecords)
-	v1.POST("/tenants/:tenantId/ingest/:objectType/csv", uploadLogHandler.CreateCSV)
-	v1.GET("/tenants/:tenantId/ingest/:objectType/upload-logs", uploadLogHandler.List)
-	v1.GET("/upload-logs/:uploadLogId", uploadLogHandler.Get)
-	v1.GET("/deferred-ingests/:deferredIngestId", deferredIngestHandler.Get)
+	readRoutes.GET("/tenants/:tenantId/records/:objectType", platformauth.Policy{Capability: "records:read"}, readMetrics.middleware("list_records"), ingestHandler.ListRecords)
+	readRoutes.GET("/tenants/:tenantId/records/:objectType/search", platformauth.Policy{Capability: "records:read"}, readMetrics.middleware("query_records"), ingestHandler.QueryRecords)
+	readRoutes.GET("/tenants/:tenantId/records/:objectType/:objectId", platformauth.Policy{Capability: "records:read"}, readMetrics.middleware("get_record"), ingestHandler.GetRecord)
+	readRoutes.POST("/tenants/:tenantId/query/aggregate", platformauth.Policy{Capability: "records:read"}, readMetrics.middleware("aggregate_records"), ingestHandler.AggregateRecords)
+	v1.POST("/tenants/:tenantId/ingest/:objectType/csv", platformauth.Policy{Capability: "ingest:write"}, uploadLogHandler.CreateCSV)
+	v1.GET("/tenants/:tenantId/ingest/:objectType/upload-logs", platformauth.Policy{Capability: "ingest:read"}, uploadLogHandler.List)
+	v1.GET("/upload-logs/:uploadLogId", platformauth.Policy{Capability: "ingest:read"}, uploadLogHandler.Get)
+	v1.GET("/deferred-ingests/:deferredIngestId", platformauth.Policy{Capability: "ingest:read"}, deferredIngestHandler.Get)
 
-	return router
+	if err := router.ValidateCoverage(); err != nil {
+		panic(err)
+	}
+	if cfg.PolicyObserver != nil {
+		cfg.PolicyObserver(router.Inventory())
+	}
+	return engine
 }
 
 func max(a, b int) int {

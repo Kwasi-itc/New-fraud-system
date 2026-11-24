@@ -1,0 +1,160 @@
+[
+  {
+    "id": "frontend-bff",
+    "capabilities": [
+      "auth:bootstrap"
+    ],
+    "audiences": [
+      "urn:fraud:auth-service"
+    ]
+  },
+  {
+    "id": "ingestion-service",
+    "capabilities": [
+      "models:read",
+      "ingestion:events"
+    ],
+    "audiences": [
+      "urn:fraud:data-model-service",
+      "urn:fraud:decision-engine-service"
+    ]
+  },
+  {
+    "id": "ingestion-worker",
+    "capabilities": [
+      "models:read",
+      "ingestion:events"
+    ],
+    "audiences": [
+      "urn:fraud:data-model-service",
+      "urn:fraud:decision-engine-service"
+    ]
+  },
+  {
+    "id": "decision-engine-service",
+    "capabilities": [
+      "models:read",
+      "models:index-write",
+      "records:read",
+      "screening:intake",
+      "workflows:execute"
+    ],
+    "audiences": [
+      "urn:fraud:data-model-service",
+      "urn:fraud:ingestion-service",
+      "urn:fraud:screening-service",
+      "urn:fraud:case-manager-service"
+    ]
+  },
+  {
+    "id": "decision-engine-worker",
+    "capabilities": [
+      "models:read",
+      "models:index-write",
+      "records:read",
+      "screening:intake",
+      "workflows:execute"
+    ],
+    "audiences": [
+      "urn:fraud:data-model-service",
+      "urn:fraud:ingestion-service",
+      "urn:fraud:screening-service",
+      "urn:fraud:case-manager-service"
+    ]
+  },
+  {
+    "id": "screening-service",
+    "capabilities": [
+      "inboxes:read",
+      "records:read",
+      "screening:callback",
+      "cases:events-write"
+    ],
+    "audiences": [
+      "urn:fraud:case-manager-service",
+      "urn:fraud:ingestion-service",
+      "urn:fraud:decision-engine-service"
+    ]
+  },
+  {
+    "id": "screening-worker",
+    "capabilities": [
+      "inboxes:read",
+      "records:read",
+      "screening:callback",
+      "cases:events-write"
+    ],
+    "audiences": [
+      "urn:fraud:case-manager-service",
+      "urn:fraud:ingestion-service",
+      "urn:fraud:decision-engine-service"
+    ]
+  },
+  {
+    "id": "screening-case-delivery-worker",
+    "capabilities": [
+      "cases:events-write"
+    ],
+    "audiences": [
+      "urn:fraud:case-manager-service"
+    ]
+  },
+  {
+    "id": "case-manager-service",
+    "capabilities": [
+      "models:read",
+      "records:read",
+      "decisions:read",
+      "screening:read"
+    ],
+    "audiences": [
+      "urn:fraud:data-model-service",
+      "urn:fraud:ingestion-service",
+      "urn:fraud:decision-engine-service",
+      "urn:fraud:screening-service"
+    ]
+  },
+  {
+    "id": "case-manager-worker",
+    "capabilities": [
+      "models:read",
+      "records:read",
+      "decisions:read",
+      "screening:read"
+    ],
+    "audiences": [
+      "urn:fraud:data-model-service",
+      "urn:fraud:ingestion-service",
+      "urn:fraud:decision-engine-service",
+      "urn:fraud:screening-service"
+    ]
+  },
+  {
+    "id": "platform-admin-cli",
+    "capabilities": [
+      "tenants:provision",
+      "platform:reconcile"
+    ],
+    "audiences": [
+      "urn:fraud:data-model-service"
+    ]
+  },
+  {
+    "id": "data-model-service",
+    "capabilities": [
+      "models:read"
+    ],
+    "audiences": [
+      "urn:fraud:data-model-service"
+    ]
+  },
+  {
+    "id": "data-model-worker",
+    "capabilities": [
+      "models:read"
+    ],
+    "audiences": [
+      "urn:fraud:data-model-service"
+    ]
+  }
+]

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -45,6 +46,11 @@ func workflowTestDB(t *testing.T) *pgxpool.Pool {
 		admin.Close()
 	})
 	for _, owner := range []string{"data-model-service", "ingestion-service", "decision-engine-service", "screening-service", "case-manager-service"} {
+		if owner == "case-manager-service" {
+			if err := authtest.ApplyIdentity(ctx, db, "../../../../auth-service/internal/platform"); err != nil {
+				t.Fatal(err)
+			}
+		}
 		paths, err := filepath.Glob(filepath.Join("..", "..", "..", "..", owner, "internal", "migrations", "metadata", "*.up.sql"))
 		if err != nil || len(paths) == 0 {
 			t.Fatal(owner, err)
@@ -59,15 +65,7 @@ func workflowTestDB(t *testing.T) *pgxpool.Pool {
 			}
 		}
 	}
-	for _, file := range []string{"schema.sql", "schema_v2.sql"} {
-		raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "auth-service", "internal", "platform", file))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, err = db.Exec(ctx, string(raw)); err != nil {
-			t.Fatal(err)
-		}
-	}
+	/* Identity was installed before dependent case migrations. */
 	return db
 }
 func TestCaseWorkflowAuthoringAtomicityAndAuthorization(t *testing.T) {

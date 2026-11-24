@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	"github.com/google/uuid"
 	"net/http"
 	"strings"
 	"time"
@@ -16,29 +18,20 @@ import (
 )
 
 type HTTPClient struct {
-	screeningAuthToken string
-	caseAuthToken      string
-	client             *http.Client
-	authMode           string
-	authToken          string
+	Signer *platformauth.Signer
+
+	client *http.Client
+
 	workflowURL        string
 	screeningURL       string
 	scoringURL         string
 	outboxPublisherURL string
 }
 
-func (c HTTPClient) WithScreeningAuthToken(token string) HTTPClient {
-	c.screeningAuthToken = token
-	return c
-}
-
-func (c HTTPClient) WithCaseAuthToken(token string) HTTPClient { c.caseAuthToken = token; return c }
-
-func NewHTTPClient(timeout time.Duration, authMode, authToken, workflowURL, screeningURL, scoringURL, outboxPublisherURL string) HTTPClient {
+func NewHTTPClient(timeout time.Duration, workflowURL, screeningURL, scoringURL, outboxPublisherURL string) HTTPClient {
 	return HTTPClient{
-		client:             &http.Client{Timeout: timeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
-		authMode:           strings.ToLower(strings.TrimSpace(authMode)),
-		authToken:          authToken,
+		client: &http.Client{Timeout: timeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
+
 		workflowURL:        strings.TrimRight(workflowURL, "/"),
 		screeningURL:       strings.TrimRight(screeningURL, "/"),
 		scoringURL:         strings.TrimRight(scoringURL, "/"),
@@ -51,19 +44,15 @@ func (c HTTPClient) DispatchWorkflowExecution(ctx context.Context, item workflow
 		return err
 	}
 	url := c.workflowURL
-	if workflow.IsCaseAction(item.ActionType) && c.caseAuthToken != "" {
-		c.authMode = "token"
-		c.authToken = c.caseAuthToken
-	}
+
 	if !workflow.IsCaseAction(item.ActionType) {
 		url = workflowURLFromConfig(item.ActionConfig)
-		// Never disclose the internal service credential to an action-supplied URL.
-		c.authToken = ""
+		// Action-supplied destinations receive no internal identity.
 	}
 	if url == "" {
 		return fmt.Errorf("workflow dispatcher URL is not configured")
 	}
-	return c.postJSON(ctx, url, map[string]any{
+	payload := map[string]any{
 		"workflow_execution_id": item.ID,
 		"tenant_id":             item.TenantID,
 		"workflow_id":           item.WorkflowID,
@@ -74,19 +63,22 @@ func (c HTTPClient) DispatchWorkflowExecution(ctx context.Context, item workflow
 		"action_type":           item.ActionType,
 		"action_config":         json.RawMessage(item.ActionConfig),
 		"created_at":            item.CreatedAt,
-	})
+	}
+	if workflow.IsCaseAction(item.ActionType) {
+		body, err := json.Marshal(payload)
+		if err != nil {
+			return err
+		}
+		return c.postInternal(ctx, url, body, item.TenantID, "urn:fraud:case-manager-service", "workflows:execute")
+	}
+	return c.postJSON(ctx, url, payload)
 }
 
 func (c HTTPClient) SendScreeningExecution(ctx context.Context, item screening.Execution) error {
-	if len(strings.TrimSpace(c.screeningAuthToken)) < 32 || c.screeningAuthToken == c.authToken || c.screeningAuthToken == c.caseAuthToken {
-		return fmt.Errorf("screening integration credential is unavailable")
-	}
-	c.authMode = "token"
-	c.authToken = c.screeningAuthToken
 	if c.screeningURL == "" {
 		return fmt.Errorf("screening service URL is not configured")
 	}
-	if err := c.postRawJSON(ctx, c.screeningURL+"/internal/v1/tenants/"+item.TenantID+"/decision-screenings", item.RequestJSON); err != nil {
+	if err := c.postInternal(ctx, c.screeningURL+"/internal/v1/tenants/"+item.TenantID+"/decision-screenings", item.RequestJSON, item.TenantID, "urn:fraud:screening-service", "screening:intake"); err != nil {
 		// River records returned errors. Do not persist internal endpoints,
 		// transport details, credentials or provider response bodies in job errors.
 		return fmt.Errorf("screening dispatch failed")
@@ -131,9 +123,6 @@ func (c HTTPClient) postRawJSON(ctx context.Context, url string, payload []byte)
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if c.authMode == "token" && c.authToken != "" {
-		req.Header.Set("Authorization", "Bearer "+c.authToken)
-	}
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return err
@@ -157,3 +146,29 @@ func workflowURLFromConfig(raw json.RawMessage) string {
 	}
 	return strings.TrimSpace(cfg.URL)
 }
+
+func (c HTTPClient) postInternal(ctx context.Context, url string, body []byte, tenantID, audience, capability string) error {
+	tenant, err := uuid.Parse(tenantID)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if err = platformauth.AuthorizeServiceRequest(req, tenant, audience, []string{capability}, c.Signer); err != nil {
+		return err
+	}
+	response, err := c.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("internal delivery transport failed")
+	}
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		return fmt.Errorf("internal delivery returned status %d", response.StatusCode)
+	}
+	return nil
+}
+
+func (c HTTPClient) WithSigner(signer *platformauth.Signer) HTTPClient { c.Signer = signer; return c }

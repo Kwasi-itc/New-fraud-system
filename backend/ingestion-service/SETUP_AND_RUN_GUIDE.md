@@ -1,3 +1,5 @@
+> Authentication configuration has changed. Follow the [current platform authentication guide](../../docs/authentication/README.md); static-token and auth-opt-out examples below are historical and no longer work.
+
 # Setup And Run Guide
 
 This guide is a placeholder for the standalone ingestion service in `new/backend/ingestion-service`.

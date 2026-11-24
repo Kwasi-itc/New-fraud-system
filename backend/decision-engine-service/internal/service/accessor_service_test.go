@@ -299,7 +299,7 @@ func (s accessorDataModelReaderStub) ListIndexJobs(context.Context, string) ([]p
 func (s accessorDataModelReaderStub) CreateIndexJob(context.Context, string, string, string, []string, string) (ports.ManagedIndexJob, error) {
 	return ports.ManagedIndexJob{}, nil
 }
-func (s accessorDataModelReaderStub) RetryIndexJob(context.Context, string) error {
+func (s accessorDataModelReaderStub) RetryIndexJob(context.Context, string, string) error {
 	return nil
 }
 

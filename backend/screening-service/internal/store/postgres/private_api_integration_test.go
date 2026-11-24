@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/httpapi"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/privatelists"
 	"github.com/golang-jwt/jwt/v5"
@@ -39,16 +39,14 @@ func TestPrivateListSignedAPIUsesApprovedCurrentRolesAndSeparateReviewer(t *test
 	}
 	sign := func(p identity.Principal) string {
 		t.Helper()
-		claims := jwt.MapClaims{"sub": p.Subject, "tenant_id": p.TenantID.String(), "sid": p.SessionID.String(), "authz_version": p.AuthzVersion, "roles": []string{"tenant_admin"}, "iss": "private-test", "aud": "private-test", "iat": time.Now().Unix(), "exp": time.Now().Add(time.Hour).Unix()}
-		token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-		token.Header["kid"] = "private-test"
-		raw, e := token.SignedString(key)
+		claims := identity.Claims{RegisteredClaims: jwt.RegisteredClaims{Subject: p.Subject, Issuer: "private-test", Audience: jwt.ClaimStrings{"private-test"}, ID: uuid.NewString(), IssuedAt: jwt.NewNumericDate(time.Now()), ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute))}, PrincipalType: identity.PrincipalUser, TenantID: p.TenantID, SessionID: p.SessionID, AuthzVersion: p.AuthzVersion, Roles: []string{"tenant_admin"}, Capabilities: identity.PredefinedRoles()["tenant_admin"]}
+		raw, e := identity.SignAccessToken(key, "private-test", claims)
 		if e != nil {
 			t.Fatal(e)
 		}
 		return raw
 	}
-	api := httptest.NewServer(httpapi.NewRouter(slog.New(slog.NewTextHandler(io.Discard, nil)), f.db, httpapi.RouterConfig{InvestigatorVerifier: verifier, PrivateListWriter: f.db, PrivateListPolicy: privatelists.TenantAdministratorPolicy(), AuthMode: "disabled"}))
+	api := httptest.NewServer(httpapi.NewRouter(slog.New(slog.NewTextHandler(io.Discard, nil)), f.db, httpapi.RouterConfig{InvestigatorVerifier: verifier, PrivateListWriter: f.db, PrivateListPolicy: privatelists.TenantAdministratorPolicy()}))
 	defer api.Close()
 	call := func(method, path, token string, in any, want int) map[string]any {
 		t.Helper()

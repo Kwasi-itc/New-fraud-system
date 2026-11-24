@@ -1,7 +1,7 @@
 -- Additive upgrade: existing memberships receive no new grants.
 DO $$ BEGIN
  IF NOT EXISTS(SELECT 1 FROM identity.schema_migrations WHERE version=2) THEN
-  ALTER TABLE identity.memberships DROP CONSTRAINT memberships_roles_check;
+  ALTER TABLE identity.memberships DROP CONSTRAINT IF EXISTS memberships_roles_check;
   ALTER TABLE identity.memberships ADD CONSTRAINT memberships_roles_check
    CHECK(cardinality(roles)>0 AND roles <@ ARRAY['tenant_admin','case_manager_admin','case_investigator',
      'platform_viewer','platform_builder','platform_publisher','platform_admin']::text[]);

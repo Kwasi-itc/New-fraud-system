@@ -1,3 +1,5 @@
+> Authentication configuration has changed. Follow the [current platform authentication guide](../../docs/authentication/README.md); static-token and auth-opt-out examples below are historical and no longer work.
+
 # Platform accounts, sessions and permissions
 
 ## PostgreSQL gateway issuer changes
@@ -279,10 +281,12 @@ does not migrate account ownership. API consumers continue trusting the platform
 | Next POST `/api/auth/logout` | Exact Origin; revokes current session before clearing cookie. |
 | Next GET/POST `/api/auth/members` | Current opaque session; tenant-admin role; writes also require exact Origin and bounded JSON. |
 | Next GET/POST `/api/auth/sessions` | Own active-tenant session inventory and revocation; GET accepts `after`; POST accepts either `{target: UUID, all: false}` or `{all: true}`. Requires current session, exact Origin for writes, bounded JSON. Successful writes return `signed_out`. |
-| Auth POST `/internal/login/start`, `/internal/login/complete` | Private proxy credential; callback also requires valid one-time browser binding. |
-| Auth POST `/internal/session`, `/internal/logout` | Private proxy credential plus opaque session proof. |
-| Auth POST `/internal/members/list`, `/internal/members/change` | Same proof, current tenant-admin role; target belongs to caller's tenant; expected version. |
-| Auth POST `/internal/sessions/list`, `/internal/sessions/revoke` | Private proxy credential and opaque session proof; user and tenant are derived internally. Unknown/foreign targets return the same denial; same owned-session retries do not duplicate audit. |
+| Auth POST `/internal/login/start`, `/internal/login/complete` | BFF service credential; callback also requires valid one-time browser binding. |
+| Auth POST `/internal/session`, `/internal/invitations/start` | BFF service credential plus opaque session or invitation proof; session resolution issues the human access token used by post-login APIs. |
+| Auth GET/PUT `/v1/account/profile`, POST `/v1/account/logout`, GET `/v1/account/sessions`, POST `/v1/account/sessions/revoke` | Human JWT; current user, membership, tenant and session state are checked against the database. Self-service scope is derived from the token. |
+| Auth GET/POST `/v1/tenants/{tenantId}/members` | Human JWT for the matching tenant; `members:read` for listing and `roles:assign` for changes. Changes validate current authority and expected version transactionally. |
+| Auth GET/POST `/v1/tenants/{tenantId}/invitations` | Human JWT for the matching tenant with `invitations:manage` and `roles:assign`; tenant-admin authority is revalidated for mutations. |
+| Auth GET `/v1/tenants/{tenantId}/audit` | Human JWT for the matching tenant with `audit:read`. |
 | Auth GET `/healthz`, `/readyz` | Liveness; bounded schema-read readiness. Auth has no published host port in Compose. |
 
 Internal JSON bodies are limited to 16 KiB and reject unknown/trailing fields.
@@ -344,3 +348,10 @@ the full live investigator acceptance journey. Legacy non-investigator Data Mode
 ingestion and decision endpoints still require AUTH-X03/D12 protection; an
 authenticated Next layout does not secure direct owner APIs. Do not expose this
 development stack as a production permission boundary until those gates close.
+
+
+### Account model after identity v6
+
+Each tenant membership and newly created/pending invitation has exactly one role. Keep `roles` as a one-element array when using the administration CLI or APIs; a replacement assignment removes the previous role. The owner migration consolidates legacy multiple-role assignments to an exact equivalent bundle and preserves permissions and pending delivery provenance. See [the current contract](../../docs/authentication/README.md) and [coordinated upgrade instructions](../../docs/authentication/operations.md).
+
+The account UI provides profile, provider sign-in management and session controls, with separate Users & invitations, Roles & capabilities and API clients pages. Role creation/editing uses full pages; copying capabilities is an explicit snapshot without inheritance. `AUTH_MANAGE_SIGN_IN_URL` configures the trusted provider account-console destination.

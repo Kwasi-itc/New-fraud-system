@@ -3,6 +3,7 @@ package ingestion
 import (
 	"context"
 	"encoding/json"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -18,7 +19,7 @@ func TestRecordIdentityAndPathEncoding(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"record": map[string]any{"object_id": id, "object_type": "customer", "fields": map[string]any{"name": "Synthetic"}}})
 	}))
 	defer server.Close()
-	record, err := NewHTTPClient(server.URL, time.Second).GetRecord(context.Background(), "tenant", "customer", id)
+	record, err := NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "screening-service")).GetRecord(context.Background(), "11111111-1111-4111-8111-111111111111", "customer", id)
 	if err != nil || record.ObjectID != id {
 		t.Fatal(record, err)
 	}
@@ -36,7 +37,7 @@ func TestRecordRejectsWrongOrMissingIdentity(t *testing.T) {
 		t.Run(body, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte(body)) }))
 			defer server.Close()
-			record, err := NewHTTPClient(server.URL, time.Second).GetRecord(context.Background(), "tenant", "customer", "wanted")
+			record, err := NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "screening-service")).GetRecord(context.Background(), "11111111-1111-4111-8111-111111111111", "customer", "wanted")
 			if err == nil || record.Fields != nil {
 				t.Fatal("unverified record accepted", record, err)
 			}
@@ -53,7 +54,7 @@ func TestRecordRejectsRedirectWithoutFollowing(t *testing.T) {
 	defer destination.Close()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, destination.URL, http.StatusFound) }))
 	defer server.Close()
-	_, err := NewHTTPClient(server.URL, time.Second).GetRecord(context.Background(), "tenant", "customer", "wanted")
+	_, err := NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "screening-service")).GetRecord(context.Background(), "11111111-1111-4111-8111-111111111111", "customer", "wanted")
 	if err == nil || calls != 0 {
 		t.Fatal("redirect followed", calls, err)
 	}
@@ -62,7 +63,7 @@ func TestRecordRejectsRedirectWithoutFollowing(t *testing.T) {
 func TestRecordTransportErrorDoesNotExposeIdentity(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	server.Close()
-	_, err := NewHTTPClient(server.URL, time.Second).GetRecord(context.Background(), "tenant", "customer", "private-object-id")
+	_, err := NewHTTPClient(server.URL, time.Second).WithSigner(authtest.ServiceSigner(t, "screening-service")).GetRecord(context.Background(), "11111111-1111-4111-8111-111111111111", "customer", "private-object-id")
 	if err == nil || strings.Contains(err.Error(), "private-object-id") || strings.Contains(err.Error(), server.URL) {
 		t.Fatal("unsafe transport error", err)
 	}

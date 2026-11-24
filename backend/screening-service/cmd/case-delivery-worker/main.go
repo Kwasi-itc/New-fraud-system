@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -21,8 +22,13 @@ func main() {
 		logger.Error("invalid configuration", "error", err)
 		os.Exit(1)
 	}
-	if cfg.CaseServiceURL == "" || cfg.CaseServiceAuthToken == "" {
-		logger.Error("CASE_SERVICE_URL and CASE_SERVICE_AUTH_TOKEN are required")
+	if err := platformauth.ValidateEnvironment(); err != nil {
+		logger.Error("platform auth configuration invalid", "error", err)
+		os.Exit(1)
+	}
+
+	if cfg.CaseServiceURL == "" {
+		logger.Error("CASE_SERVICE_URL is required")
 		os.Exit(1)
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -53,7 +59,7 @@ func main() {
 		}
 	}()
 	defer func() { stop(); <-projectionDone }()
-	delivery := service.NewCaseDeliveryService(store.NewCaseEventRepository(db), caseclient.NewHTTPClient(cfg.CaseServiceURL, cfg.CaseServiceAuthToken, 10*time.Second), logger)
+	delivery := service.NewCaseDeliveryService(store.NewCaseEventRepository(db), caseclient.NewHTTPClient(cfg.CaseServiceURL, 10*time.Second), logger)
 	ticker := time.NewTicker(cfg.WorkerPollInterval)
 	defer ticker.Stop()
 	for {

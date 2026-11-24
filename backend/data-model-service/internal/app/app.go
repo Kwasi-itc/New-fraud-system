@@ -3,7 +3,8 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	investigator "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"log/slog"
 	"net/http"
 	"time"
@@ -24,12 +25,12 @@ type App struct {
 
 func New(cfg Config, logger *slog.Logger) (*App, error) {
 	gin.SetMode(cfg.GinMode)
+	if err := platformauth.ValidateEnvironment(); err != nil {
+		return nil, err
+	}
 	verifier, err := investigator.FromEnvironment()
 	if err != nil {
 		return nil, fmt.Errorf("platform JWT configuration: %w", err)
-	}
-	if verifier != nil && cfg.ServiceAuthMode != "token" {
-		return nil, fmt.Errorf("platform user authentication requires SERVICE_AUTH_MODE=token")
 	}
 
 	db, err := postgres.NewPool(context.Background(), cfg.DatabaseURL)
@@ -38,8 +39,8 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 	}
 
 	routerConfig := httpapi.RouterConfig{
-		AuthMode:               cfg.ServiceAuthMode,
-		AuthToken:              cfg.ServiceAuthToken,
+		Verifier: verifier,
+
 		AllowedOrigins:         cfg.ServiceAllowedOrigins,
 		IndexWorkerMaxAttempts: cfg.IndexWorkerMaxAttempts,
 		IndexJobQueueName:      cfg.IndexJobQueueName,

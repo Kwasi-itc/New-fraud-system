@@ -1,6 +1,6 @@
 package service
 
-import identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+import identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 
 // DecisionReview keeps human adjudication separate from the machine outcome.
 // The shared command runner validates eligibility, action and expected version

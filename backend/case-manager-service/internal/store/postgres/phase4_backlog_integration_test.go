@@ -13,15 +13,15 @@ import (
 func TestPhase4AssignmentAcrossFullInboxBacklog(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, full, c := fixture(t, db)
-	admin := adminContext(tenant)
+	admin := adminContext(t, db, tenant)
 	enabled := true
-	if _, err := s.PutInboxUser(admin, tenant, full.ID, "analyst-1", true, 1); err != nil {
+	if _, err := s.PutInboxUser(admin, tenant, full.ID, "2f2e747e-27db-57e8-b365-d06520fe4a76", true, 1); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.UpdateInbox(admin, service.UpdateInboxInput{TenantID: tenant, InboxID: full.ID, AutoAssignEnabled: &enabled}); err != nil {
 		t.Fatal(err)
 	}
-	user := "analyst-1"
+	user := "2f2e747e-27db-57e8-b365-d06520fe4a76"
 	if err := s.Assign(admin, tenant, c.ID, &user, nil); err != nil {
 		t.Fatal(err)
 	}

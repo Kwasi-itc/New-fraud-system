@@ -2,6 +2,7 @@ package riverjobs
 
 import (
 	"context"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -154,7 +155,7 @@ func (e RiverScreeningEnqueuer) enqueue(ctx context.Context, tx pgx.Tx, tenantID
 		opts.ScheduledAt = *scheduledAt
 	}
 
-	args := ScreeningArgs{
+	args := ScreeningArgs{Origin: platformauth.CaptureOrigin(ctx),
 		TenantID:    tenantID,
 		ScreeningID: screeningID,
 	}
@@ -178,7 +179,7 @@ func (e RiverDatasetJobEnqueuer) enqueue(ctx context.Context, tx pgx.Tx, tenantI
 		opts.ScheduledAt = *scheduledAt
 	}
 
-	args := DatasetJobArgs{
+	args := DatasetJobArgs{Origin: platformauth.CaptureOrigin(ctx),
 		TenantID: tenantID,
 		JobID:    jobID,
 	}
@@ -201,7 +202,7 @@ func (e RiverMonitoredObjectEnqueuer) enqueue(ctx context.Context, tx pgx.Tx, te
 		opts.ScheduledAt = *scheduledAt
 	}
 
-	args := MonitoredObjectArgs{
+	args := MonitoredObjectArgs{Origin: platformauth.CaptureOrigin(ctx),
 		TenantID:          tenantID,
 		MonitoredObjectID: monitoredObjectID,
 	}

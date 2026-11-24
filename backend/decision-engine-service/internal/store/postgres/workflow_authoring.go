@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow"
+	auth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"reflect"
@@ -13,10 +14,24 @@ import (
 type WorkflowAuthoringRepository struct{ DB *pgxpool.Pool }
 
 func authorizeWorkflow(ctx context.Context, q queryable, t string, a workflow.AuthoringActor, write bool) error {
+	capability := auth.RequiredCapability(ctx)
+	if capability == "" {
+		capability = "workflows:read"
+		if write {
+			capability = "workflows:write"
+		}
+	}
+	if p, ok := auth.FromContext(ctx); ok {
+		if p.TenantID.String() != t || p.Subject != a.UserID || !p.IsHuman() || !p.Can(capability) {
+			return workflow.ErrAuthoringDenied
+		}
+		if !write {
+			return nil
+		}
+		return auth.CheckIdentity(ctx, q, p, true)
+	}
 	var allowed bool
-	// Existing identity-owner contracts: live workflow changes require platform_admin,
-	// and routing additionally requires case access. Identity locks precede domain locks.
-	err := q.QueryRow(ctx, `SELECT identity.authorize_data_model_v1($1,$2,$3,$4,$5,$5) AND identity.authorize_case_v1($1,$2,$3,$4,false,$5)`, a.UserID, t, a.SessionID, a.Version, write).Scan(&allowed)
+	err := q.QueryRow(ctx, `SELECT identity.authorize_capability_v1($1,$2,$3,$4,$5,$6)`, a.UserID, t, a.SessionID, a.Version, capability, write).Scan(&allowed)
 	if err != nil {
 		return err
 	}
@@ -102,8 +117,8 @@ func workflowInbox(ctx context.Context, q queryable, t, inbox string, a workflow
 	if err := q.QueryRow(ctx, `SELECT id FROM case_manager.inboxes WHERE tenant_id=$1 AND id=$2 AND (NOT $3 OR status='active')`+suffix, t, inbox, requireActive).Scan(&id); err != nil {
 		return workflow.ErrAuthoringDenied
 	}
-	var admin bool
-	if err := q.QueryRow(ctx, `SELECT identity.authorize_case_v1($1,$2,$3,$4,true,false)`, a.UserID, t, a.SessionID, a.Version).Scan(&admin); err != nil {
+	admin, err := workflowAdministrator(ctx, q, t, a)
+	if err != nil {
 		return err
 	}
 	if admin {
@@ -179,7 +194,11 @@ func (r WorkflowAuthoringRepository) List(ctx context.Context, t, sc string, a w
 			inboxIDs = append(inboxIDs, item.InboxID)
 		}
 	}
-	rows, err := r.DB.Query(ctx, `SELECT i.id FROM case_manager.inboxes i WHERE i.tenant_id=$1 AND i.id=ANY($5::uuid[]) AND (identity.authorize_case_v1($2,$1,$3,$4,true,false) OR EXISTS(SELECT 1 FROM case_manager.inbox_users u WHERE u.tenant_id=i.tenant_id AND u.inbox_id=i.id AND u.user_id=$2))`, t, a.UserID, a.SessionID, a.Version, inboxIDs)
+	admin, err := workflowAdministrator(ctx, r.DB, t, a)
+	if err != nil {
+		return out, err
+	}
+	rows, err := r.DB.Query(ctx, `SELECT i.id FROM case_manager.inboxes i WHERE i.tenant_id=$1 AND i.id=ANY($3::uuid[]) AND ($4 OR EXISTS(SELECT 1 FROM case_manager.inbox_users u WHERE u.tenant_id=i.tenant_id AND u.inbox_id=i.id AND u.user_id=$2))`, t, a.UserID, inboxIDs, admin)
 	if err != nil {
 		return out, err
 	}
@@ -358,4 +377,15 @@ func (r WorkflowAuthoringRepository) Save(ctx context.Context, t, sc string, a w
 		return empty, err
 	}
 	return in, nil
+}
+
+// Ordinary HTTP reads trust the already verified capability snapshot. Trusted
+// direct callers without a request principal resolve authority through identity.
+func workflowAdministrator(ctx context.Context, q queryable, t string, a workflow.AuthoringActor) (bool, error) {
+	if p, ok := auth.FromContext(ctx); ok {
+		return p.IsHuman() && p.TenantID.String() == t && p.Subject == a.UserID && p.Can("cases:access-all"), nil
+	}
+	var allowed bool
+	err := q.QueryRow(ctx, `SELECT identity.authorize_capability_v1($1,$2,$3,$4,'cases:access-all',false)`, a.UserID, t, a.SessionID, a.Version).Scan(&allowed)
+	return allowed, err
 }

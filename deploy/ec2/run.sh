@@ -26,7 +26,7 @@ if [[ $action == configure ]]; then
   exit
 fi
 if [[ ! -f "$state/compose.env" ]]; then
-  echo 'Run configure with --domain, --email and --case-tenants first.' >&2
+  echo 'Run configure with --domain and --email first.' >&2
   exit 1
 fi
 case "$action" in up|backup|stop|auth-admin) lock_state ;; esac

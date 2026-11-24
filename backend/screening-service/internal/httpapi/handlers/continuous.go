@@ -48,17 +48,17 @@ func (h ContinuousHandler) ListConfigs(c *gin.Context) {
 func (h ContinuousHandler) CreateConfig(c *gin.Context) {
 	var body continuousConfigRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	fieldMap, err := json.Marshal(body.FieldMap)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	item, err := h.service.CreateContinuousConfig(c.Request.Context(), c.Param("tenantId"), body.Name, body.ObjectType, body.Provider, fieldMap, body.ReviewInboxID, body.Enabled)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, item)
@@ -76,17 +76,17 @@ func (h ContinuousHandler) GetConfig(c *gin.Context) {
 func (h ContinuousHandler) UpdateConfig(c *gin.Context) {
 	var body continuousConfigRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	fieldMap, err := json.Marshal(body.FieldMap)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	item, err := h.service.UpdateContinuousConfig(c.Request.Context(), c.Param("tenantId"), c.Param("configId"), body.Name, body.ObjectType, body.Provider, fieldMap, body.ReviewInboxID, body.Enabled)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, item)
@@ -94,7 +94,7 @@ func (h ContinuousHandler) UpdateConfig(c *gin.Context) {
 
 func (h ContinuousHandler) DeleteConfig(c *gin.Context) {
 	if err := h.service.DeleteContinuousConfig(c.Request.Context(), c.Param("tenantId"), c.Param("configId")); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.Status(http.StatusNoContent)
@@ -112,17 +112,17 @@ func (h ContinuousHandler) ListMonitoredObjects(c *gin.Context) {
 func (h ContinuousHandler) CreateMonitoredObject(c *gin.Context) {
 	var body monitoredObjectRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	attributes, err := json.Marshal(body.Attributes)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	item, err := h.service.CreateMonitoredObject(c.Request.Context(), c.Param("tenantId"), c.Param("configId"), body.ObjectType, body.ObjectID, attributes)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, item)
@@ -139,7 +139,7 @@ func (h ContinuousHandler) GetMonitoredObject(c *gin.Context) {
 
 func (h ContinuousHandler) DeleteMonitoredObject(c *gin.Context) {
 	if err := h.service.DeleteMonitoredObject(c.Request.Context(), c.Param("tenantId"), c.Param("monitoredObjectId")); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.Status(http.StatusNoContent)
@@ -148,17 +148,17 @@ func (h ContinuousHandler) DeleteMonitoredObject(c *gin.Context) {
 func (h ContinuousHandler) RequeueMonitoredObject(c *gin.Context) {
 	var body requeueMonitoredObjectRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	attributes, err := json.Marshal(body.Attributes)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	item, err := h.service.RequeueMonitoredObject(c.Request.Context(), c.Param("tenantId"), c.Param("monitoredObjectId"), attributes)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		screeningError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, item)

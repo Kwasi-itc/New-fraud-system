@@ -1,3 +1,5 @@
+> Authentication now uses per-service signing identities; see [migration and key operations](../../docs/authentication/operations.md). `--case-tenants` is retired.
+
 # EC2 deployment with a configurable HTTPS domain
 
 This deployment extends the PostgreSQL stack from `main`. It runs the frontend,
@@ -43,8 +45,7 @@ From the `New-fraud-system` repository root:
 sudo bash deploy/ec2/bootstrap-ubuntu.sh
 sudo bash deploy/ec2/run.sh configure \
   --domain fraud.example.com \
-  --email ops@example.com \
-  --case-tenants 'EXISTING_TENANT_UUID,ANOTHER_TENANT_UUID'
+  --email ops@example.com
 sudo bash deploy/ec2/run.sh check
 sudo bash deploy/ec2/run.sh up
 ```

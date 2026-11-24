@@ -12,17 +12,17 @@ import (
 )
 
 type FieldService struct {
-	tenantRepository ports.TenantRepository
-	tableRepository  ports.TableRepository
-	fieldRepository  ports.FieldRepository
+	tenantRepository         ports.TenantRepository
+	tableRepository          ports.TableRepository
+	fieldRepository          ports.FieldRepository
 	fieldEnumValueRepository ports.FieldEnumValueRepository
-	linkRepository   ports.LinkRepository
-	pivotRepository  ports.PivotRepository
-	schemaChanges    ports.SchemaChangeRepository
-	schemaManager    ports.SchemaManager
-	txManager        ports.TransactionManager
-	idGenerator      ports.IDGenerator
-	clock            ports.Clock
+	linkRepository           ports.LinkRepository
+	pivotRepository          ports.PivotRepository
+	schemaChanges            ports.SchemaChangeRepository
+	schemaManager            ports.SchemaManager
+	txManager                ports.TransactionManager
+	idGenerator              ports.IDGenerator
+	clock                    ports.Clock
 }
 
 type CreateFieldInput struct {
@@ -66,17 +66,17 @@ func NewFieldService(
 	clock ports.Clock,
 ) FieldService {
 	return FieldService{
-		tenantRepository: tenantRepository,
-		tableRepository:  tableRepository,
-		fieldRepository:  fieldRepository,
+		tenantRepository:         tenantRepository,
+		tableRepository:          tableRepository,
+		fieldRepository:          fieldRepository,
 		fieldEnumValueRepository: fieldEnumValueRepository,
-		linkRepository:   linkRepository,
-		pivotRepository:  pivotRepository,
-		schemaChanges:    schemaChanges,
-		schemaManager:    schemaManager,
-		txManager:        txManager,
-		idGenerator:      idGenerator,
-		clock:            clock,
+		linkRepository:           linkRepository,
+		pivotRepository:          pivotRepository,
+		schemaChanges:            schemaChanges,
+		schemaManager:            schemaManager,
+		txManager:                txManager,
+		idGenerator:              idGenerator,
+		clock:                    clock,
 	}
 }
 

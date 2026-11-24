@@ -3,10 +3,11 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"io"
 	"net/http"
 
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/provideraccess"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/service"
 	store "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
@@ -16,8 +17,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func registerInvestigatorEnrichment(router *gin.Engine, db *pgxpool.Pool, verifier *identity.Verifier, svc service.ScreeningService) {
-	router.POST("/v1/investigator/tenants/:tenantId/cases/:caseId/matches/:matchId/enrich", func(c *gin.Context) {
+func registerInvestigatorEnrichment(router *platformauth.Router, db *pgxpool.Pool, verifier *identity.Verifier, svc service.ScreeningService) {
+	router.POST("/v1/investigator/tenants/:tenantId/cases/:caseId/matches/:matchId/enrich", platformauth.Policy{Capability: "cases:review", PrincipalType: platformauth.PrincipalUser}, func(c *gin.Context) {
 		c.Header("Cache-Control", "private, no-store")
 		principal, err := manualAuthorization(db, verifier, true)(c.Request)
 		if err != nil {

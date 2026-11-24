@@ -27,14 +27,14 @@ func (r ScreeningReadRepository) List(ctx context.Context, tenant, decision stri
 		return nil, err
 	}
 	defer tx.Rollback(context.Background())
-	var allowed, admin bool
-	if err = tx.QueryRow(ctx, `SELECT identity.authorize_case_v1($1,$2,$3,$4,false,true),
-		identity.authorize_case_v1($1,$2,$3,$4,true,false)`, actor.UserID, tenant, actor.SessionID, actor.Version).Scan(&allowed, &admin); err != nil {
+	if err = authorizeWorkflow(ctx, tx, tenant, actor, false); err != nil {
 		return nil, err
 	}
-	if !allowed {
-		return nil, workflow.ErrAuthoringDenied
+	admin, err := workflowAdministrator(ctx, tx, tenant, actor)
+	if err != nil {
+		return nil, err
 	}
+	var allowed bool
 	// A linked decision inherits case-inbox restrictions. Missing/foreign IDs
 	// and inaccessible decisions have the same response.
 	err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM core.decisions d WHERE d.tenant_id=$1 AND d.id=$2

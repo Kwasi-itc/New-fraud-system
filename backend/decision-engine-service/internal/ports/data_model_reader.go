@@ -46,5 +46,5 @@ type DataModelReader interface {
 	GetTenantModel(ctx context.Context, tenantID string) (TenantModel, error)
 	CreateIndexJob(ctx context.Context, tenantID, tableID, indexType string, columns []string, requestedByOperation string) (ManagedIndexJob, error)
 	ListIndexJobs(ctx context.Context, tenantID string) ([]ManagedIndexJob, error)
-	RetryIndexJob(ctx context.Context, jobID string) error
+	RetryIndexJob(ctx context.Context, tenantID, jobID string) error
 }

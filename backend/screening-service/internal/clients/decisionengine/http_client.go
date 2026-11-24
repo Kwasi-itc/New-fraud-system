@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	"github.com/google/uuid"
 	"net/http"
 	"strings"
 	"time"
@@ -13,28 +15,23 @@ import (
 )
 
 type HTTPClient struct {
-	baseURL   string
-	authMode  string
-	authToken string
-	client    *http.Client
+	Signer  *platformauth.Signer
+	baseURL string
+
+	client *http.Client
 }
 
-func NewHTTPClient(baseURL, authMode, authToken string, timeout time.Duration) HTTPClient {
+func NewHTTPClient(baseURL string, timeout time.Duration) HTTPClient {
 	return HTTPClient{
-		baseURL:   strings.TrimRight(baseURL, "/"),
-		authMode:  strings.ToLower(strings.TrimSpace(authMode)),
-		authToken: authToken,
-		client:    &http.Client{Timeout: timeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
+		baseURL: strings.TrimRight(baseURL, "/"),
+
+		client: &http.Client{Timeout: timeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
 	}
 }
 
 func (c HTTPClient) PublishScreeningStatusChanged(ctx context.Context, command ports.ScreeningStatusChangedCommand) error {
 	if c.baseURL == "" {
-		return nil
-	}
-
-	if c.authMode != "token" || len(strings.TrimSpace(c.authToken)) < 32 {
-		return fmt.Errorf("screening callback credential is unavailable")
+		return fmt.Errorf("decision engine callback URL is required")
 	}
 
 	body, err := json.Marshal(command)
@@ -47,8 +44,12 @@ func (c HTTPClient) PublishScreeningStatusChanged(ctx context.Context, command p
 		return fmt.Errorf("create decision engine callback: invalid request")
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if c.authMode == "token" && c.authToken != "" {
-		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	tenant, authErr := uuid.Parse(command.TenantID)
+	if authErr != nil {
+		return authErr
+	}
+	if authErr = platformauth.AuthorizeServiceRequest(req, tenant, "urn:fraud:decision-engine-service", []string{"screening:callback"}, c.Signer); authErr != nil {
+		return authErr
 	}
 
 	resp, err := c.client.Do(req)
@@ -62,3 +63,5 @@ func (c HTTPClient) PublishScreeningStatusChanged(ctx context.Context, command p
 	}
 	return nil
 }
+
+func (c HTTPClient) WithSigner(signer *platformauth.Signer) HTTPClient { c.Signer = signer; return c }

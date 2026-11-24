@@ -15,8 +15,8 @@ import (
 func TestPostgresReopenChecksCurrentInboxAndAssignee(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, inbox, c := fixture(t, db)
-	ctx := adminContext(tenant)
-	assignee := "analyst-1"
+	ctx := adminContext(t, db, tenant)
+	assignee := "2f2e747e-27db-57e8-b365-d06520fe4a76"
 	if err := s.Assign(ctx, tenant, c.ID, &assignee, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +57,7 @@ func TestPostgresReopenChecksCurrentInboxAndAssignee(t *testing.T) {
 func TestPostgresMoveWaitsForArchiveAndPreservesCase(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, _, c := fixture(t, db)
-	ctx, cancel := context.WithTimeout(adminContext(tenant), 5*time.Second)
+	ctx, cancel := context.WithTimeout(adminContext(t, db, tenant), 5*time.Second)
 	defer cancel()
 	destination, err := s.CreateInbox(ctx, service.CreateInboxInput{TenantID: tenant, Name: "Destination"})
 	if err != nil {
@@ -97,7 +97,7 @@ func TestPostgresMoveWaitsForArchiveAndPreservesCase(t *testing.T) {
 func TestPostgresAccessMigrationPreflightPreservesHistory(t *testing.T) {
 	db := testDatabase(t, true)
 	s, tenant, _, c := fixture(t, db)
-	ctx := adminContext(tenant)
+	ctx := adminContext(t, db, tenant)
 	decision := seedDecision(t, db, tenant)
 	if _, err := s.AddDecision(ctx, service.AddDecisionInput{TenantID: tenant, CaseID: c.ID, DecisionID: decision}, nil); err != nil {
 		t.Fatal(err)

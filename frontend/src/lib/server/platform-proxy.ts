@@ -1,9 +1,7 @@
 import "server-only";
 import { platformSession, privateHeaders } from "./auth";
-import { serviceSecret } from "./service-secret";
 
 type Service = "ingestion" | "decisions";
-const roles = ["platform_viewer", "platform_builder", "platform_publisher", "platform_admin"];
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const failure = (status: number, message: string) => Response.json({ error: { code: "platform_access", message } }, { status, headers: privateHeaders });
 
@@ -19,7 +17,6 @@ export async function platformProxy(request: Request, path: string[], service: S
     const identity = await platformSession();
     if (!identity) return failure(401, "Sign in required.");
     const { session } = identity;
-    if (!session.roles.some(role => roles.includes(role))) return failure(403, "Platform access required.");
     const tenantPath = path[0] === "tenants" && uuid.test(path[1] ?? "");
     const catalog = service === "decisions" && request.method === "GET" && path.length === 1 && path[0] === "rule-functions";
     const uploadLog = service === "ingestion" && request.method === "GET" && path.length === 2 && path[0] === "upload-logs" && uuid.test(path[1]);
@@ -28,12 +25,9 @@ export async function platformProxy(request: Request, path: string[], service: S
     // Private execution recovery and raw screening administration have separate
     // identity-aware gateways. They are never exposed by this general proxy.
     if (path.some(part => ["screening-executions", "workflow-rules", "workflows", "screening-configs", "outbox-events"].includes(part))) return failure(403, "Use the authorized workspace action.");
-    const publish = path.some(part => ["commit", "deactivate", "publications"].includes(part));
-    if (write && !session.roles.some(role => [publish ? "platform_publisher" : "platform_builder", "platform_admin"].includes(role))) return failure(403, publish ? "Publisher access required." : "Builder access required.");
     const base = process.env[service === "ingestion" ? "INGESTION_SERVICE_URL" : "DECISION_ENGINE_SERVICE_URL"];
-    const token = serviceSecret(service === "ingestion" ? "INGESTION_AUTH_TOKEN" : "DECISION_ENGINE_AUTH_TOKEN");
-    if (!base || !token) return failure(503, "The backend service is not configured.");
-    const headers = new Headers({ Accept: "application/json", Authorization: `Bearer ${token}` });
+    if (!base) return failure(503, "The backend service is not configured.");
+    const headers = new Headers({ Accept: "application/json", Authorization: `Bearer ${identity.access_token}` });
     const contentType = request.headers.get("content-type");
     if (contentType) headers.set("Content-Type", contentType);
     const key = request.headers.get("idempotency-key");

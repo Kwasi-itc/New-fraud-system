@@ -58,10 +58,10 @@ require (
 )
 
 require (
-	github.com/Kwasi-itc/New-fraud-system/backend/investigator v0.0.0
+	github.com/Kwasi-itc/New-fraud-system/backend/platform-auth v0.0.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	golang.org/x/text v0.42.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-replace github.com/Kwasi-itc/New-fraud-system/backend/investigator => ../investigator
+replace github.com/Kwasi-itc/New-fraud-system/backend/platform-auth => ../platform-auth

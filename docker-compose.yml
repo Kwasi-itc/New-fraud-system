@@ -1,7 +1,4 @@
 x-backend-common: &backend-common
-  SERVICE_AUTH_MODE: disabled
-  SERVICE_AUTH_TOKEN: ""
-  CASE_SERVICE_AUTH_TOKEN: ${CASE_SERVICE_AUTH_TOKEN:-}
   LOG_LEVEL: info
   GIN_MODE: debug
   HTTP_CLIENT_TIMEOUT: 10s
@@ -41,7 +38,9 @@ services:
       retries: 20
 
   auth-migrate:
-    build: ./backend/auth-service
+    build:
+      context: ./backend
+      dockerfile: auth-service/Dockerfile
     entrypoint: ["/app/admin"]
     command: ["-action", "migrate"]
     environment:
@@ -52,18 +51,21 @@ services:
     restart: "no"
 
   auth-service:
-    build: ./backend/auth-service
+    build:
+      context: ./backend
+      dockerfile: auth-service/Dockerfile
     env_file:
-      - ./.local/auth-provider/auth.env
-      - ./.local/auth-provider/platform.env
-      - path: ./.local/auth-provider/invitations.env
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/auth.env
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/platform.env
+      - path: ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/invitations.env
         required: false
     environment:
       PORT: "8087"
       AUTH_DEFAULT_TENANT_ID: ${NEXT_PUBLIC_DATA_MODEL_TENANT_ID:-}
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
     volumes:
-      - ./.local/auth-provider/platform-private.pem:/run/secrets/platform-private.pem:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/platform-private.pem:/run/secrets/platform-private.pem:ro
     depends_on:
       auth-migrate:
         condition: service_completed_successfully
@@ -78,7 +80,7 @@ services:
       PGUSER: fraud
       PGPASSWORD: fraud
     env_file:
-      - path: ./.local/auth-provider/database.env
+      - path: ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/database.env
         required: false
     entrypoint: ["/bin/sh", "-ec"]
     command:
@@ -95,7 +97,7 @@ services:
     profiles: [local-idp]
     command: ["start-dev", "--import-realm"]
     env_file:
-      - path: ./.local/auth-provider/keycloak.env
+      - path: ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/keycloak.env
         required: false
     environment:
       KC_DB: postgres
@@ -139,8 +141,8 @@ services:
 
   ingestion-migrate:
     build:
-      context: ./backend/ingestion-service
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: ingestion-service/Dockerfile
     entrypoint: ["/app/migrate"]
     command: ["up"]
     environment:
@@ -166,6 +168,8 @@ services:
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
       INGESTION_SERVICE_URL: http://ingestion-service:8081
     depends_on:
+      auth-migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       ingestion-migrate:
@@ -182,6 +186,8 @@ services:
       <<: *backend-common
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
     depends_on:
+      auth-migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       decision-engine-migrate:
@@ -198,22 +204,20 @@ services:
       <<: *backend-common
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
     depends_on:
+      auth-migrate:
+        condition: service_completed_successfully
       screening-migrate:
         condition: service_completed_successfully
     restart: "no"
 
   data-model-service:
     env_file:
-      - ./.local/auth-provider/data-model.env
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/data-model-service.env
     build:
       context: ./backend
       dockerfile: data-model-service/Dockerfile
     environment:
       <<: *backend-common
-      SERVICE_AUTH_MODE: token
-      USER_JWT_KEYS_FILE: /run/secrets/platform-public.json
-      USER_JWT_ISSUER: ${CASE_USER_JWT_ISSUER:?Configure platform issuer}
-      USER_JWT_AUDIENCE: ${CASE_USER_JWT_AUDIENCE:-case-manager}
       PORT: 8080
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
       INDEX_WORKER_POLL_INTERVAL: 2s
@@ -222,16 +226,17 @@ services:
       INDEX_WORKER_RETRY_MAX_DELAY: 2m
     depends_on: *depends-on-migrations
     volumes:
-      - ${CASE_USER_JWT_KEYS_FILE:?Configure platform public keys}:/run/secrets/platform-public.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/data-model-service-private.pem:/run/secrets/data-model-service-private.pem:ro
     ports:
       - "${DATA_MODEL_FORWARDED_PORT:-8080}:8080"
 
   ingestion-service:
     env_file:
-      - ./.local/auth-provider/data-model.env
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/ingestion-service.env
     build:
-      context: ./backend/ingestion-service
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: ingestion-service/Dockerfile
     environment:
       <<: *backend-common
       PORT: 8081
@@ -257,18 +262,18 @@ services:
     ports:
       - "${INGESTION_FORWARDED_PORT:-8081}:8081"
 
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/ingestion-service-private.pem:/run/secrets/ingestion-service-private.pem:ro
+
   decision-engine-service:
     env_file:
-      - ./.local/auth-provider/data-model.env
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/decision-engine-service.env
     build:
       context: ./backend
       dockerfile: decision-engine-service/Dockerfile
     environment:
       <<: *backend-common
-      USER_JWT_KEYS_FILE: /run/secrets/case-user-public-keys.json
-      USER_JWT_ISSUER: ${CASE_USER_JWT_ISSUER:?Set the trusted case user JWT issuer}
-      USER_JWT_AUDIENCE: ${CASE_USER_JWT_AUDIENCE:-case-manager}
-      USER_REQUIRE_SESSION: "true"
       PORT: 8082
       DATABASE_MAX_CONNS: ${DECISION_DATABASE_MAX_CONNS:-0}
       DATABASE_MIN_CONNS: ${DECISION_DATABASE_MIN_CONNS:-0}
@@ -278,7 +283,6 @@ services:
       SCREENING_SERVICE_URL: http://screening-service:8085
       LOG_LEVEL: ${DECISION_ENGINE_LOG_LEVEL:-debug}
       WORKFLOW_ACTION_URL: http://case-manager-service:8086/internal/v1/workflow-actions
-      WORKFLOW_AUTHORING_TOKEN: ${WORKFLOW_AUTHORING_TOKEN:-}
       WORKER_MODE: poll
       WORKER_POLL_INTERVAL: 15s
       WORKER_BATCH_LIMIT: 100
@@ -294,7 +298,8 @@ services:
       SCENARIO_EVALUATION_CONCURRENCY: ${SCENARIO_EVALUATION_CONCURRENCY:-0}
       AGGREGATE_REMOTE_CONCURRENCY_LIMIT: ${AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-0}
     volumes:
-      - ${CASE_USER_JWT_KEYS_FILE:?Set the host path to trusted public keys}:/run/secrets/case-user-public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/decision-engine-service-private.pem:/run/secrets/decision-engine-service-private.pem:ro
       - type: bind
         source: ${GEOIP_MMDB_HOST_PATH:-./dbip-city-lite-2026-08.mmdb}
         target: /data/geoip/dbip-city-lite.mmdb
@@ -304,15 +309,13 @@ services:
       - "${DECISION_ENGINE_FORWARDED_PORT:-8082}:8082"
 
   screening-service:
+    env_file:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/screening-service.env
     build:
       context: ./backend
       dockerfile: screening-service/Dockerfile
     environment:
       <<: *backend-common
-      USER_JWT_KEYS_FILE: /run/secrets/case-user-public-keys.json
-      USER_JWT_ISSUER: ${CASE_USER_JWT_ISSUER:?Set the trusted case user JWT issuer}
-      USER_JWT_AUDIENCE: ${CASE_USER_JWT_AUDIENCE:-case-manager}
-      USER_REQUIRE_SESSION: "true"
       PORT: 8085
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
       INGESTION_SERVICE_URL: http://ingestion-service:8081
@@ -323,12 +326,15 @@ services:
       WORKER_POLL_INTERVAL: 15s
       WORKER_BATCH_LIMIT: 100
     volumes:
-      - ${CASE_USER_JWT_KEYS_FILE:?Set the host path to trusted public keys}:/run/secrets/case-user-public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/screening-service-private.pem:/run/secrets/screening-service-private.pem:ro
     depends_on: *depends-on-migrations
     ports:
       - "${SCREENING_FORWARDED_PORT:-8085}:8085"
 
   case-manager-service:
+    env_file:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/case-manager-service.env
     build:
       context: ./backend
       dockerfile: case-manager-service/Dockerfile
@@ -337,17 +343,11 @@ services:
       LOG_LEVEL: ${CASE_LOG_LEVEL:-info}
       PORT: 8086
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
-      SERVICE_AUTH_MODE: token
-      SERVICE_AUTH_TOKEN: ${CASE_SERVICE_AUTH_TOKEN:?Set CASE_SERVICE_AUTH_TOKEN to a secret of at least 32 bytes}
-      SERVICE_AUTH_TENANT_IDS: ${CASE_SERVICE_TENANT_IDS:?Set the allowed case integration tenant UUIDs}
-      USER_JWT_KEYS_FILE: /run/secrets/case-user-public-keys.json
-      USER_JWT_ISSUER: ${CASE_USER_JWT_ISSUER:?Set the trusted case user JWT issuer}
-      USER_JWT_AUDIENCE: ${CASE_USER_JWT_AUDIENCE:-case-manager}
-      USER_REQUIRE_SESSION: "true"
       DB_POOL_MAX_CONNS: ${CASE_DB_POOL_MAX_CONNS:-8}
       GIN_MODE: release
     volumes:
-      - ${CASE_USER_JWT_KEYS_FILE:?Set the host path to trusted public keys}:/run/secrets/case-user-public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/case-manager-service-private.pem:/run/secrets/case-manager-service-private.pem:ro
     depends_on: *depends-on-migrations
     healthcheck:
       test: ["CMD", "/app/server", "healthcheck"]
@@ -358,6 +358,8 @@ services:
       - "${CASE_MANAGER_FORWARDED_PORT:-8086}:8086"
 
   screening-case-delivery-worker:
+    env_file:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/screening-case-delivery-worker.env
     build:
       context: ./backend
       dockerfile: screening-service/Dockerfile
@@ -375,7 +377,13 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/screening-case-delivery-worker-private.pem:/run/secrets/screening-case-delivery-worker-private.pem:ro
+
   data-model-worker:
+    env_file:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/data-model-worker.env
     build:
       context: ./backend
       dockerfile: data-model-service/Dockerfile
@@ -389,12 +397,16 @@ services:
       INDEX_WORKER_RETRY_MAX_DELAY: 2m
     depends_on: *depends-on-migrations
 
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/data-model-worker-private.pem:/run/secrets/data-model-worker-private.pem:ro
+
   ingestion-worker:
     env_file:
-      - ./.local/auth-provider/data-model.env
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/ingestion-worker.env
     build:
-      context: ./backend/ingestion-service
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: ingestion-service/Dockerfile
     entrypoint: ["/app/worker"]
     environment:
       <<: *backend-common
@@ -419,9 +431,13 @@ services:
       data-model-service:
         condition: service_started
 
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/ingestion-worker-private.pem:/run/secrets/ingestion-worker-private.pem:ro
+
   decision-engine-worker:
     env_file:
-      - ./.local/auth-provider/data-model.env
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/decision-engine-worker.env
     build:
       context: ./backend
       dockerfile: decision-engine-service/Dockerfile
@@ -453,6 +469,8 @@ services:
       SCENARIO_EVALUATION_CONCURRENCY: ${SCENARIO_EVALUATION_CONCURRENCY:-0}
       AGGREGATE_REMOTE_CONCURRENCY_LIMIT: ${AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-0}
     volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/decision-engine-worker-private.pem:/run/secrets/decision-engine-worker-private.pem:ro
       - type: bind
         source: ${GEOIP_MMDB_HOST_PATH:-./dbip-city-lite-2026-08.mmdb}
         target: /data/geoip/dbip-city-lite.mmdb
@@ -469,6 +487,8 @@ services:
         condition: service_healthy
 
   screening-worker:
+    env_file:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/screening-worker.env
     profiles:
       - screening-worker
     build:
@@ -494,13 +514,18 @@ services:
       case-manager-service:
         condition: service_healthy
 
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/screening-worker-private.pem:/run/secrets/screening-worker-private.pem:ro
+
   case-manager-worker:
+    env_file:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/case-manager-worker.env
     build:
       context: ./backend
       dockerfile: case-manager-service/Dockerfile
     entrypoint: ["/app/worker"]
     environment:
-      USER_REQUIRE_SESSION: "true"
       LOG_LEVEL: ${CASE_LOG_LEVEL:-info}
       DATABASE_URL: postgres://fraud:fraud@postgres:5432/fraud?sslmode=disable
       DB_POOL_MAX_CONNS: 4
@@ -513,9 +538,13 @@ services:
       <<: *depends-on-migrations
     restart: unless-stopped
 
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/case-manager-worker-private.pem:/run/secrets/case-manager-worker-private.pem:ro
+
   frontend:
     env_file:
-      - ./.local/auth-provider/proxy.env
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/frontend-bff.env
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -527,12 +556,10 @@ services:
     environment:
       DATA_MODEL_SERVICE_URL: http://data-model-service:8080
       AUTH_SERVICE_URL: http://auth-service:8087
+      AUTH_MANAGE_SIGN_IN_URL: ${AUTH_MANAGE_SIGN_IN_URL:-}
       CASE_MANAGER_SERVICE_URL: http://case-manager-service:8086
       DECISION_ENGINE_SERVICE_URL: http://decision-engine-service:8082
       SCREENING_SERVICE_URL: http://screening-service:8085
-      DECISION_ENGINE_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
-      WORKFLOW_AUTHORING_TOKEN: ${WORKFLOW_AUTHORING_TOKEN:-}
-      SCREENING_AUTH_TOKEN: ${SERVICE_AUTH_TOKEN:-}
       CASE_DEFAULT_TENANT_ID: ${NEXT_PUBLIC_DATA_MODEL_TENANT_ID:-}
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
       CASE_SESSION_COOKIE: ${CASE_SESSION_COOKIE:-__Host-fraud_session}
@@ -550,6 +577,10 @@ services:
         condition: service_started
     ports:
       - "${FRONTEND_FORWARDED_PORT:-3000}:3000"
+
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/frontend-bff-private.pem:/run/secrets/frontend-bff-private.pem:ro
 
 volumes:
   postgres_data:

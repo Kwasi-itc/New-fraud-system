@@ -74,9 +74,9 @@ func runAuthoredScreeningWorkers(t *testing.T, db *pgxpool.Pool, tenant, inbox, 
 		json.NewEncoder(w).Encode(result)
 	}))
 	t.Cleanup(provider.Close)
-	sourceOperatorToken := "synthetic-source-recovery-operator-token-32"
+	sourceOperatorToken := journeyHuman(t, db, tenant, "source-operator", "tenant_admin")
 	screeningURL, _, _ := startInvestigatorServer(t, db, binaries["SCREENING_INTEGRATION_BINARY"], tenant,
-		"SCREENING_OPERATOR_TOKEN="+sourceOperatorToken, "SCREENING_PROVIDER_URL="+provider.URL, "SCREENING_PROVIDER_URLS=", "OPENSANCTIONS_API_HOST=", "OPENSANCTIONS_API_KEY=")
+		"SCREENING_PROVIDER_URL="+provider.URL, "SCREENING_PROVIDER_URLS=", "OPENSANCTIONS_API_HOST=", "OPENSANCTIONS_API_KEY=")
 	caseURL, _ := startCaseServer(t, db, binaries["CASE_MANAGER_INTEGRATION_BINARY"], tenant)
 	targetURL, _ := url.Parse(screeningURL)
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
@@ -143,7 +143,7 @@ func runAuthoredScreeningWorkers(t *testing.T, db *pgxpool.Pool, tenant, inbox, 
 	}))
 	t.Cleanup(intake.Close)
 	startJourneyWorker(t, db, binaries["SCREENING_WORKER_INTEGRATION_BINARY"],
-		"SCREENING_PROVIDER_URL="+provider.URL, "CASE_SERVICE_URL="+caseURL, "CASE_SERVICE_AUTH_TOKEN="+token, "DECISION_ENGINE_URL="+decisionURL, "HTTP_CLIENT_TIMEOUT=1s")
+		"SCREENING_PROVIDER_URL="+provider.URL, "CASE_SERVICE_URL="+caseURL, "DECISION_ENGINE_URL="+decisionURL, "HTTP_CLIENT_TIMEOUT=1s")
 	startJourneyWorker(t, db, binaries["DECISION_WORKER_INTEGRATION_BINARY"],
 		"SCREENING_SERVICE_URL="+intake.URL)
 	// Existing authored executions are consumed too. Their two matching configs
@@ -169,7 +169,7 @@ func runAuthoredScreeningWorkers(t *testing.T, db *pgxpool.Pool, tenant, inbox, 
 			req, _ := http.NewRequest("POST", decisionURL+"/v1/tenants/"+tenant+"/screening-executions/"+execution+"/retry", nil)
 			req.Header.Set("Authorization", "Bearer "+token)
 			if strings.HasPrefix(req.URL.String(), decisionURL+"/v1/") {
-				req.Header.Set("X-Screening-Authoring-Token", operatorToken)
+				req.Header.Set("Authorization", "Bearer "+operatorToken)
 			}
 			resp, err := client.Do(req)
 			if err != nil {
@@ -241,10 +241,10 @@ func runAuthoredScreeningWorkers(t *testing.T, db *pgxpool.Pool, tenant, inbox, 
 				}
 				req.Header.Set("Authorization", "Bearer "+token)
 				if strings.HasPrefix(req.URL.String(), decisionURL+"/v1/") {
-					req.Header.Set("X-Screening-Authoring-Token", operatorToken)
+					req.Header.Set("Authorization", "Bearer "+operatorToken)
 				}
 				if strings.HasPrefix(endpoint, screeningURL+"/v1/") {
-					req.Header.Set("X-Screening-Operator-Token", sourceOperatorToken)
+					req.Header.Set("Authorization", "Bearer "+sourceOperatorToken)
 				}
 				resp, err := client.Do(req)
 				if err != nil {
@@ -260,7 +260,7 @@ func runAuthoredScreeningWorkers(t *testing.T, db *pgxpool.Pool, tenant, inbox, 
 			}
 			retryURL := screeningURL + "/v1/tenants/" + tenant + "/screenings/" + source + "/retry"
 			deniedRequest, _ := http.NewRequest("POST", retryURL, nil)
-			deniedRequest.Header.Set("Authorization", "Bearer "+token)
+			deniedRequest.Header.Set("Authorization", "Bearer "+journeyHuman(t, db, tenant, "restricted-reader", "platform_viewer"))
 			deniedResponse, err := client.Do(deniedRequest)
 			if err != nil {
 				t.Fatal(err)
@@ -394,7 +394,7 @@ func runAuthoredScreeningWorkers(t *testing.T, db *pgxpool.Pool, tenant, inbox, 
 				req, _ := http.NewRequest("GET", decisionURL+"/v1/tenants/"+tenant+"/screening-executions/"+execution, nil)
 				req.Header.Set("Authorization", "Bearer "+token)
 				if strings.HasPrefix(req.URL.String(), decisionURL+"/v1/") {
-					req.Header.Set("X-Screening-Authoring-Token", operatorToken)
+					req.Header.Set("Authorization", "Bearer "+operatorToken)
 				}
 
 				resp, err := client.Do(req)
@@ -421,12 +421,12 @@ func runAuthoredScreeningWorkers(t *testing.T, db *pgxpool.Pool, tenant, inbox, 
 				operator bool
 				want     int
 			}{
-				{tenant, false, 403}, {tenant, true, 200}, {"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", true, 404},
+				{tenant, false, 403}, {tenant, true, 200}, {"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", true, 403},
 			} {
 				req, _ := http.NewRequest("GET", screeningURL+"/v1/tenants/"+read.tenant+"/screenings/"+source, nil)
-				req.Header.Set("Authorization", "Bearer "+token)
+				req.Header.Set("Authorization", "Bearer "+journeyHuman(t, db, tenant, "case-reader", "case_investigator"))
 				if read.operator {
-					req.Header.Set("X-Screening-Operator-Token", sourceOperatorToken)
+					req.Header.Set("Authorization", "Bearer "+sourceOperatorToken)
 				}
 				resp, err := client.Do(req)
 				if err != nil {
@@ -445,7 +445,7 @@ func runAuthoredScreeningWorkers(t *testing.T, db *pgxpool.Pool, tenant, inbox, 
 				t.Fatal(err)
 			}
 			req, _ := http.NewRequest("POST", screeningURL+"/internal/v1/tenants/"+tenant+"/decision-screenings", bytes.NewReader(payload))
-			for _, deniedToken := range []string{token, testCallbackToken} {
+			for _, deniedToken := range []string{"retired-static-token", "retired-callback-token"} {
 				denied, _ := http.NewRequest("POST", req.URL.String(), bytes.NewReader(payload))
 				denied.Header.Set("Authorization", "Bearer "+deniedToken)
 				denied.Header.Set("Content-Type", "application/json")
@@ -458,9 +458,9 @@ func runAuthoredScreeningWorkers(t *testing.T, db *pgxpool.Pool, tenant, inbox, 
 					t.Fatal("intake accepted wrong integration credential", response.StatusCode)
 				}
 			}
-			req.Header.Set("Authorization", "Bearer "+testIntakeToken)
+			req.Header.Set("Authorization", "Bearer "+journeyToken(t, tenant, "decision-engine-service", "screening-service", "screening:intake"))
 			if strings.HasPrefix(req.URL.String(), decisionURL+"/v1/") {
-				req.Header.Set("X-Screening-Authoring-Token", operatorToken)
+				req.Header.Set("Authorization", "Bearer "+operatorToken)
 			}
 			req.Header.Set("Content-Type", "application/json")
 			resp, err := client.Do(req)
@@ -510,10 +510,10 @@ func startJourneyWorker(t *testing.T, db *pgxpool.Pool, binary string, environme
 			cmd.Env = append(cmd.Env, key+"="+value)
 		}
 	}
-	cmd.Env = append(cmd.Env, "DATABASE_URL="+u.String(), "SERVICE_AUTH_MODE=token", "SERVICE_AUTH_TOKEN=continuous-intake-integration-test-token-32-bytes",
+	cmd.Env = append(cmd.Env, "DATABASE_URL="+u.String(),
 		"DATA_MODEL_SERVICE_URL=http://127.0.0.1:1", "INGESTION_SERVICE_URL=http://127.0.0.1:1", "WORKER_MODE=poll", "WORKER_POLL_INTERVAL=100ms",
 		"SCREENING_QUEUE_WORKERS=2", "SCREENING_DISPATCH_QUEUE_WORKERS=2")
-	cmd.Env = append(cmd.Env, "SCREENING_INTAKE_TOKEN="+testIntakeToken, "SCREENING_CALLBACK_TOKEN="+testCallbackToken)
+	cmd.Env = append(cmd.Env, journeyEnvironment(t, binary, true)...)
 	cmd.Env = append(cmd.Env, environment...)
 	path := filepath.Join(dir, "worker.log")
 	log, err := os.Create(path)

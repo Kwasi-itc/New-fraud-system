@@ -4,7 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/domain/screening"
 	store "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
 	"github.com/google/uuid"
@@ -28,6 +29,11 @@ func TestManualCaseReviewTransactions(t *testing.T) {
 		}
 	}
 	for _, owner := range []string{"data-model-service", "ingestion-service", "decision-engine-service", "case-manager-service"} {
+		if owner == "case-manager-service" {
+			if err := authtest.ApplyIdentity(ctx, db, "../../../../auth-service/internal/platform"); err != nil {
+				t.Fatal(err)
+			}
+		}
 		paths, err := filepath.Glob(filepath.Join("..", "..", "..", "..", owner, "internal", "migrations", "metadata", "*.up.sql"))
 		if err != nil || len(paths) == 0 {
 			t.Fatal(owner, err)
@@ -53,7 +59,6 @@ func TestManualCaseReviewTransactions(t *testing.T) {
 	exec(`INSERT INTO case_manager.inboxes(id,tenant_id,name,created_at,updated_at) VALUES($1,$2,'Review',now(),now())`, inbox, tenant)
 	exec(`INSERT INTO case_manager.inbox_users(id,tenant_id,inbox_id,user_id,created_at) VALUES($1,$2,$3,$4,now())`, uuid.New(), tenant, inbox, user.String())
 	exec(`INSERT INTO case_manager.cases(id,tenant_id,inbox_id,name,status,outcome,type,created_at,updated_at) VALUES($1,$2,$3,'Manual investigation','investigating','unset','manual_screening',now(),now())`, caseID, tenant, inbox)
-	t.Setenv("USER_REQUIRE_SESSION", "true")
 	p := identity.Principal{Subject: user.String(), TenantID: tenant, SessionID: sid, AuthzVersion: 1}
 	svc := intakeService(db, intakeEnqueuer{})
 	run := func(principal identity.Principal, caseRef uuid.UUID, match string, cmd *identity.Command) (identity.State, error) {

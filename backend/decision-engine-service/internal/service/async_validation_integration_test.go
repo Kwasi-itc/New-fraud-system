@@ -32,7 +32,7 @@ func TestIntegrationAsyncValidationFailureRollbackAndTenantIsolation(t *testing.
 	injected := errors.New("callback enqueue failure")
 	svc := ExecutionService{
 		txManager: storepostgres.NewTransactionManager(pool),
-		idGen: &executionSequenceIDGenerator{next: executionIntegrationUUIDSequence(10)}, clock: realClock{},
+		idGen:     &executionSequenceIDGenerator{next: executionIntegrationUUIDSequence(10)}, clock: realClock{},
 		asyncCallbackEnqueuer: &validationCallbackEnqueuer{err: injected}, outboxEnqueuer: riverjobs.NoopOutboxEventEnqueuer{},
 	}
 	if err := svc.failAsyncValidation(ctx, item, validation, time.Now()); !errors.Is(err, injected) {

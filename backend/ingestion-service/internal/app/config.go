@@ -9,22 +9,21 @@ import (
 )
 
 type Config struct {
-	Port                            string
-	DatabaseURL                     string
-	DatabaseMaxConns                int
-	DatabaseMinConns                int
-	ReadDatabaseURL                 string
-	ReadDatabaseMaxConns            int
-	ReadDatabaseMinConns            int
-	WorkerDatabaseURL               string
-	WorkerDatabaseMaxConns          int
-	WorkerDatabaseMinConns          int
-	DataModelServiceURL             string
-	DataModelReadMode               string
-	DataModelCacheMaxEntries        int
-	DataModelCacheMaxBytes          int
-	ServiceAuthMode                 string
-	ServiceAuthToken                string
+	Port                     string
+	DatabaseURL              string
+	DatabaseMaxConns         int
+	DatabaseMinConns         int
+	ReadDatabaseURL          string
+	ReadDatabaseMaxConns     int
+	ReadDatabaseMinConns     int
+	WorkerDatabaseURL        string
+	WorkerDatabaseMaxConns   int
+	WorkerDatabaseMinConns   int
+	DataModelServiceURL      string
+	DataModelReadMode        string
+	DataModelCacheMaxEntries int
+	DataModelCacheMaxBytes   int
+
 	AllowedOrigins                  []string
 	LogLevel                        string
 	GinMode                         string
@@ -81,8 +80,6 @@ func LoadConfig() (Config, error) {
 		DataModelReadMode:               getEnv("DATA_MODEL_READ_MODE", "sql"),
 		DataModelCacheMaxEntries:        cacheEntries,
 		DataModelCacheMaxBytes:          cacheBytes,
-		ServiceAuthMode:                 getEnv("SERVICE_AUTH_MODE", "token"),
-		ServiceAuthToken:                os.Getenv("SERVICE_AUTH_TOKEN"),
 		AllowedOrigins:                  splitCSVEnv("ALLOWED_ORIGINS", "http://localhost:3000"),
 		LogLevel:                        getEnv("LOG_LEVEL", "info"),
 		GinMode:                         getEnv("GIN_MODE", "debug"),
@@ -143,12 +140,6 @@ func LoadConfig() (Config, error) {
 	}
 	if cfg.DataModelReadMode != "sql" && cfg.DataModelReadMode != "http" {
 		return Config{}, fmt.Errorf("DATA_MODEL_READ_MODE must be sql or http")
-	}
-	if cfg.ServiceAuthMode != "token" && cfg.ServiceAuthMode != "disabled" {
-		return Config{}, fmt.Errorf("SERVICE_AUTH_MODE must be token or disabled")
-	}
-	if cfg.ServiceAuthMode == "token" && strings.TrimSpace(cfg.ServiceAuthToken) == "" {
-		return Config{}, fmt.Errorf("SERVICE_AUTH_TOKEN is required when SERVICE_AUTH_MODE=token")
 	}
 	if strings.TrimSpace(cfg.UploadLogQueueName) == "" {
 		return Config{}, fmt.Errorf("UPLOAD_LOG_QUEUE_NAME must not be empty")

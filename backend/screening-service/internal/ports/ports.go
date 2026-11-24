@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"time"
 
 	"github.com/google/uuid"
@@ -167,6 +168,7 @@ type CaseEventRepository interface {
 }
 
 type CaseEvent struct {
+	Origin   platformauth.Origin
 	ID       string
 	Kind     string
 	Payload  json.RawMessage

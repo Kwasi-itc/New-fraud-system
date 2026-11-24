@@ -28,7 +28,7 @@ services:
       KC_HTTP_RELATIVE_PATH: /identity
       KC_PROXY_HEADERS: xforwarded
       FRAUD_AUTH_REDIRECT_URI: ${EC2_PUBLIC_ORIGIN}/api/auth/callback
-    volumes: !override
+    volumes:
       - ./deploy/ec2/fraud-realm.json:/opt/keycloak/data/import/fraud-realm.json:ro
 
   auth-migrate:
@@ -46,6 +46,7 @@ services:
 
   auth-service:
     environment:
+      AUTH_TOKEN_ENDPOINT_URL: ${EC2_PUBLIC_ORIGIN}/oauth/token
       <<: *database
       AUTH_ENV: production
       AUTH_DEFAULT_TENANT_ID: ${AUTH_DEFAULT_TENANT_ID:-}
@@ -57,53 +58,129 @@ services:
       AUTH_APP_ORIGIN: ${EC2_PUBLIC_ORIGIN}
     depends_on:
       tls-edge: {condition: service_started}
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+
   data-model-service:
+    env_file:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/data-model-service.env
     restart: unless-stopped
     environment: *runtime
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/data-model-service-private.pem:/run/secrets/data-model-service-private.pem:ro
+
   ingestion-service:
+    env_file:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/ingestion-service.env
     restart: unless-stopped
     environment: *runtime
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/ingestion-service-private.pem:/run/secrets/ingestion-service-private.pem:ro
+
   decision-engine-service:
+    env_file:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/decision-engine-service.env
     restart: unless-stopped
     environment: *runtime
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/decision-engine-service-private.pem:/run/secrets/decision-engine-service-private.pem:ro
+
   screening-service:
+    env_file:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/screening-service.env
     restart: unless-stopped
     environment: *runtime
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/screening-service-private.pem:/run/secrets/screening-service-private.pem:ro
+
   case-manager-service:
+    env_file:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/case-manager-service.env
     restart: unless-stopped
     environment: *runtime
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/case-manager-service-private.pem:/run/secrets/case-manager-service-private.pem:ro
+
   data-model-worker:
+    env_file:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/data-model-worker.env
     restart: unless-stopped
     environment: *runtime
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/data-model-worker-private.pem:/run/secrets/data-model-worker-private.pem:ro
+
   ingestion-worker:
+    env_file:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/ingestion-worker.env
     restart: unless-stopped
     environment: *runtime
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/ingestion-worker-private.pem:/run/secrets/ingestion-worker-private.pem:ro
+
   decision-engine-worker:
+    env_file:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/decision-engine-worker.env
     restart: unless-stopped
     environment: *runtime
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/decision-engine-worker-private.pem:/run/secrets/decision-engine-worker-private.pem:ro
+
   screening-worker:
+    env_file:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/screening-worker.env
     restart: unless-stopped
     environment: *runtime
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/screening-worker-private.pem:/run/secrets/screening-worker-private.pem:ro
+
   screening-case-delivery-worker:
+    env_file:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/screening-case-delivery-worker.env
     restart: unless-stopped
     environment: *runtime
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/screening-case-delivery-worker-private.pem:/run/secrets/screening-case-delivery-worker-private.pem:ro
+
   case-manager-worker:
+    env_file:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/case-manager-worker.env
     restart: unless-stopped
     environment: *runtime
 
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/case-manager-worker-private.pem:/run/secrets/case-manager-worker-private.pem:ro
+
   frontend:
+    env_file:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/frontend-bff.env
     restart: unless-stopped
     depends_on:
       auth-service: {condition: service_started}
     environment:
       APP_ORIGIN: ${EC2_PUBLIC_ORIGIN}
+      AUTH_MANAGE_SIGN_IN_URL: ${EC2_PUBLIC_ORIGIN}/identity/realms/fraud/account/
       AUTH_COOKIE_SECURE: "true"
       CASE_SESSION_COOKIE: __Host-fraud_session
+    volumes:
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
+      - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/frontend-bff-private.pem:/run/secrets/frontend-bff-private.pem:ro
+
   api-gateway:
     ports: !reset []
     # Start routing/identity before auth discovery; frontend follows auth.
     depends_on: !override {}
-    volumes: !override
+    volumes:
       - ./.local/ec2/nginx.conf:/etc/nginx/nginx.conf:ro
   tls-edge:
     image: caddy:2-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0

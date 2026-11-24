@@ -3,10 +3,7 @@
 const engine = process.env.DECISION_ENGINE_SERVICE_URL;
 const cases = process.env.CASE_MANAGER_SERVICE_URL;
 const auth = process.env.AUTH_SERVICE_URL;
-const secret = process.env.WORKFLOW_AUTHORING_TOKEN;
-if (!engine || !cases || !auth || !secret || secret.length < 32) {
-  throw new Error("Workflow runtime configuration is incomplete.");
-}
+if (!engine || !cases || !auth) throw new Error("Workflow runtime URLs are incomplete.");
 const id = "00000000-0000-4000-8000-000000000001";
 const ownerPath = `/internal/workflow-authoring/tenants/${id}/scenarios/${id}`;
 const probes = [
@@ -15,13 +12,12 @@ const probes = [
   ["authentication schema readiness", `${auth}/readyz`, 204],
   ["decision database readiness", `${engine}/readyz`, 200],
   ["case database readiness", `${cases}/readyz`, 200],
-  ["private gateway credential required", `${engine}${ownerPath}`, 401],
-  ["gateway credential matches; identity required", `${engine}${ownerPath}`, 400, { Authorization: `Bearer ${secret}` }],
-  ["nonexistent user/session denied by owner", `${engine}${ownerPath}`, 403, {
-    Authorization: `Bearer ${secret}`, "X-Workflow-User": id,
-    "X-Workflow-Session": id, "X-Workflow-Version": "1",
+  ["signed identity required", `${engine}${ownerPath}`, 401],
+  ["retired credential rejected", `${engine}${ownerPath}`, 401, { Authorization: "Bearer retired-static-token" }],
+  ["forged actor headers rejected", `${engine}${ownerPath}`, 401, {
+    "X-Workflow-User": id, "X-Workflow-Session": id, "X-Workflow-Version": "1",
   }],
-  ["legacy workflow configuration protected", `${engine}/v1/tenants/${id}/scenarios/${id}/workflow-rules`, 403],
+  ["workflow configuration protected", `${engine}/v1/tenants/${id}/scenarios/${id}/workflow-rules`, 401],
 ];
 let failures = 0;
 for (const [name, url, expected, headers] of probes) {

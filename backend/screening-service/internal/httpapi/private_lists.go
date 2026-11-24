@@ -3,12 +3,13 @@ package httpapi
 import (
 	"encoding/json"
 	"errors"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"io"
 	"net/http"
 	"regexp"
 	"strings"
 
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/privatelists"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/sourcedata"
 	"github.com/gin-gonic/gin"
@@ -20,7 +21,7 @@ var privateListID = regexp.MustCompile(`^private-[a-f0-9]{32}$`)
 
 // This route group has no service-token/operator fallback. The tenant and actor
 // come exclusively from a signed platform session and current database roles.
-func registerPrivateLists(r *gin.Engine, db, writer *pgxpool.Pool, verifier *identity.Verifier, policy privatelists.Policy) {
+func registerPrivateLists(r *platformauth.Router, db, writer *pgxpool.Pool, verifier *identity.Verifier, policy privatelists.Policy) {
 	svc := privatelists.Service{DB: writer, Policy: policy}
 	handle := func(c *gin.Context) {
 		c.Header("Cache-Control", "private, no-store")
@@ -38,16 +39,15 @@ func registerPrivateLists(r *gin.Engine, db, writer *pgxpool.Pool, verifier *ide
 			c.JSON(401, gin.H{"error": "A valid platform session is required."})
 			return
 		}
-		roles := []string{"tenant_admin", "case_manager_admin", "case_investigator", "platform_viewer", "platform_builder", "platform_publisher", "platform_admin"}
-		if err = identity.CheckRoles(c.Request.Context(), db, p, roles, false); err != nil {
-			privateListError(c, err)
+		if !p.Can("private-lists:read") {
+			privateListError(c, identity.Forbidden())
 			return
 		}
 		if c.Param("listId") == "capabilities" && c.Request.Method == http.MethodGet {
-			can := func(roles []string) bool {
-				return policy.Configured() && writer != nil && identity.CheckRoles(c.Request.Context(), db, p, roles, false) == nil
+			can := func(capability string) bool {
+				return policy.Configured() && writer != nil && p.Can(capability)
 			}
-			c.JSON(200, gin.H{"configured": policy.Configured() && writer != nil, "can_import": can(policy.ImportRoles), "can_approve": can(policy.ApproveRoles), "actor_id": p.Subject, "different_reviewer_required": true, "max_bytes": privatelists.MaxCSVBytes, "max_records": privatelists.MaxCSVRecords})
+			c.JSON(200, gin.H{"configured": policy.Configured() && writer != nil, "can_import": can(policy.ImportCapability), "can_approve": can(policy.ApproveCapability), "actor_id": p.Subject, "different_reviewer_required": true, "max_bytes": privatelists.MaxCSVBytes, "max_records": privatelists.MaxCSVRecords})
 			return
 		}
 		if writer == nil || !policy.Configured() {
@@ -155,17 +155,17 @@ func registerPrivateLists(r *gin.Engine, db, writer *pgxpool.Pool, verifier *ide
 		}
 		c.JSON(200, out)
 	}
-	r.GET("/v1/private-lists", handle)
-	r.POST("/v1/private-lists", handle)
-	r.GET("/v1/private-lists/:listId", handle)
-	r.POST("/v1/private-lists/:listId/imports", handle)
-	r.POST("/v1/private-lists/:listId/recover", handle)
-	r.GET("/v1/private-lists/:listId/imports/:importId", handle)
+	r.GET("/v1/private-lists", platformauth.Policy{Capability: "private-lists:read", PrincipalType: platformauth.PrincipalUser}, handle)
+	r.POST("/v1/private-lists", platformauth.Policy{Capability: "private-lists:import", PrincipalType: platformauth.PrincipalUser}, handle)
+	r.GET("/v1/private-lists/:listId", platformauth.Policy{Capability: "private-lists:read", PrincipalType: platformauth.PrincipalUser}, handle)
+	r.POST("/v1/private-lists/:listId/imports", platformauth.Policy{Capability: "private-lists:import", PrincipalType: platformauth.PrincipalUser}, handle)
+	r.POST("/v1/private-lists/:listId/recover", platformauth.Policy{Capability: "private-lists:import", PrincipalType: platformauth.PrincipalUser}, handle)
+	r.GET("/v1/private-lists/:listId/imports/:importId", platformauth.Policy{Capability: "private-lists:read", PrincipalType: platformauth.PrincipalUser}, handle)
 	for _, action := range []string{"artifact", "diff"} {
-		r.GET("/v1/private-lists/:listId/imports/:importId/"+action, handle)
+		r.GET("/v1/private-lists/:listId/imports/:importId/"+action, platformauth.Policy{Capability: "private-lists:read", PrincipalType: platformauth.PrincipalUser}, handle)
 	}
 	for _, action := range []string{"approve", "reject"} {
-		r.POST("/v1/private-lists/:listId/imports/:importId/"+action, handle)
+		r.POST("/v1/private-lists/:listId/imports/:importId/"+action, platformauth.Policy{Capability: "private-lists:approve", PrincipalType: platformauth.PrincipalUser}, handle)
 	}
 }
 

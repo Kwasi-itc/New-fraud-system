@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"io"
 	"net/http"
 	"strings"
@@ -16,14 +17,13 @@ import (
 )
 
 type HTTPClient struct {
-	authToken string
-	baseURL   string
-	client    *http.Client
-	cache     *modelCache
+	Signer *platformauth.Signer
+
+	baseURL string
+	client  *http.Client
+	cache   *modelCache
 }
 
-// WithAuthToken configures the private Data Model integration credential.
-func (c HTTPClient) WithAuthToken(token string) HTTPClient { c.authToken = token; return c }
 
 const requestIDHeader = "X-Request-ID"
 
@@ -57,8 +57,8 @@ func (c HTTPClient) GetPublishedDataModel(ctx context.Context, tenantID uuid.UUI
 		req.Header.Set("If-None-Match", cached.etag)
 	}
 
-	if c.authToken != "" {
-		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	if err = platformauth.AuthorizeServiceRequest(req, tenantID, "urn:fraud:data-model-service", []string{"models:read"}, c.Signer); err != nil {
+		return ingestion.PublishedDataModel{}, err
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -208,3 +208,5 @@ func attachRequestID(req *http.Request) {
 		req.Header.Set(requestIDHeader, requestID)
 	}
 }
+
+func (c HTTPClient) WithSigner(signer *platformauth.Signer) HTTPClient { c.Signer = signer; return c }

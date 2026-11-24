@@ -51,9 +51,18 @@ func (s *PublicationService) SetCacheInvalidator(invalidator DecisionMetadataCac
 }
 
 func (s PublicationService) Publish(ctx context.Context, tenantID, scenarioID, iterationID string) ([]scenario.Publication, error) {
+	// Owner preparation may use HTTP. Complete it before opening the mutation
+	// transaction/current-authority locks; the committed iteration is rechecked below.
+	status, err := s.GetPreparationStatus(ctx, tenantID, scenarioID, iterationID)
+	if err != nil {
+		return nil, err
+	}
+	if status.PreparationRequired {
+		return nil, scenarioError(fmt.Sprintf("iteration requires data-model preparation for %d index jobs", status.PendingItems))
+	}
 	var events []scenario.Publication
 	var triggerObjectType string
-	err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
+	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		scn, err := store.Scenarios().GetByID(ctx, tenantID, scenarioID)
 		if err != nil {
 			return err
@@ -65,14 +74,6 @@ func (s PublicationService) Publish(ctx context.Context, tenantID, scenarioID, i
 		}
 		if iteration.Status != scenario.IterationStatusCommitted {
 			return scenarioError("iteration must be committed before publish")
-		}
-
-		status, err := s.GetPreparationStatus(ctx, tenantID, scenarioID, iterationID)
-		if err != nil {
-			return err
-		}
-		if status.PreparationRequired {
-			return scenarioError(fmt.Sprintf("iteration requires data-model preparation for %d index jobs", status.PendingItems))
 		}
 
 		now := s.clock.Now()
@@ -224,7 +225,7 @@ func (s PublicationService) StartPreparation(ctx context.Context, tenantID, scen
 	}
 	for _, job := range jobs {
 		if job.Status == "failed" {
-			if err := s.dataModelReader.RetryIndexJob(ctx, job.ID); err != nil {
+			if err := s.dataModelReader.RetryIndexJob(ctx, tenantID, job.ID); err != nil {
 				return scenario.PublicationPreparationStatus{}, err
 			}
 		}

@@ -14,7 +14,7 @@ const MonitorAuthoritySQL = `SELECT EXISTS(
  JOIN identity.users actor ON actor.id=member.user_id
  WHERE t.tenant_id=$1 AND t.id=$2 AND t.status='queued' AND m.enabled
  AND tenant.status='active' AND member.active AND actor.active
- AND member.roles && ARRAY['case_investigator','case_manager_admin']::text[]
+ AND EXISTS(SELECT 1 FROM identity.member_roles mr JOIN identity.roles role ON (role.tenant_id,role.id)=(mr.tenant_id,mr.role_id) WHERE mr.tenant_id=member.tenant_id AND mr.user_id=member.user_id AND 'screening:search'=ANY(role.capabilities))
  AND o.provider='internal-watchlists' AND r.provider=o.provider AND o.is_manual
  AND o.idempotency_key LIKE 'manual:'||m.created_by||':%'
  AND r.idempotency_key='source-rescreen:'||t.id::text||':'||r.id::text AND NOT r.is_manual

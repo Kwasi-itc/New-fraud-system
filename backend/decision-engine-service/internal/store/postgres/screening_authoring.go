@@ -75,9 +75,13 @@ func (r ScreeningAuthoringRepository) List(ctx context.Context, t, sc string, a 
 		return out, err
 	}
 	// Bounded config listing with inbox visibility in the same query, no N+1 access checks.
+	admin, err := workflowAdministrator(ctx, r.DB, t, a)
+	if err != nil {
+		return out, err
+	}
 	rows, err := r.DB.Query(ctx, `SELECT c.id,c.name,c.allowed_outcomes,c.provider,c.config_json,c.active,c.updated_at,c.review_inbox_id,
-	EXISTS(SELECT 1 FROM case_manager.inboxes i WHERE i.tenant_id=c.tenant_id AND i.id=c.review_inbox_id AND (identity.authorize_case_v1($3,$1,$4,$5,true,false) OR EXISTS(SELECT 1 FROM case_manager.inbox_users u WHERE u.tenant_id=i.tenant_id AND u.inbox_id=i.id AND u.user_id=$3)))
-	FROM core.screening_configs c WHERE c.tenant_id=$1 AND c.scenario_id=$2 ORDER BY c.created_at,c.id LIMIT 101`, t, sc, a.UserID, a.SessionID, a.Version)
+	EXISTS(SELECT 1 FROM case_manager.inboxes i WHERE i.tenant_id=c.tenant_id AND i.id=c.review_inbox_id AND ($4 OR EXISTS(SELECT 1 FROM case_manager.inbox_users u WHERE u.tenant_id=i.tenant_id AND u.inbox_id=i.id AND u.user_id=$3)))
+	FROM core.screening_configs c WHERE c.tenant_id=$1 AND c.scenario_id=$2 ORDER BY c.created_at,c.id LIMIT 101`, t, sc, a.UserID, admin)
 	if err != nil {
 		return out, err
 	}

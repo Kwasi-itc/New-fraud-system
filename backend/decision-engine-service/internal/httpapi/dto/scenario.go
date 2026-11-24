@@ -24,14 +24,14 @@ type CopyScenarioRequest struct {
 }
 
 type ScenarioResponse struct {
-	ID                string     `json:"id"`
-	TenantID          string     `json:"tenant_id"`
-	Name              string     `json:"name"`
-	Description       string     `json:"description"`
-	TriggerObjectType string     `json:"trigger_object_type"`
-	LiveIterationID   *string    `json:"live_iteration_id,omitempty"`
-	CreatedAt         time.Time  `json:"created_at"`
-	UpdatedAt         time.Time  `json:"updated_at"`
+	ID                string    `json:"id"`
+	TenantID          string    `json:"tenant_id"`
+	Name              string    `json:"name"`
+	Description       string    `json:"description"`
+	TriggerObjectType string    `json:"trigger_object_type"`
+	LiveIterationID   *string   `json:"live_iteration_id,omitempty"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
 }
 
 func AdaptScenario(s scenario.Scenario) ScenarioResponse {

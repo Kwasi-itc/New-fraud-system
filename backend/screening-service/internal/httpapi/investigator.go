@@ -2,7 +2,8 @@ package httpapi
 
 import (
 	"context"
-	identity "github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	identity "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/service"
 	store "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
 	"github.com/gin-gonic/gin"
@@ -11,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func registerInvestigator(router *gin.Engine, db *pgxpool.Pool, verifier *identity.Verifier, svc service.ScreeningService) {
+func registerInvestigator(router *platformauth.Router, db *pgxpool.Pool, verifier *identity.Verifier, svc service.ScreeningService) {
 	registerInvestigatorEnrichment(router, db, verifier, svc)
 	registerCaseExclusions(router, db, verifier)
 	handler := func(c *gin.Context) {
@@ -30,6 +31,6 @@ func registerInvestigator(router *gin.Engine, db *pgxpool.Pool, verifier *identi
 			return state, err
 		})
 	}
-	router.GET("/v1/investigator/tenants/:tenantId/cases/:caseId/review", handler)
-	router.POST("/v1/investigator/tenants/:tenantId/cases/:caseId/review", handler)
+	router.GET("/v1/investigator/tenants/:tenantId/cases/:caseId/review", platformauth.Policy{Capability: "cases:review", PrincipalType: platformauth.PrincipalUser}, handler)
+	router.POST("/v1/investigator/tenants/:tenantId/cases/:caseId/review", platformauth.Policy{Capability: "cases:review", PrincipalType: platformauth.PrincipalUser}, handler)
 }

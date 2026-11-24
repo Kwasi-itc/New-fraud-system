@@ -6,12 +6,12 @@ import (
 	"errors"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/workflow"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"io"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -21,8 +21,13 @@ type WorkflowAuthoringHandler struct {
 
 func (h WorkflowAuthoringHandler) Handle(c *gin.Context) {
 	c.Header("Cache-Control", "private, no-store")
-	a := workflow.AuthoringActor{UserID: c.GetHeader("X-Workflow-User"), SessionID: c.GetHeader("X-Workflow-Session")}
-	a.Version, _ = strconv.ParseInt(c.GetHeader("X-Workflow-Version"), 10, 64)
+	p := platformauth.PrincipalFromContext(c)
+	if p == nil || !p.IsHuman() {
+		c.JSON(403, gin.H{"error": "Human operator required."})
+		return
+	}
+	a := workflow.AuthoringActor{UserID: p.Subject, SessionID: p.SessionID.String(), Version: p.AuthzVersion}
+
 	t, sc := c.Param("tenantId"), c.Param("scenarioId")
 	for _, id := range []string{t, sc, a.UserID, a.SessionID} {
 		if v, e := uuid.Parse(id); e != nil || v == uuid.Nil {
@@ -75,6 +80,12 @@ func (h WorkflowAuthoringHandler) Handle(c *gin.Context) {
 	if err != nil {
 		status := 500
 		message := "Workflow service is unavailable. Refresh before retrying."
+		var denied *platformauth.Error
+		if errors.As(err, &denied) {
+			status, message := platformauth.HTTPError(err)
+			c.JSON(status, gin.H{"error": message})
+			return
+		}
 		if errors.Is(err, workflow.ErrAuthoringDenied) {
 			status = 403
 			message = "Workflow or destination inbox access denied."

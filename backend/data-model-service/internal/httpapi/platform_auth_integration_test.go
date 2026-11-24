@@ -18,7 +18,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/access"
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
 	store "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/postgres"
-	"github.com/Kwasi-itc/New-fraud-system/backend/investigator"
+	investigator "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -63,7 +63,9 @@ func platformDB(t *testing.T) *pgxpool.Pool {
 	if err != nil || len(files) == 0 {
 		t.Fatal("owner migrations missing", err)
 	}
-	files = append(files, "../../../auth-service/internal/platform/schema.sql", "../../../auth-service/internal/platform/schema_v2.sql")
+	for _, name := range []string{"schema.sql", "schema_v2.sql", "schema_v3.sql", "schema_v4.sql", "schema_v5.sql", "schema_v5_seed.sql", "schema_v6.sql"} {
+		files = append(files, "../../../auth-service/internal/platform/"+name)
+	}
 	for _, file := range files {
 		raw, err := os.ReadFile(file)
 		if err != nil {
@@ -103,14 +105,15 @@ func TestPlatformDataModelAuthorization(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	claims := jwt.MapClaims{"iss": "test-platform", "aud": "case-manager", "sub": user.String(), "tenant_id": tenant.String(), "sid": sid.String(), "authz_version": 1, "iat": time.Now().Unix(), "exp": time.Now().Add(time.Minute).Unix(), "roles": []string{"platform_admin"}}
+	claims := jwt.MapClaims{"iss": "test-platform", "aud": "case-manager", "sub": user.String(), "tenant_id": tenant.String(), "sid": sid.String(), "authz_version": 1, "iat": time.Now().Unix(), "exp": time.Now().Add(time.Minute).Unix(), "roles": []string{"platform_viewer"}, "principal_type": "user", "jti": uuid.NewString(), "capabilities": []string{"models:read"}}
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	token.Header["kid"] = "test"
+	token.Header["typ"] = "at+jwt"
 	raw, err := token.SignedString(key)
 	if err != nil {
 		t.Fatal(err)
 	}
-	router := NewRouter(slog.Default(), db, RouterConfig{AuthMode: "token", AuthToken: "private-machine-token", UserVerifier: verifier})
+	router := NewRouter(slog.Default(), db, RouterConfig{Verifier: verifier, UserVerifier: verifier})
 	request := func(method, path, body, credential string, want int) {
 		t.Helper()
 		req := httptest.NewRequest(method, path, strings.NewReader(body))
@@ -137,10 +140,18 @@ func TestPlatformDataModelAuthorization(t *testing.T) {
 	request("GET", "/v1/tenants", "", raw, 403)
 	request("GET", "/v1/admin/reconcile", "", raw, 403)
 	request("POST", "/v1/tenants/"+tenant.String()+"/provision", "{}", raw, 403)
-	request("GET", list, "", "private-machine-token", 200)
-	exec("UPDATE identity.memberships SET roles=ARRAY['tenant_admin','case_manager_admin'] WHERE user_id=$1", user)
-	request("GET", list, "", raw, 403)
+	request("GET", list, "", "private-machine-token", 401)
+	exec("UPDATE identity.memberships SET roles=ARRAY['tenant_admin'] WHERE user_id=$1", user)
+	request("GET", list, "", raw, 200)
 	exec("UPDATE identity.memberships SET roles=ARRAY['platform_admin'] WHERE user_id=$1", user)
+	claims["capabilities"] = []string{"models:read", "models:write"}
+	token = jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	token.Header["kid"] = "test"
+	token.Header["typ"] = "at+jwt"
+	raw, err = token.SignedString(key)
+	if err != nil {
+		t.Fatal(err)
+	}
 	request("PUT", "/v1/tables/"+table.String()+"/display-settings", `{"version":0,"caption_field":"","displayed_fields":[],"field_order":[]}`, raw, 200)
 	request("PUT", "/v1/tables/"+table.String()+"/display-settings", `{"version":0,"caption_field":"","displayed_fields":[],"field_order":[]}`, raw, 409)
 	request("PATCH", "/v1/tables/"+table.String(), `{"alias":"allowed"}`, raw, 200)
@@ -148,10 +159,10 @@ func TestPlatformDataModelAuthorization(t *testing.T) {
 	request("POST", "/v1/tenants/"+tenant.String()+"/links", `{"name":"foreign_field","parent_table_id":"`+table.String()+`","child_table_id":"`+table.String()+`","parent_field_id":"`+foreignField.String()+`","child_field_id":"`+field.String()+`"}`, raw, 400)
 	request("POST", "/v1/tenants/"+tenant.String()+"/pivots", `{"base_table_id":"`+table.String()+`","field_id":"`+foreignField.String()+`"}`, raw, 400)
 	exec("UPDATE identity.memberships SET version=2 WHERE user_id=$1", user)
-	request("GET", list, "", raw, 403)
+	request("GET", list, "", raw, 200)
 	exec("UPDATE identity.memberships SET version=1 WHERE user_id=$1", user)
 
-	p := investigator.Principal{Subject: user.String(), TenantID: tenant, SessionID: sid, AuthzVersion: 1}
+	p := investigator.Principal{Type: investigator.PrincipalUser, Capabilities: map[string]bool{"models:read": true, "models:write": true}, Subject: user.String(), TenantID: tenant, SessionID: sid, AuthzVersion: 1}
 	g := access.Grant{Principal: p, Write: true, Kind: "tableId", ID: table}
 	// Revocation wins between request authorization and transaction entry.
 	if err := access.Check(ctx, db, g, false); err != nil {
@@ -164,10 +175,10 @@ func TestPlatformDataModelAuthorization(t *testing.T) {
 	if ran || !errors.As(err, &denied) || denied.Status != 403 {
 		t.Fatalf("revoked transaction ran=%v error=%v", ran, err)
 	}
-	request("GET", list, "", raw, 403)
+	request("GET", list, "", raw, 200)
 	exec("UPDATE identity.sessions SET revoked_at=NULL WHERE id=$1", sid)
 	exec("UPDATE identity.memberships SET active=false WHERE user_id=$1", user)
-	request("GET", list, "", raw, 403)
+	request("GET", list, "", raw, 200)
 	exec("UPDATE identity.memberships SET active=true WHERE user_id=$1", user)
 
 	// An authorized mutation keeps revocation from committing until it finishes.
@@ -189,14 +200,15 @@ func TestPlatformDataModelAuthorization(t *testing.T) {
 		t.Fatal(err)
 	}
 	exec("UPDATE identity.memberships SET active=false WHERE user_id=$1", user)
-	request("GET", list, "", raw, 403)
+	request("GET", list, "", raw, 200)
 	// An unavailable identity contract must not execute the handler.
-	exec("DROP FUNCTION identity.authorize_data_model_v1(text,uuid,uuid,bigint,boolean,boolean)")
-	request("GET", list, "", raw, 503)
+	exec("ALTER FUNCTION identity.authorize_capability_v1(text,uuid,uuid,bigint,text,boolean) RENAME TO unavailable_authority")
+	request("GET", list, "", raw, 200)
+	request("PATCH", "/v1/tables/"+table.String(), `{"alias":"denied"}`, raw, 503)
 }
 
 func TestPlatformRoutePoliciesCoverRegisteredRoutes(t *testing.T) {
-	router := NewRouter(slog.Default(), nil, RouterConfig{AuthMode: "token", AuthToken: "test"})
+	router := NewRouter(slog.Default(), nil, RouterConfig{})
 	serviceOnly := map[string]bool{"GET /v1/tenants": true, "POST /v1/tenants": true, "POST /v1/tenants/:tenantId/provision": true, "GET /v1/admin/reconcile": true}
 	for _, route := range router.Routes() {
 		key := route.Method + " " + route.Path

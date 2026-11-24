@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -25,6 +26,13 @@ type App struct {
 
 func New(cfg Config, logger *slog.Logger) (*App, error) {
 	gin.SetMode(cfg.GinMode)
+	if err := platformauth.ValidateEnvironment(); err != nil {
+		return nil, err
+	}
+	verifier, err := platformauth.FromEnvironment()
+	if err != nil {
+		return nil, err
+	}
 
 	db, err := storepostgres.NewPool(context.Background(), cfg.DatabaseURL, storepostgres.PoolConfig{
 		MaxConns: int32(cfg.DatabaseMaxConns),
@@ -55,8 +63,8 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 	}
 
 	router := httpapi.NewRouter(logger, db, readDB, httpapi.RouterConfig{
-		AuthMode:                       cfg.ServiceAuthMode,
-		AuthToken:                      cfg.ServiceAuthToken,
+		Verifier: verifier,
+
 		AllowedOrigins:                 cfg.AllowedOrigins,
 		DataModelServiceURL:            cfg.DataModelServiceURL,
 		DataModelReadMode:              cfg.DataModelReadMode,

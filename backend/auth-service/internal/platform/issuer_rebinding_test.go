@@ -12,7 +12,7 @@ import (
 func TestIssuerRebindingPreservesAccessAndIsRetrySafe(t *testing.T) {
 	s, tenant := fixture(t)
 	ctx := context.Background()
-	user, oldSession := provision(t, s, tenant, "operator", "tenant_admin", "case_manager_admin", "platform_admin")
+	user, oldSession := provision(t, s, tenant, "operator", "tenant_admin")
 	before, err := s.Resolve(ctx, oldSession)
 	if err != nil {
 		t.Fatal(err)

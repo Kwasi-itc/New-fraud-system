@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -21,6 +22,11 @@ func main() {
 		logger.Error("failed to load config", "error", err)
 		os.Exit(1)
 	}
+	if err := platformauth.ValidateEnvironment(); err != nil {
+		logger.Error("platform auth configuration invalid", "error", err)
+		os.Exit(1)
+	}
+
 	logger = observability.New(os.Stdout, "worker", cfg.LogLevel)
 	slog.SetDefault(logger)
 	db, err := storepostgres.NewPool(context.Background(), cfg.DatabaseURL)

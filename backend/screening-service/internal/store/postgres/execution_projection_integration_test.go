@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	store "github.com/Kwasi-itc/New-fraud-system/backend/screening-service/internal/store/postgres"
 	"github.com/google/uuid"
 	"net/http"
@@ -34,6 +35,9 @@ func TestExecutionProjectionRecoveryOrderingAndFences(t *testing.T) {
 			}
 			execSQL(string(raw))
 		}
+	}
+	if err := authtest.ApplyIdentity(ctx, db, "../../../../auth-service/internal/platform"); err != nil {
+		t.Fatal(err)
 	}
 	tenant, scenario, iteration, decision, config, execution := uuid.NewString(), uuid.NewString(), uuid.NewString(), uuid.NewString(), uuid.NewString(), uuid.NewString()
 	execSQL(`INSERT INTO core.tenants(id,name,schema_name,status,created_at,updated_at) VALUES($1,'Projection','projection_test','active',now(),now())`, tenant)
@@ -134,10 +138,10 @@ func TestExecutionProjectionRecoveryOrderingAndFences(t *testing.T) {
 	check("confirmed_hit")
 	// Real callback HTTP route ignores stale status/provider/count fields.
 	if binary := os.Getenv("DECISION_INTEGRATION_BINARY"); binary != "" {
-		operatorToken := "synthetic-screening-operator-token-32"
-		endpoint, token, _ := startInvestigatorServer(t, db, binary, tenant, "SCREENING_AUTHORING_TOKEN="+operatorToken)
+
+		endpoint, token, _ := startInvestigatorServer(t, db, binary, tenant)
 		raw, _ := json.Marshal(map[string]any{"tenant_id": tenant, "screening_id": source, "decision_id": decision, "screening_config_id": config, "status": "failed", "provider_reference": "stale", "match_count": 999})
-		for _, deniedToken := range []string{token, testIntakeToken} {
+		for _, deniedToken := range []string{"retired-static-token", "retired-intake-token"} {
 			req, _ := http.NewRequest(http.MethodPost, endpoint+"/internal/screening-status-updates", bytes.NewReader(raw))
 			req.Header.Set("Authorization", "Bearer "+deniedToken)
 			req.Header.Set("Content-Type", "application/json")
@@ -158,20 +162,20 @@ func TestExecutionProjectionRecoveryOrderingAndFences(t *testing.T) {
 		} {
 			payload, _ := json.Marshal(mismatched)
 			req, _ := http.NewRequest(http.MethodPost, endpoint+"/internal/screening-status-updates", bytes.NewReader(payload))
-			req.Header.Set("Authorization", "Bearer "+testCallbackToken)
+			req.Header.Set("Authorization", "Bearer "+journeyToken(t, tenant, "screening-service", "decision-engine-service", "screening:callback"))
 			req.Header.Set("Content-Type", "application/json")
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
 				t.Fatal(err)
 			}
 			resp.Body.Close()
-			if resp.StatusCode != 400 {
+			if resp.StatusCode != 400 && resp.StatusCode != 403 {
 				t.Fatal("mismatched callback accepted", resp.StatusCode)
 			}
 			check("confirmed_hit")
 		}
 		req, _ := http.NewRequest(http.MethodPost, endpoint+"/internal/screening-status-updates", bytes.NewReader(raw))
-		req.Header.Set("Authorization", "Bearer "+testCallbackToken)
+		req.Header.Set("Authorization", "Bearer "+journeyToken(t, tenant, "screening-service", "decision-engine-service", "screening:callback"))
 		req.Header.Set("Content-Type", "application/json")
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -185,7 +189,6 @@ func TestExecutionProjectionRecoveryOrderingAndFences(t *testing.T) {
 		req, _ = http.NewRequest(http.MethodPost, endpoint+"/v1/tenants/"+tenant+"/screening-executions/"+execution+"/status", bytes.NewBufferString(`{"status":"failed"}`))
 		req.Header.Set("Authorization", "Bearer "+token)
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("X-Screening-Authoring-Token", operatorToken)
 		resp, err = http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatal(err)
