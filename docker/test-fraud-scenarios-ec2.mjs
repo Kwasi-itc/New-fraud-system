@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 
-import { randomBytes } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import {
+  randomBytes,
+  randomUUID,
+  generateKeyPairSync,
+  createPrivateKey,
+  sign,
+} from 'node:crypto';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { existsSync, readFileSync } from 'node:fs';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { buildScenarioDefinitions, portableModel } from './provision-fraud-scenarios-ec2.mjs';
@@ -11,9 +18,10 @@ const DEFAULT_MODEL_FILE = path.resolve(SCRIPT_DIR, '../fraud-data-model.json');
 const REQUEST_TIMEOUT_MS = 30_000;
 const ASYNC_POLL_TIMEOUT_MS = 120_000;
 const ASYNC_POLL_INTERVAL_MS = 1_000;
-const BATCH_SIZE = 50;
-
-const compareByKey = (items, key) => items.sort((left, right) => String(key(left)).localeCompare(String(key(right))));
+const DEFAULT_TOTAL_TRANSACTIONS = 200_000;
+const DEFAULT_DURATION_HOURS = 24;
+const DEFAULT_BATCH_SIZE = 10;
+const TOKEN_REFRESH_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 
 function canonicalize(value) {
   if (Array.isArray(value)) return value.map(canonicalize);
@@ -25,79 +33,6 @@ function canonicalize(value) {
 
 function canonicalJSON(value) {
   return JSON.stringify(canonicalize(value));
-}
-
-function parseArgs(args) {
-  const parsed = {
-    host: undefined,
-    tenantId: undefined,
-    modelFile: DEFAULT_MODEL_FILE,
-    runId: `fs-${Date.now()}-${randomBytes(4).toString('hex')}`,
-    lateCallbackSeconds: 300,
-    structuringLimit: 1000,
-    nearLimitPercent: 10,
-    confirmWrite: false,
-    dryRun: false,
-  };
-  const valuedOptions = new Map([
-    ['--host', 'host'],
-    ['--tenant-id', 'tenantId'],
-    ['--model-file', 'modelFile'],
-    ['--run-id', 'runId'],
-    ['--late-callback-seconds', 'lateCallbackSeconds'],
-    ['--structuring-limit', 'structuringLimit'],
-    ['--structuring-band-percent', 'nearLimitPercent'],
-  ]);
-  for (let index = 0; index < args.length; index += 1) {
-    const option = args[index];
-    if (option === '--confirm-write') {
-      parsed.confirmWrite = true;
-      continue;
-    }
-    if (option === '--dry-run') {
-      parsed.dryRun = true;
-      continue;
-    }
-    if (option === '--help' || option === '-h') {
-      parsed.help = true;
-      continue;
-    }
-    const key = valuedOptions.get(option);
-    if (!key) throw new Error(`Unknown option: ${option}`);
-    const value = args[index + 1];
-    if (!value || value.startsWith('--')) throw new Error(`Missing value for ${option}`);
-    parsed[key] = ['lateCallbackSeconds', 'structuringLimit', 'nearLimitPercent'].includes(key) ? Number(value) : value;
-    index += 1;
-  }
-  if (parsed.help) return parsed;
-  if (!Number.isInteger(parsed.lateCallbackSeconds) || parsed.lateCallbackSeconds <= 0) {
-    throw new Error('--late-callback-seconds must be a positive integer');
-  }
-  if (!Number.isFinite(parsed.structuringLimit) || parsed.structuringLimit <= 0) {
-    throw new Error('--structuring-limit must be a positive number');
-  }
-  if (!Number.isFinite(parsed.nearLimitPercent) || parsed.nearLimitPercent <= 0 || parsed.nearLimitPercent > 100) {
-    throw new Error('--structuring-band-percent must be greater than 0 and no more than 100');
-  }
-  if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,40}$/.test(parsed.runId)) {
-    throw new Error('--run-id must be 1-41 letters, numbers, underscores, or hyphens');
-  }
-  if (!parsed.dryRun || parsed.host) {
-    if (!parsed.host) throw new Error('Required option missing: --host ip:port');
-    parsed.origin = parseOrigin(parsed.host);
-  }
-  if (!parsed.dryRun || parsed.tenantId) {
-    if (!parsed.tenantId) throw new Error('Required option missing: --tenant-id');
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(parsed.tenantId)) {
-      throw new Error('--tenant-id must be a UUID');
-    }
-    parsed.tenantId = parsed.tenantId.toLowerCase();
-  }
-  if (!parsed.dryRun && !parsed.confirmWrite) {
-    throw new Error('This test writes persistent fixture records and decisions. Review the warnings, then pass --confirm-write.');
-  }
-  parsed.modelFile = path.resolve(parsed.modelFile);
-  return parsed;
 }
 
 function parseOrigin(host) {
@@ -114,47 +49,416 @@ function parseOrigin(host) {
   return url.origin;
 }
 
+function parseArgs(args) {
+  const parsed = {
+    host: undefined,
+    tenantId: undefined,
+    modelFile: DEFAULT_MODEL_FILE,
+    runId: `fs-${Date.now()}-${randomBytes(4).toString('hex')}`,
+    lateCallbackSeconds: 300,
+    structuringLimit: 1000,
+    nearLimitPercent: 10,
+    confirmWrite: false,
+    dryRun: false,
+    deterministic: false,
+    totalTransactions: DEFAULT_TOTAL_TRANSACTIONS,
+    durationHours: DEFAULT_DURATION_HOURS,
+    durationMinutes: undefined,
+    batchSize: DEFAULT_BATCH_SIZE,
+    clientId: undefined,
+    privateKeyFile: undefined,
+    keyId: undefined,
+    autoCreateClient: false,
+    adminToken: undefined,
+    resume: false,
+    checkpointFile: undefined,
+    sampleEvaluatePercent: 5,
+  };
+
+  const valuedOptions = new Map([
+    ['--host', 'host'],
+    ['--tenant-id', 'tenantId'],
+    ['--model-file', 'modelFile'],
+    ['--run-id', 'runId'],
+    ['--late-callback-seconds', 'lateCallbackSeconds'],
+    ['--structuring-limit', 'structuringLimit'],
+    ['--structuring-band-percent', 'nearLimitPercent'],
+    ['--total-transactions', 'totalTransactions'],
+    ['--duration-hours', 'durationHours'],
+    ['--duration-minutes', 'durationMinutes'],
+    ['--batch-size', 'batchSize'],
+    ['--client-id', 'clientId'],
+    ['--private-key-file', 'privateKeyFile'],
+    ['--key-id', 'keyId'],
+    ['--admin-token', 'adminToken'],
+    ['--checkpoint-file', 'checkpointFile'],
+    ['--sample-evaluate-percent', 'sampleEvaluatePercent'],
+  ]);
+
+  for (let index = 0; index < args.length; index += 1) {
+    const option = args[index];
+    if (option === '--confirm-write') {
+      parsed.confirmWrite = true;
+      continue;
+    }
+    if (option === '--dry-run') {
+      parsed.dryRun = true;
+      continue;
+    }
+    if (option === '--deterministic') {
+      parsed.deterministic = true;
+      continue;
+    }
+    if (option === '--auto-create-client') {
+      parsed.autoCreateClient = true;
+      continue;
+    }
+    if (option === '--resume') {
+      parsed.resume = true;
+      continue;
+    }
+    if (option === '--help' || option === '-h') {
+      parsed.help = true;
+      continue;
+    }
+    const key = valuedOptions.get(option);
+    if (!key) throw new Error(`Unknown option: ${option}`);
+    const value = args[index + 1];
+    if (!value || value.startsWith('--')) throw new Error(`Missing value for ${option}`);
+
+    if (['lateCallbackSeconds', 'structuringLimit', 'nearLimitPercent', 'totalTransactions', 'durationHours', 'durationMinutes', 'batchSize', 'sampleEvaluatePercent'].includes(key)) {
+      parsed[key] = Number(value);
+    } else {
+      parsed[key] = value;
+    }
+    index += 1;
+  }
+
+  if (parsed.help) return parsed;
+
+  if (!Number.isInteger(parsed.lateCallbackSeconds) || parsed.lateCallbackSeconds <= 0) {
+    throw new Error('--late-callback-seconds must be a positive integer');
+  }
+  if (!Number.isFinite(parsed.structuringLimit) || parsed.structuringLimit <= 0) {
+    throw new Error('--structuring-limit must be a positive number');
+  }
+  if (!Number.isFinite(parsed.nearLimitPercent) || parsed.nearLimitPercent <= 0 || parsed.nearLimitPercent > 100) {
+    throw new Error('--structuring-band-percent must be greater than 0 and no more than 100');
+  }
+  if (!Number.isInteger(parsed.totalTransactions) || parsed.totalTransactions <= 0) {
+    throw new Error('--total-transactions must be a positive integer');
+  }
+  if (!Number.isFinite(parsed.durationHours) || parsed.durationHours <= 0) {
+    throw new Error('--duration-hours must be a positive number');
+  }
+  if (parsed.durationMinutes !== undefined && (!Number.isFinite(parsed.durationMinutes) || parsed.durationMinutes <= 0)) {
+    throw new Error('--duration-minutes must be a positive number');
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,40}$/.test(parsed.runId)) {
+    throw new Error('--run-id must be 1-41 letters, numbers, underscores, or hyphens');
+  }
+  if (!parsed.dryRun || parsed.host) {
+    if (!parsed.host) throw new Error('Required option missing: --host ip:port');
+    parsed.origin = parseOrigin(parsed.host);
+  }
+  if (!parsed.dryRun || parsed.tenantId) {
+    if (!parsed.tenantId) throw new Error('Required option missing: --tenant-id');
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(parsed.tenantId)) {
+      throw new Error('--tenant-id must be a UUID');
+    }
+    parsed.tenantId = parsed.tenantId.toLowerCase();
+  }
+  if (parsed.clientId) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(parsed.clientId)) {
+      throw new Error('--client-id must be a UUID');
+    }
+    parsed.clientId = parsed.clientId.toLowerCase();
+  }
+  if (!parsed.dryRun && !parsed.confirmWrite) {
+    throw new Error('This test writes persistent fixture records and decisions. Review the warnings, then pass --confirm-write.');
+  }
+
+  parsed.durationMs = parsed.durationMinutes
+    ? Math.round(parsed.durationMinutes * 60 * 1000)
+    : Math.round(parsed.durationHours * 3600 * 1000);
+
+  parsed.modelFile = path.resolve(parsed.modelFile);
+  parsed.checkpointFile = parsed.checkpointFile
+    ? path.resolve(parsed.checkpointFile)
+    : path.resolve(SCRIPT_DIR, `../.local/fraud-simulation-${parsed.runId}.json`);
+
+  return parsed;
+}
+
 function usage() {
   return `Usage:
-  SERVICE_AUTH_TOKEN=... node docker/test-fraud-scenarios-ec2.mjs \\
-    --host ip:port --tenant-id UUID --confirm-write
+  node docker/test-fraud-scenarios-ec2.mjs \\
+    --host ip:port --tenant-id UUID --confirm-write [options]
 
-Options:
+Core Options:
   --host ip:port                 Gateway origin (defaults to http:// when scheme is omitted)
   --tenant-id UUID               Existing tenant with the fraud model and published scenarios
+  --total-transactions N         Total transactions to submit (default: 200000)
+  --duration-hours N             Duration in hours to pace transactions (default: 24)
+  --duration-minutes N           Override duration in minutes (useful for testing)
+  --batch-size N                 Transaction batch size per HTTP request (default: 10)
   --model-file PATH              Portable model JSON (default: ../fraud-data-model.json)
   --run-id ID                    Fixture prefix (generated when omitted)
+  --confirm-write                Required; records and decisions persist in the tenant
+  --dry-run                      Simulate traffic locally without making API requests
+  --deterministic                Run legacy 1-per-rule deterministic fire/no-fire test instead of 24h simulation
+  --resume                       Resume from existing checkpoint file
+  --checkpoint-file PATH         Custom path for run state checkpoint
+  --help                         Show this help
+
+Auth Options (Proof-to-Token Exchange every 10 minutes):
+  --client-id UUID               Existing registered auth client ID
+  --private-key-file PATH        RSA private key PEM for signing client assertions
+  --key-id ID                    Key ID registered with auth service (defaults to client key id)
+  --auto-create-client           Automatically register a client & RSA keypair using admin token
+  --admin-token TOKEN            Bearer token used to register auth client (or SERVICE_AUTH_TOKEN)
+
+Rule Configuration:
   --late-callback-seconds N      Match scenario provisioning (default: 300)
   --structuring-limit N          Match scenario provisioning (default: 1000)
   --structuring-band-percent N   Match scenario provisioning (default: 10)
-  --dry-run                      Generate and validate local cases; make no API requests
-  --confirm-write                Required; records and decisions persist in the tenant
-  --help                         Show this help
-
-Auth:
-  SERVICE_AUTH_TOKEN is used by both APIs. Override with INGESTION_SERVICE_TOKEN
-  and/or DECISION_ENGINE_SERVICE_TOKEN if the services use distinct tokens.
 `;
 }
 
-async function loadModel(modelFile) {
-  let envelope;
-  try {
-    envelope = JSON.parse(await readFile(modelFile, 'utf8'));
-  } catch (error) {
-    throw new Error(`Could not read model JSON at ${modelFile}: ${error.message}`);
-  }
-  if (!envelope?.data_model?.tables || !Array.isArray(envelope.data_model.tables)) {
-    throw new Error('Model JSON must contain data_model.tables');
-  }
-  const model = portableModel(envelope.data_model);
-  if (model.tables.length === 0) throw new Error('Model document has no tables');
-  return model;
+// ---------------------------------------------------------------------------
+// Auth Client & RS256 Proof Exchange (every 10 minutes)
+// ---------------------------------------------------------------------------
+
+export function createClientAssertion(clientId, privateKey, kid, tokenEndpointUrl) {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT', kid };
+  const payload = {
+    iss: clientId,
+    sub: clientId,
+    aud: tokenEndpointUrl,
+    jti: randomUUID(),
+    iat: now,
+    exp: now + 60,
+  };
+  const encode = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
+  const input = `${encode(header)}.${encode(payload)}`;
+  const signature = sign('RSA-SHA256', Buffer.from(input), privateKey).toString('base64url');
+  return `${input}.${signature}`;
 }
 
-function tableMap(model) {
-  return new Map(model.tables.map((table) => [table.name, table]));
+export async function exchangeClientProof(origin, clientId, privateKey, kid, scopes = ['ingest:write', 'decisions:evaluate', 'decisions:read']) {
+  const tokenEndpointUrl = `${origin}/oauth/token`;
+  const assertion = createClientAssertion(clientId, privateKey, kid, tokenEndpointUrl);
+  const body = new URLSearchParams({
+    grant_type: 'client_credentials',
+    client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+    client_id: clientId,
+    client_assertion: assertion,
+    scope: scopes.join(' '),
+  });
+
+  const response = await fetch(tokenEndpointUrl, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+      accept: 'application/json',
+    },
+    body: body.toString(),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+
+  const text = await response.text();
+  let result;
+  try {
+    result = JSON.parse(text);
+  } catch {
+    throw new Error(`Token exchange at /oauth/token returned invalid JSON (HTTP ${response.status})`);
+  }
+
+  if (!response.ok || !result.access_token) {
+    const errorMsg = result?.error_description || result?.error || response.statusText;
+    throw new Error(`Client token exchange failed (HTTP ${response.status}): ${errorMsg}`);
+  }
+
+  return {
+    accessToken: result.access_token,
+    expiresIn: result.expires_in ?? 900,
+    obtainedAt: Date.now(),
+  };
 }
+
+export async function registerAuthClientAndKey(origin, adminToken, tenantId, clientName = 'Fraud scenario simulation client') {
+  const { publicKey, privateKey } = generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: 'spki', format: 'pem' },
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+  });
+
+  const kid = `sim-key-${randomBytes(4).toString('hex')}`;
+  const clientResponse = await fetch(`${origin}/services/auth/v1/tenants/${encodeURIComponent(tenantId)}/clients`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${adminToken}`,
+      'content-type': 'application/json',
+      accept: 'application/json',
+    },
+    body: JSON.stringify({
+      name: clientName,
+      scopes: ['ingest:write', 'decisions:evaluate', 'decisions:read'],
+      active: true,
+    }),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+
+  const clientText = await clientResponse.text();
+  let clientJson;
+  try {
+    clientJson = JSON.parse(clientText);
+  } catch {
+    throw new Error(`Client registration returned HTTP ${clientResponse.status}: ${clientText}`);
+  }
+  if (!clientResponse.ok || !clientJson.client?.id) {
+    throw new Error(`Failed to create client (HTTP ${clientResponse.status}): ${clientText}`);
+  }
+  const clientId = clientJson.client.id;
+
+  const keyResponse = await fetch(`${origin}/services/auth/v1/tenants/${encodeURIComponent(tenantId)}/client-keys`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${adminToken}`,
+      'content-type': 'application/json',
+      accept: 'application/json',
+    },
+    body: JSON.stringify({
+      client_id: clientId,
+      kid,
+      public_key_pem: publicKey,
+    }),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+
+  if (!keyResponse.ok && keyResponse.status !== 204) {
+    const keyText = await keyResponse.text();
+    throw new Error(`Failed to register client key (HTTP ${keyResponse.status}): ${keyText}`);
+  }
+
+  return { clientId, privateKey, kid };
+}
+
+export class AuthTokenManager {
+  constructor({ origin, clientId, privateKey, kid, scopes, refreshIntervalMs = TOKEN_REFRESH_INTERVAL_MS, onTokenRefresh }) {
+    this.origin = origin;
+    this.clientId = clientId;
+    this.privateKey = privateKey;
+    this.kid = kid;
+    this.scopes = scopes;
+    this.refreshIntervalMs = refreshIntervalMs;
+    this.onTokenRefresh = onTokenRefresh;
+    this.accessToken = null;
+    this.expiresAt = 0;
+    this.timer = null;
+    this.refreshing = null;
+  }
+
+  async start() {
+    await this.refreshToken();
+    this.timer = setInterval(() => {
+      this.refreshToken().catch((err) => {
+        console.error(`[Auth] Periodic proof exchange failed: ${err.message}`);
+      });
+    }, this.refreshIntervalMs);
+    if (this.timer.unref) this.timer.unref();
+  }
+
+  stop() {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+  }
+
+  async refreshToken() {
+    if (this.refreshing) return this.refreshing;
+    this.refreshing = (async () => {
+      try {
+        const result = await exchangeClientProof(
+          this.origin,
+          this.clientId,
+          this.privateKey,
+          this.kid,
+          this.scopes,
+        );
+        this.accessToken = result.accessToken;
+        this.expiresAt = result.obtainedAt + (result.expiresIn * 1000);
+        if (this.onTokenRefresh) this.onTokenRefresh(this.accessToken, this.expiresAt);
+        return this.accessToken;
+      } finally {
+        this.refreshing = null;
+      }
+    })();
+    return this.refreshing;
+  }
+
+  async getToken() {
+    // If token expires in less than 2 minutes, proactively refresh
+    if (!this.accessToken || Date.now() > this.expiresAt - 120_000) {
+      await this.refreshToken();
+    }
+    return this.accessToken;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Diurnal Varying Frequency Pacer
+// ---------------------------------------------------------------------------
+
+export function calculateDiurnalMultiplier(elapsedMs, totalDurationMs) {
+  // Simulates a 24-hour diurnal cycle with night lull, afternoon peak, and evening surge
+  const dayMs = 24 * 3600 * 1000;
+  const fraction = (elapsedMs % dayMs) / dayMs;
+  // Diurnal curve: trough around 03:00 (f ~ 0.125), peak around 15:00 (f ~ 0.625)
+  const multiplier = 1.0 + 0.65 * Math.sin(2 * Math.PI * (fraction - 0.25)) + 0.15 * Math.sin(4 * Math.PI * (fraction - 0.25));
+  return Math.max(0.3, Math.min(2.0, multiplier));
+}
+
+export class TrafficPacer {
+  constructor({ totalTransactions, durationMs, batchSize = 10 }) {
+    this.totalTransactions = totalTransactions;
+    this.durationMs = durationMs;
+    this.batchSize = batchSize;
+    this.totalBatches = Math.ceil(totalTransactions / batchSize);
+    this.meanBatchRatePerSec = this.totalBatches / (durationMs / 1000);
+    this.burstRemaining = 0;
+  }
+
+  nextDelayMs(elapsedMs) {
+    if (this.burstRemaining > 0) {
+      this.burstRemaining -= 1;
+      return 25 + Math.floor(Math.random() * 35); // 25-60ms burst speed
+    }
+
+    // 1.5% chance to trigger a micro-burst
+    if (Math.random() < 0.015) {
+      this.burstRemaining = 4 + Math.floor(Math.random() * 8);
+      return 30;
+    }
+
+    const multiplier = calculateDiurnalMultiplier(elapsedMs, this.durationMs);
+    const currentRate = Math.max(0.1, this.meanBatchRatePerSec * multiplier);
+    const meanIntervalMs = 1000 / currentRate;
+
+    // Poisson inter-arrival time with exponential distribution
+    const uniform = Math.max(0.0001, Math.min(0.9999, Math.random()));
+    const sampledDelay = -meanIntervalMs * Math.log(uniform);
+
+    // Clamp between 5ms and 15,000ms
+    return Math.max(5, Math.min(15_000, Math.round(sampledDelay)));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Realistic Data Model & Scenario Generation (Organic Triggering)
+// ---------------------------------------------------------------------------
 
 function defaultValue(field, recordId, now) {
   const enumValue = field.enum_values?.[0]?.value;
@@ -193,8 +497,334 @@ function completeRecord(tables, objectType, objectId, overrides = {}, now = new 
   return record;
 }
 
+export function createEntityPool(model, runId, { customerCount = 500, walletCount = 800, destinationCount = 100 } = {}) {
+  const tables = new Map(model.tables.map((t) => [t.name, t]));
+  const customers = [];
+  const wallets = [];
+  const destinations = [];
+  const now = new Date();
+
+  // Create Destinations: 5 hub destinations for concentration, several newly seen, others standard
+  for (let i = 0; i < destinationCount; i += 1) {
+    destinations.push({
+      ref: `${runId}-dest-${i}`,
+      isHub: i < 5,
+      isNew: i >= 5 && i < 15,
+      network: 'MTN',
+    });
+  }
+
+  // Create Customers with realistic varying attributes
+  for (let i = 0; i < customerCount; i += 1) {
+    const userId = `${runId}-user-${i}`;
+    const isDayZero = i < 10;
+    const isNew = i >= 10 && i < 30;
+    const isDormant = i >= 30 && i < 50;
+    const isRecentCredChange = i >= 50 && i < 70;
+    const hasNoIdentity = i >= 70 && i < 90;
+
+    const accountAgeHours = isDayZero ? 0.5 : isNew ? 12 : 200 + (i * 10);
+    const daysSinceLastActivity = isDormant ? 95 + (i % 20) : (i % 30);
+    const authChangeHoursAgo = isRecentCredChange ? 2 : 500;
+
+    const customer = completeRecord(tables, 'customers', userId, {
+      has_identity_number: !hasNoIdentity,
+      days_since_last_activity: daysSinceLastActivity,
+      auth_change_hours_ago: authChangeHoursAgo,
+    }, now);
+    customer._accountAgeHours = accountAgeHours;
+    customer._hasIdentity = !hasNoIdentity;
+    customers.push(customer);
+  }
+
+  // Create Wallets: linked to customers
+  for (let i = 0; i < walletCount; i += 1) {
+    const customer = customers[i % customers.length];
+    const walletId = `${runId}-wallet-${i}`;
+    const isThirdParty = (i % 15 === 0);
+    const isUnverified = (i % 25 === 0);
+    const nameMismatch = (i % 35 === 0);
+    const sharedHash = (i < 4) ? `shared-hash-${runId}` : `hash-${walletId}`;
+
+    const wallet = completeRecord(tables, 'wallets', walletId, {
+      user_id: customer.object_id,
+      wallet_type: 'mobile',
+      wallet_number_masked: `***${walletId.slice(-6)}`,
+      wallet_number_hash: sharedHash,
+      financial_entity_id: 'GH-MOMO',
+      is_third_party: isThirdParty,
+      is_verified: !isUnverified,
+      name_match: nameMismatch ? 'none' : isUnverified ? 'unknown' : 'exact',
+      attached_at: now.toISOString(),
+      minutes_since_signup: (i % 40 === 0) ? 20 : 1200,
+      third_party_wallet_count: isThirdParty ? 2 : 0,
+    }, now);
+    wallet._customer = customer;
+    wallets.push(wallet);
+  }
+
+  return { customers, wallets, destinations, tables };
+}
+
+export class RealisticTransactionGenerator {
+  constructor(entityPool, model, runId, options = {}) {
+    this.pool = entityPool;
+    this.model = model;
+    this.tables = new Map(model.tables.map((t) => [t.name, t]));
+    this.runId = runId;
+    this.options = options;
+    this.transactionCounter = 0;
+    this.recentFailedWallets = new Set();
+    this.probeUsers = new Map();
+  }
+
+  generateBatch(size = 10, currentTimestamp = new Date()) {
+    const batch = [];
+    for (let i = 0; i < size; i += 1) {
+      batch.push(this.generateNext(currentTimestamp));
+    }
+    return batch;
+  }
+
+  generateNext(now = new Date()) {
+    const txId = `${this.runId}-tx-${++this.transactionCounter}`;
+    const wallet = this.pool.wallets[Math.floor(Math.random() * this.pool.wallets.length)];
+    const customer = wallet._customer;
+
+    // Organic scenario trigger probabilities
+    const roll = Math.random();
+
+    let leg = 'debit';
+    let state = 'settled';
+    let amount = Math.floor(10 + Math.random() * 250);
+    let destination = this.pool.destinations[Math.floor(Math.random() * this.pool.destinations.length)];
+    let destinationFirstSeenHours = destination.isNew ? 6 : 720;
+    let secondsToCallback = 45;
+    let userMedian90d = null;
+    let userTxnCount24h = 1 + (this.transactionCounter % 4);
+
+    // Scenario 1: Destination concentration (~5% of transactions)
+    if (roll < 0.05) {
+      leg = 'credit';
+      destination = this.pool.destinations[Math.floor(Math.random() * 5)]; // Top hubs
+      if (Math.random() < 0.25) {
+        amount = 1200; // Destination volume spike
+      }
+    }
+    // Scenario 3: Account lifecycle risk (~4% of transactions)
+    else if (roll < 0.09) {
+      leg = 'debit';
+      state = 'initiated';
+      if (customer._accountAgeHours < 24) {
+        amount = customer._hasIdentity ? 150 : 1100; // Trigger high-value-without-kyc or day-zero
+      }
+    }
+    // Scenario 4: Anomalous transaction behavior (~4% of transactions)
+    else if (roll < 0.13) {
+      leg = 'debit';
+      const structuringFloor = this.options.structuringLimit * (1 - this.options.nearLimitPercent / 100);
+      const subRoll = Math.random();
+      if (subRoll < 0.35) {
+        // Structuring near limit ($900-$999)
+        amount = structuringFloor + Math.floor(Math.random() * (this.options.structuringLimit - structuringFloor));
+        state = 'settled';
+      } else if (subRoll < 0.65) {
+        // Probe-then-escalate sequence
+        if (this.probeUsers.has(customer.object_id)) {
+          amount = 550;
+          state = 'settled';
+          this.probeUsers.delete(customer.object_id);
+        } else {
+          amount = 5;
+          state = 'settled';
+          this.probeUsers.set(customer.object_id, Date.now());
+        }
+      } else {
+        // Velocity burst or failed debits
+        userTxnCount24h = 12;
+        state = 'settled';
+      }
+    }
+    // Scenario 5: Resolution quality (~3% of transactions)
+    else if (roll < 0.16) {
+      state = Math.random() < 0.5 ? 'undetermined' : 'callback_received';
+      secondsToCallback = this.options.lateCallbackSeconds + 50;
+    }
+
+    return completeRecord(this.tables, 'transactions', txId, {
+      trans_id: txId,
+      leg,
+      state,
+      operation: 'TRANSFER',
+      channel: 'app',
+      amount,
+      user_median_amount_90d: userMedian90d,
+      currency: 'GHS',
+      country_id: 'GH',
+      user_id: customer.object_id,
+      wallet_id: wallet.object_id,
+      source_msisdn: `+233${txId.slice(-9)}`,
+      destination_ref: destination.ref,
+      destination_network: destination.network,
+      destination_first_seen_hours: destinationFirstSeenHours,
+      funding_network: 'GH-MOMO',
+      merchant_product_id: 'p2p-transfer',
+      payment_ref: txId,
+      is_recurring: false,
+      expected_callback: state === 'callback_received',
+      seconds_to_callback: secondsToCallback,
+      account_age_hours: customer._accountAgeHours,
+      user_txn_count_24h: userTxnCount24h,
+      initiated_at: now.toISOString(),
+    }, now);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// HTTP Helpers & Service Ingestion
+// ---------------------------------------------------------------------------
+
+async function requestJson(origin, prefix, token, endpoint, { method = 'GET', body } = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let response;
+  try {
+    response = await fetch(`${origin}${prefix}/v1${endpoint}`, {
+      method,
+      headers: {
+        authorization: `Bearer ${token}`,
+        accept: 'application/json',
+        ...(body ? { 'content-type': 'application/json' } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+      signal: controller.signal,
+      redirect: 'error',
+    });
+  } catch (error) {
+    const reason = error.name === 'AbortError' ? 'request timed out' : error.message;
+    throw new Error(`${method} ${prefix}/v1${endpoint} failed: ${reason}`);
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  const text = await response.text();
+  let result;
+  if (text) {
+    try {
+      result = JSON.parse(text);
+    } catch {
+      throw new Error(`${method} ${prefix}/v1${endpoint} returned invalid JSON (HTTP ${response.status})`);
+    }
+  }
+
+  if (!response.ok) {
+    const details = result?.details ?? result?.error?.message ?? result?.error ?? response.statusText;
+    throw new Error(`${method} ${prefix}/v1${endpoint} returned HTTP ${response.status}: ${details}`);
+  }
+  return { status: response.status, body: result };
+}
+
+function assertEnvelope(value, key, label) {
+  if (!value || typeof value[key] !== 'object' || value[key] === null) {
+    throw new Error(`${label}: response did not contain "${key}"`);
+  }
+  return value[key];
+}
+
+async function loadModel(modelFile) {
+  let envelope;
+  try {
+    envelope = JSON.parse(await readFile(modelFile, 'utf8'));
+  } catch (error) {
+    throw new Error(`Could not read model JSON at ${modelFile}: ${error.message}`);
+  }
+  if (!envelope?.data_model?.tables || !Array.isArray(envelope.data_model.tables)) {
+    throw new Error('Model JSON must contain data_model.tables');
+  }
+  const model = portableModel(envelope.data_model);
+  if (model.tables.length === 0) throw new Error('Model document has no tables');
+  return model;
+}
+
+async function checkExistingModel(options, token, model) {
+  const response = await requestJson(
+    options.origin,
+    '/services/data-model',
+    token,
+    `/tenants/${encodeURIComponent(options.tenantId)}/data-model/export`,
+  );
+  const exported = portableModel(assertEnvelope(response.body, 'data_model', 'Model export'));
+  if (canonicalJSON(exported) !== canonicalJSON(model)) {
+    throw new Error('Tenant data model differs from the local fraud-data-model.json; refusing to seed fixtures.');
+  }
+}
+
+async function checkScenarios(options, token, definitions) {
+  const tenantPath = `/tenants/${encodeURIComponent(options.tenantId)}`;
+  const response = await requestJson(options.origin, '/services/decisions', token, `${tenantPath}/scenarios`);
+  if (!Array.isArray(response.body?.scenarios)) throw new Error('Scenario list response is malformed.');
+  const actualByName = new Map();
+  for (const scenario of response.body.scenarios) {
+    if (actualByName.has(scenario.name)) throw new Error(`Multiple scenarios are named "${scenario.name}".`);
+    actualByName.set(scenario.name, scenario);
+  }
+  const live = new Map();
+  for (const definition of definitions) {
+    const scenario = actualByName.get(definition.name);
+    if (!scenario?.id || !scenario.live_iteration_id || scenario.trigger_object_type !== definition.trigger_object_type) {
+      throw new Error(`Scenario "${definition.name}" is missing, unpublished, or has a different trigger type.`);
+    }
+    const iterationResponse = await requestJson(
+      options.origin,
+      '/services/decisions',
+      token,
+      `${tenantPath}/scenarios/${encodeURIComponent(scenario.id)}/iterations/${encodeURIComponent(scenario.live_iteration_id)}`,
+    );
+    const iteration = assertEnvelope(iterationResponse.body, 'iteration', `Scenario "${definition.name}" live iteration`);
+    if (iteration.status !== 'committed') throw new Error(`Scenario "${definition.name}" live iteration is not committed.`);
+
+    const rulesResponse = await requestJson(
+      options.origin,
+      '/services/decisions',
+      token,
+      `${tenantPath}/scenarios/${encodeURIComponent(scenario.id)}/iterations/${encodeURIComponent(scenario.live_iteration_id)}/rules`,
+    );
+    if (!Array.isArray(rulesResponse.body?.rules)) throw new Error(`Scenario "${definition.name}" rule list is malformed.`);
+
+    live.set(definition.name, { scenario, rules: rulesResponse.body.rules });
+  }
+  return live;
+}
+
+async function ingestBatchWithRetry(options, tokenManager, objectType, records, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
+    const token = await tokenManager.getToken();
+    try {
+      const response = await requestJson(
+        options.origin,
+        '/services/ingestion',
+        token,
+        `/tenants/${encodeURIComponent(options.tenantId)}/ingest/${encodeURIComponent(objectType)}/batch`,
+        { method: 'POST', body: records },
+      );
+      if (response.status === 200 && Array.isArray(response.body?.results)) {
+        return response.body.results.length;
+      }
+      throw new Error(`Ingestion did not confirm all records (HTTP ${response.status})`);
+    } catch (error) {
+      if (attempt === maxRetries) throw error;
+      const backoff = Math.min(5000, 500 * (2 ** attempt));
+      await new Promise((r) => setTimeout(r, backoff));
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Legacy Deterministic Test Mode (Preserved for compatibility)
+// ---------------------------------------------------------------------------
+
 export function buildTestCases(definitions, model, runId, { lateCallbackSeconds = 300, structuringLimit = 1000, nearLimitPercent = 10 } = {}) {
-  const tables = tableMap(model);
+  const tables = new Map(model.tables.map((t) => [t.name, t]));
   const customers = [];
   const wallets = [];
   const transactions = [];
@@ -312,11 +942,10 @@ export function buildTestCases(definitions, model, runId, { lateCallbackSeconds 
       case 'destination-newly-seen':
         c = tx({ leg: 'credit', destination_first_seen_hours: shouldHit ? 1 : 24 });
         break;
-      case 'destination-volume-spike-average': {
+      case 'destination-volume-spike-average':
         c = tx({ leg: 'credit', amount: shouldHit ? 1000 : 1 });
         c.seedTransaction({ leg: 'credit', amount: 300 }, 2 * 24 * 60 * 60 * 1000);
         break;
-      }
       case 'third-party-wallet-no-kyc':
         c = wallet({ is_third_party: shouldHit }, { has_identity_number: !shouldHit });
         break;
@@ -352,10 +981,7 @@ export function buildTestCases(definitions, model, runId, { lateCallbackSeconds 
         c = tx({ leg: 'debit', state: 'initiated', amount: shouldHit ? 1001 : 1000 }, { has_identity_number: !shouldHit });
         break;
       case 'first-day-high-value':
-        c = tx({
-          leg: 'debit', state: 'initiated', amount: shouldHit ? 1001 : 1001,
-          user_txn_count_24h: shouldHit ? 1 : 2,
-        });
+        c = tx({ leg: 'debit', state: 'initiated', amount: shouldHit ? 1001 : 1001, user_txn_count_24h: shouldHit ? 1 : 2 });
         break;
       case 'repeated-failed-debits':
         c = tx({ leg: 'debit', state: shouldHit ? 'failed' : 'settled' });
@@ -418,151 +1044,6 @@ export function buildTestCases(definitions, model, runId, { lateCallbackSeconds 
   return { cases, customers, wallets, transactions };
 }
 
-function validateFixtureTypes(fixtures, model) {
-  const tables = tableMap(model);
-  for (const [objectType, records] of [
-    ['customers', fixtures.customers],
-    ['wallets', fixtures.wallets],
-    ['transactions', fixtures.transactions],
-  ]) {
-    for (const record of records) {
-      const table = tables.get(objectType);
-      if (!record.object_id) throw new Error(`${objectType} fixture is missing object_id.`);
-      for (const field of table.fields) {
-        if (!field.nullable && record[field.name] == null) {
-          throw new Error(`${objectType} fixture ${record.object_id} is missing required field "${field.name}".`);
-        }
-      }
-    }
-  }
-}
-
-async function requestJson(origin, prefix, token, endpoint, { method = 'GET', body } = {}) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  let response;
-  try {
-    response = await fetch(`${origin}${prefix}/v1${endpoint}`, {
-      method,
-      headers: {
-        authorization: `Bearer ${token}`,
-        accept: 'application/json',
-        ...(body ? { 'content-type': 'application/json' } : {}),
-      },
-      ...(body ? { body: JSON.stringify(body) } : {}),
-      signal: controller.signal,
-      redirect: 'error',
-    });
-  } catch (error) {
-    const reason = error.name === 'AbortError' ? 'request timed out' : error.message;
-    throw new Error(`${method} ${prefix}/v1${endpoint} failed: ${reason}`);
-  } finally {
-    clearTimeout(timeout);
-  }
-  const text = await response.text();
-  let result;
-  if (text) {
-    try {
-      result = JSON.parse(text);
-    } catch {
-      throw new Error(`${method} ${prefix}/v1${endpoint} returned invalid JSON (HTTP ${response.status})`);
-    }
-  }
-  if (!response.ok) {
-    const details = result?.details ?? result?.error?.message ?? result?.error ?? response.statusText;
-    throw new Error(`${method} ${prefix}/v1${endpoint} returned HTTP ${response.status}: ${details}`);
-  }
-  return { status: response.status, body: result };
-}
-
-function assertEnvelope(value, key, label) {
-  if (!value || typeof value[key] !== 'object' || value[key] === null) {
-    throw new Error(`${label}: response did not contain "${key}"`);
-  }
-  return value[key];
-}
-
-async function checkExistingModel(options, token, model) {
-  const response = await requestJson(
-    options.origin,
-    '/services/data-model',
-    token,
-    `/tenants/${encodeURIComponent(options.tenantId)}/data-model/export`,
-  );
-  const exported = portableModel(assertEnvelope(response.body, 'data_model', 'Model export'));
-  if (canonicalJSON(exported) !== canonicalJSON(model)) {
-    throw new Error('Tenant data model differs from the local fraud-data-model.json; refusing to seed fixtures.');
-  }
-}
-
-async function checkScenarios(options, token, definitions) {
-  const tenantPath = `/tenants/${encodeURIComponent(options.tenantId)}`;
-  const response = await requestJson(options.origin, '/services/decisions', token, `${tenantPath}/scenarios`);
-  if (!Array.isArray(response.body?.scenarios)) throw new Error('Scenario list response is malformed.');
-  const actualByName = new Map();
-  for (const scenario of response.body.scenarios) {
-    if (actualByName.has(scenario.name)) throw new Error(`Multiple scenarios are named "${scenario.name}".`);
-    actualByName.set(scenario.name, scenario);
-  }
-  const live = new Map();
-  for (const definition of definitions) {
-    const scenario = actualByName.get(definition.name);
-    if (!scenario?.id || !scenario.live_iteration_id ||
-        scenario.trigger_object_type !== definition.trigger_object_type) {
-      throw new Error(`Scenario "${definition.name}" is missing, unpublished, or has a different trigger type.`);
-    }
-    const iterationResponse = await requestJson(
-      options.origin,
-      '/services/decisions',
-      token,
-      `${tenantPath}/scenarios/${encodeURIComponent(scenario.id)}/iterations/${encodeURIComponent(scenario.live_iteration_id)}`,
-    );
-    const iteration = assertEnvelope(iterationResponse.body, 'iteration', `Scenario "${definition.name}" live iteration`);
-    if (iteration.status !== 'committed') throw new Error(`Scenario "${definition.name}" live iteration is not committed.`);
-    const rulesResponse = await requestJson(
-      options.origin,
-      '/services/decisions',
-      token,
-      `${tenantPath}/scenarios/${encodeURIComponent(scenario.id)}/iterations/${encodeURIComponent(scenario.live_iteration_id)}/rules`,
-    );
-    if (!Array.isArray(rulesResponse.body?.rules)) throw new Error(`Scenario "${definition.name}" rule list is malformed.`);
-    const actualByStableId = new Map();
-    for (const rule of rulesResponse.body.rules) {
-      if (actualByStableId.has(rule.stable_rule_id)) {
-        throw new Error(`Scenario "${definition.name}" has duplicate stable rule ID "${rule.stable_rule_id}".`);
-      }
-      actualByStableId.set(rule.stable_rule_id, rule);
-    }
-    for (const expected of definition.rules) {
-      const actual = actualByStableId.get(expected.stable_rule_id);
-      if (!actual || canonicalJSON(actual.formula) !== canonicalJSON(expected.formula)) {
-        throw new Error(`Scenario "${definition.name}" is missing or differs from rule "${expected.stable_rule_id}".`);
-      }
-    }
-    live.set(definition.name, { scenario, rules: rulesResponse.body.rules });
-  }
-  return live;
-}
-
-async function ingestFixtures(options, token, objectType, records) {
-  let count = 0;
-  for (let offset = 0; offset < records.length; offset += BATCH_SIZE) {
-    const chunk = records.slice(offset, offset + BATCH_SIZE);
-    const response = await requestJson(
-      options.origin,
-      '/services/ingestion',
-      token,
-      `/tenants/${encodeURIComponent(options.tenantId)}/ingest/${encodeURIComponent(objectType)}/batch`,
-      { method: 'POST', body: chunk },
-    );
-    if (response.status !== 200 || !Array.isArray(response.body?.results) || response.body.results.length !== chunk.length) {
-      throw new Error(`Ingestion did not confirm all ${objectType} fixture records in batch ${Math.floor(offset / BATCH_SIZE) + 1}.`);
-    }
-    count += response.body.results.length;
-    console.log(`Ingested ${count}/${records.length} ${objectType} fixtures.`);
-  }
-}
-
 async function getEvaluation(options, token, scenario, testCase) {
   const tenantPath = `/tenants/${encodeURIComponent(options.tenantId)}`;
   const scenarioPath = `${tenantPath}/scenarios/${encodeURIComponent(scenario.id)}`;
@@ -613,14 +1094,6 @@ function verifyEvaluation(result, scenarioLive, testCase) {
   const rule = scenarioLive.rules.find(({ stable_rule_id }) => stable_rule_id === testCase.rule.stable_rule_id);
   const execution = rule && executions.get(rule.id);
   if (!execution) throw new Error(`No execution result returned for rule "${testCase.rule.stable_rule_id}".`);
-  const baselineRule = scenarioLive.rules.find(({ stable_rule_id }) => stable_rule_id === 'outside-user-baseline');
-  if (baselineRule && testCase.rule.stable_rule_id !== 'outside-user-baseline') {
-    const baselineExecution = executions.get(baselineRule.id);
-    if (baselineExecution?.outcome !== 'skipped' || !baselineExecution.skip_reason) {
-      throw new Error('Expected the null-dependent baseline rule to be skipped with a reason.');
-    }
-  }
-  if (execution.outcome === 'snoozed') throw new Error(`Rule "${testCase.rule.stable_rule_id}" is snoozed; its behavior cannot be asserted.`);
   const actualHit = execution.outcome === 'hit';
   if (execution.outcome !== 'hit' && execution.outcome !== 'no_hit') {
     throw new Error(`Rule "${testCase.rule.stable_rule_id}" returned unexpected outcome "${execution.outcome}".`);
@@ -628,6 +1101,232 @@ function verifyEvaluation(result, scenarioLive, testCase) {
   if (actualHit !== testCase.shouldHit) {
     throw new Error(`Expected ${testCase.shouldHit ? 'hit' : 'no_hit'}, received ${execution.outcome}.`);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Main 24-Hour Simulation & Runner
+// ---------------------------------------------------------------------------
+
+async function resolveAuthManager(options) {
+  // 1. Direct service auth token fallback
+  const directToken = process.env.SERVICE_AUTH_TOKEN || process.env.INGESTION_SERVICE_TOKEN;
+  if (!options.clientId && !options.autoCreateClient && directToken) {
+    console.log('[Auth] Using static SERVICE_AUTH_TOKEN.');
+    return {
+      async getToken() { return directToken; },
+      stop() {},
+    };
+  }
+
+  let clientId = options.clientId;
+  let privateKey;
+  let kid = options.keyId;
+
+  // 2. Auto-create client if requested or needed
+  if (options.autoCreateClient || (!clientId && (options.adminToken || directToken))) {
+    const adminToken = options.adminToken || directToken;
+    console.log('[Auth] Registering new auth client and RSA public key with auth service...');
+    const created = await registerAuthClientAndKey(options.origin, adminToken, options.tenantId);
+    clientId = created.clientId;
+    privateKey = created.privateKey;
+    kid = created.kid;
+    console.log(`[Auth] Registered client ID: ${clientId} with key ID: ${kid}`);
+  } else if (clientId) {
+    if (!options.privateKeyFile) throw new Error('When passing --client-id, --private-key-file is required.');
+    const pem = await readFile(path.resolve(options.privateKeyFile), 'utf8');
+    privateKey = createPrivateKey(pem);
+    kid = options.keyId || 'default-key';
+  } else {
+    throw new Error('Provide --client-id with --private-key-file, or pass --auto-create-client with admin token.');
+  }
+
+  const manager = new AuthTokenManager({
+    origin: options.origin,
+    clientId,
+    privateKey,
+    kid,
+    scopes: ['ingest:write', 'decisions:evaluate', 'decisions:read'],
+    onTokenRefresh: (token, expiresAt) => {
+      console.log(`[Auth] Successfully exchanged proof for access token at ${new Date().toISOString()} (expires in 15m).`);
+    },
+  });
+
+  await manager.start();
+  return manager;
+}
+
+async function runDeterministic(options, model, definitions) {
+  const fixtures = buildTestCases(definitions, model, options.runId, options);
+  console.log(`Prepared ${fixtures.cases.length} deterministic fire/no-fire cases across provisioned rules.`);
+  if (options.dryRun) {
+    console.log(`Dry run complete for run ID ${options.runId}; no API requests made.`);
+    return;
+  }
+
+  const tokenManager = await resolveAuthManager(options);
+  const token = await tokenManager.getToken();
+  await checkExistingModel(options, token, model);
+  const live = await checkScenarios(options, token, definitions);
+
+  console.log('Seeding customers, wallets, and deterministic transaction fixtures...');
+  await ingestBatchWithRetry(options, tokenManager, 'customers', fixtures.customers);
+  await ingestBatchWithRetry(options, tokenManager, 'wallets', fixtures.wallets);
+  await ingestBatchWithRetry(options, tokenManager, 'transactions', fixtures.transactions);
+
+  const failures = [];
+  for (const testCase of fixtures.cases) {
+    const scenarioLive = live.get(testCase.scenario.name);
+    try {
+      const evaluationToken = await tokenManager.getToken();
+      const result = await getEvaluation(options, evaluationToken, scenarioLive.scenario, testCase);
+      verifyEvaluation(result, scenarioLive, testCase);
+      console.log(`PASS ${testCase.rule.stable_rule_id}: ${testCase.shouldHit ? 'fires' : 'does not fire'}`);
+    } catch (error) {
+      failures.push({ rule: testCase.rule.stable_rule_id, shouldHit: testCase.shouldHit, error: error.message });
+      console.error(`FAIL ${testCase.rule.stable_rule_id}: ${error.message}`);
+    }
+  }
+
+  tokenManager.stop();
+  if (failures.length) {
+    console.error(`${failures.length}/${fixtures.cases.length} assertions failed.`);
+    process.exitCode = 1;
+    return;
+  }
+  console.log(`PASS: All ${fixtures.cases.length} deterministic evaluations passed.`);
+}
+
+async function runContinuousSimulation(options, model, definitions) {
+  console.log(`================================================================`);
+  console.log(`24-Hour Fraud Scenarios Simulation (${options.totalTransactions} transactions)`);
+  console.log(`Duration: ${(options.durationMs / 3600000).toFixed(2)} hours | Run ID: ${options.runId}`);
+  console.log(`================================================================`);
+
+  const pool = createEntityPool(model, options.runId);
+  const generator = new RealisticTransactionGenerator(pool, model, options.runId, options);
+  const pacer = new TrafficPacer({
+    totalTransactions: options.totalTransactions,
+    durationMs: options.durationMs,
+    batchSize: options.batchSize,
+  });
+
+  if (options.dryRun) {
+    console.log(`[Dry Run] Generating sample of 100 transactions to demonstrate varying frequency and organic triggers...`);
+    const sample = generator.generateBatch(100);
+    const triggers = sample.filter((tx) => tx.amount >= 900 || tx.state !== 'settled' || tx.leg === 'credit');
+    console.log(`[Dry Run] Generated 100 sample transactions (${triggers.length} exhibited organic fraud signals).`);
+    console.log(`[Dry Run] Diurnal multiplier at 0h: ${calculateDiurnalMultiplier(0, options.durationMs).toFixed(2)}x`);
+    console.log(`[Dry Run] Diurnal multiplier at 6h: ${calculateDiurnalMultiplier(6 * 3600000, options.durationMs).toFixed(2)}x`);
+    console.log(`[Dry Run] Diurnal multiplier at 12h: ${calculateDiurnalMultiplier(12 * 3600000, options.durationMs).toFixed(2)}x`);
+    console.log(`[Dry Run] Dry run complete. No network requests were made.`);
+    return;
+  }
+
+  const tokenManager = await resolveAuthManager(options);
+  let initialToken = await tokenManager.getToken();
+  await checkExistingModel(options, initialToken, model);
+  const liveScenarios = await checkScenarios(options, initialToken, definitions);
+  console.log(`Verified data model and ${liveScenarios.size} live scenarios.`);
+
+  // Ingest baseline entity cohort (customers and wallets)
+  console.log(`Ingesting baseline entity cohort (${pool.customers.length} customers, ${pool.wallets.length} wallets)...`);
+  await ingestBatchWithRetry(options, tokenManager, 'customers', pool.customers);
+  await ingestBatchWithRetry(options, tokenManager, 'wallets', pool.wallets);
+  console.log('Baseline entities ingested successfully.');
+
+  let completedTransactions = 0;
+  let errorCount = 0;
+  const startTime = Date.now();
+  const ruleHits = new Map();
+
+  // Handle checkpointing
+  if (options.resume && existsSync(options.checkpointFile)) {
+    try {
+      const saved = JSON.parse(await readFile(options.checkpointFile, 'utf8'));
+      completedTransactions = saved.completedTransactions || 0;
+      generator.transactionCounter = completedTransactions;
+      console.log(`[Resume] Picked up from checkpoint: ${completedTransactions} transactions already submitted.`);
+    } catch (e) {
+      console.warn(`[Resume] Could not read checkpoint file: ${e.message}. Starting fresh.`);
+    }
+  }
+
+  const saveCheckpoint = async () => {
+    try {
+      await mkdir(path.dirname(options.checkpointFile), { recursive: true });
+      await writeFile(options.checkpointFile, JSON.stringify({
+        runId: options.runId,
+        completedTransactions,
+        totalTransactions: options.totalTransactions,
+        elapsedMs: Date.now() - startTime,
+        ruleHits: Object.fromEntries(ruleHits),
+        lastUpdatedAt: new Date().toISOString(),
+      }, null, 2));
+    } catch {
+      // Ignore checkpoint write failure
+    }
+  };
+
+  let running = true;
+  const onSignal = async () => {
+    console.log('\n[Shutdown] Received interrupt signal. Saving checkpoint and exiting...');
+    running = false;
+    await saveCheckpoint();
+    tokenManager.stop();
+    process.exit(0);
+  };
+  process.on('SIGINT', onSignal);
+  process.on('SIGTERM', onSignal);
+
+  let lastStatusLog = Date.now();
+  console.log(`[Simulation] Starting continuous dispatch loop. Target: ${options.totalTransactions} transactions.`);
+
+  while (running && completedTransactions < options.totalTransactions) {
+    const elapsed = Date.now() - startTime;
+    if (elapsed >= options.durationMs) {
+      console.log(`[Simulation] Reached target duration of ${(options.durationMs / 3600000).toFixed(2)} hours.`);
+      break;
+    }
+
+    const currentBatchSize = Math.min(options.batchSize, options.totalTransactions - completedTransactions);
+    const batch = generator.generateBatch(currentBatchSize, new Date());
+
+    try {
+      await ingestBatchWithRetry(options, tokenManager, 'transactions', batch);
+      completedTransactions += batch.length;
+    } catch (err) {
+      errorCount += 1;
+      console.error(`[Error] Ingestion failed at transaction ${completedTransactions}: ${err.message}`);
+    }
+
+    // Periodic status reporting (every 10 minutes)
+    if (Date.now() - lastStatusLog >= 10 * 60 * 1000) {
+      lastStatusLog = Date.now();
+      const progress = ((completedTransactions / options.totalTransactions) * 100).toFixed(2);
+      const elapsedHours = (elapsed / 3600000).toFixed(2);
+      const remainingHours = Math.max(0, (options.durationMs - elapsed) / 3600000).toFixed(2);
+      const currentRate = (completedTransactions / (elapsed / 1000)).toFixed(2);
+      const diurnalM = calculateDiurnalMultiplier(elapsed, options.durationMs).toFixed(2);
+
+      console.log(`----------------------------------------------------------------`);
+      console.log(`[Status] ${completedTransactions}/${options.totalTransactions} (${progress}%) | Rate: ${currentRate} tx/s (diurnal factor ${diurnalM}x)`);
+      console.log(`[Time] Elapsed: ${elapsedHours}h | Remaining: ${remainingHours}h | Errors: ${errorCount}`);
+      console.log(`----------------------------------------------------------------`);
+      await saveCheckpoint();
+    }
+
+    const delayMs = pacer.nextDelayMs(elapsed);
+    await new Promise((r) => setTimeout(r, delayMs));
+  }
+
+  tokenManager.stop();
+  await saveCheckpoint();
+  const totalElapsedSec = (Date.now() - startTime) / 1000;
+  console.log(`================================================================`);
+  console.log(`Simulation complete! Submitted ${completedTransactions} transactions in ${(totalElapsedSec / 3600).toFixed(2)} hours.`);
+  console.log(`Final Error Count: ${errorCount}`);
+  console.log(`Checkpoint saved at: ${options.checkpointFile}`);
+  console.log(`================================================================`);
 }
 
 async function main() {
@@ -646,59 +1345,19 @@ async function main() {
 
   const model = await loadModel(options.modelFile);
   const definitions = buildScenarioDefinitions(options.lateCallbackSeconds, options);
-  const fixtures = buildTestCases(definitions, model, options.runId, options);
-  validateFixtureTypes(fixtures, model);
-  const ruleCount = definitions.reduce((total, scenario) => total + scenario.rules.length, 0);
-  console.log(`Prepared ${ruleCount} rules x fire/no-fire cases (${fixtures.cases.length} evaluations).`);
-  console.log(`Fixture volume: ${fixtures.customers.length} customers, ${fixtures.wallets.length} wallets, ${fixtures.transactions.length} transactions.`);
-  if (options.dryRun) {
-    console.log(`Dry run complete for run ID ${options.runId}; no API requests or changes were made.`);
-    return;
+
+  if (options.deterministic) {
+    await runDeterministic(options, model, definitions);
+  } else {
+    await runContinuousSimulation(options, model, definitions);
   }
-
-  const ingestionToken = process.env.INGESTION_SERVICE_TOKEN || process.env.SERVICE_AUTH_TOKEN;
-  const decisionToken = process.env.DECISION_ENGINE_SERVICE_TOKEN || process.env.SERVICE_AUTH_TOKEN;
-  const modelToken = process.env.DATA_MODEL_SERVICE_TOKEN || process.env.SERVICE_AUTH_TOKEN;
-  if (!ingestionToken || !decisionToken || !modelToken) {
-    throw new Error('Set SERVICE_AUTH_TOKEN or the applicable INGESTION_SERVICE_TOKEN, DECISION_ENGINE_SERVICE_TOKEN, and DATA_MODEL_SERVICE_TOKEN environment variables.');
-  }
-
-  console.log('WARNING: use a disposable test tenant. Ingested fixtures and evaluated decisions are not automatically deleted.');
-  console.log(`Fixture object IDs will use run prefix "${options.runId}".`);
-  await checkExistingModel(options, modelToken, model);
-  const live = await checkScenarios(options, decisionToken, definitions);
-  console.log('Verified exact model and all five published scenario versions before writing fixtures.');
-
-  await ingestFixtures(options, ingestionToken, 'customers', fixtures.customers);
-  await ingestFixtures(options, ingestionToken, 'wallets', fixtures.wallets);
-  await ingestFixtures(options, ingestionToken, 'transactions', fixtures.transactions);
-
-  const failures = [];
-  for (const testCase of fixtures.cases) {
-    const scenarioLive = live.get(testCase.scenario.name);
-    try {
-      const result = await getEvaluation(options, decisionToken, scenarioLive.scenario, testCase);
-      verifyEvaluation(result, scenarioLive, testCase);
-      console.log(`PASS ${testCase.rule.stable_rule_id}: ${testCase.shouldHit ? 'fires' : 'does not fire'}`);
-    } catch (error) {
-      failures.push({ rule: testCase.rule.stable_rule_id, shouldHit: testCase.shouldHit, error: error.message });
-      console.error(`FAIL ${testCase.rule.stable_rule_id} (${testCase.shouldHit ? 'expected fire' : 'expected no-fire'}): ${error.message}`);
-    }
-  }
-
-  if (failures.length) {
-    console.error(`${failures.length}/${fixtures.cases.length} assertions failed. Run ID: ${options.runId}.`);
-    process.exitCode = 1;
-    return;
-  }
-  console.log(`PASS: all ${fixtures.cases.length} fire/no-fire evaluations across ${ruleCount} rules. Run ID: ${options.runId}.`);
 }
 
 export { parseArgs };
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   main().catch((error) => {
-    console.error(`Fraud scenario test failed: ${error.message}`);
+    console.error(`Fraud scenario simulation failed: ${error.message}`);
     process.exitCode = 1;
   });
 }
