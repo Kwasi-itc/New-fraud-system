@@ -85,6 +85,15 @@ export type PublicationActionRequest = {
   action: "publish" | "unpublish";
 };
 
+export type PublicationPreparation = {
+  scenario_id: string;
+  iteration_id: string;
+  preparation_required: boolean;
+  preparation_started: boolean;
+  preparation_finished: boolean;
+  pending_items: number;
+};
+
 export type Rule = {
   id: string;
   iteration_id: string;
@@ -730,6 +739,8 @@ export const decisionEnginePaths = {
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/iterations/${iterationId}/deactivate`,
   publications: (tenantId: string, scenarioId: string) =>
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/publications`,
+  publicationPreparation: (tenantId: string, scenarioId: string) =>
+    `/v1/tenants/${tenantId}/scenarios/${scenarioId}/publications/preparation`,
   rules: (tenantId: string, scenarioId: string, iterationId: string) =>
     `/v1/tenants/${tenantId}/scenarios/${scenarioId}/iterations/${iterationId}/rules`,
   ruleGroups: (tenantId: string, scenarioId: string) =>
@@ -943,6 +954,15 @@ export const decisionEngineApi = {
   listPublications: async (tenantId: string, scenarioId: string) =>
     decisionEngineFetch<{ publications: Publication[] }>(
       decisionEnginePaths.publications(tenantId, scenarioId)
+    ),
+  getPublicationPreparation: async (tenantId: string, scenarioId: string, iterationId: string) =>
+    decisionEngineFetch<{ preparation: PublicationPreparation }>(
+      `${decisionEnginePaths.publicationPreparation(tenantId, scenarioId)}?iteration_id=${encodeURIComponent(iterationId)}`
+    ),
+  startPublicationPreparation: async (tenantId: string, scenarioId: string, iterationId: string) =>
+    decisionEngineFetch<{ preparation: PublicationPreparation }>(
+      decisionEnginePaths.publicationPreparation(tenantId, scenarioId),
+      { method: "POST", body: JSON.stringify({ iteration_id: iterationId }) }
     ),
   publishIteration: async (
     tenantId: string,

@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/execution"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi/dto"
@@ -136,6 +138,22 @@ func (h ExecutionHandler) GetAsyncDecisionExecution(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"async_decision_execution": dto.AdaptAsyncDecisionExecution(item)})
+}
+
+func (h ExecutionHandler) GetClientAsyncDecisionExecution(c *gin.Context) {
+	item, err := h.executionService.GetClientAsyncDecisionExecution(c.Request.Context(), c.Param("tenantId"), c.Param("executionId"))
+	if errors.Is(err, pgx.ErrNoRows) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "async_decision_execution_not_found"})
+		return
+	}
+	if err != nil {
+		logHandlerFailure(c, "client async decision lookup failed", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "async_decision_execution_unavailable"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"async_decision_execution": gin.H{
+		"id": item.ID, "status": item.Status, "result_body": item.ResultBody,
+	}})
 }
 
 func (h ExecutionHandler) RetryAsyncDecisionExecution(c *gin.Context) {

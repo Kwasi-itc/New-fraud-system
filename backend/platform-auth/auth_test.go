@@ -162,6 +162,17 @@ func TestExplicitRoleBundlesAndReservedGrants(t *testing.T) {
 		t.Fatal("custom role can administer roles")
 	}
 }
+func TestScenarioDraftClientCapabilitiesExcludePublication(t *testing.T) {
+	if err := ValidateCapabilities([]string{"models:read", "scenarios:read", "scenarios:write"}, PrincipalClient, false); err != nil {
+		t.Fatal("client draft-authoring scopes rejected", err)
+	}
+	if err := ValidateCapabilities([]string{"scenarios:publish"}, PrincipalClient, false); err == nil {
+		t.Fatal("client can receive scenario publication scope")
+	}
+	if err := ValidateCapabilities([]string{"models:write"}, PrincipalClient, false); err == nil {
+		t.Fatal("client can receive general model write scope")
+	}
+}
 func TestReplayConsumptionIsAtomicAndCapacityFailsClosed(t *testing.T) {
 	c := NewReplayCache(2)
 	now := time.Now()

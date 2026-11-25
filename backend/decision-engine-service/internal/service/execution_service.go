@@ -15,6 +15,8 @@ import (
 	"net/url"
 	"time"
 
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/execution"
@@ -349,12 +351,23 @@ func (s ExecutionService) CreateAsyncDecisionExecution(ctx context.Context, tena
 		CallbackLastError:    "",
 		CreatedAt:            now,
 	}
+	if principal, ok := platformauth.FromContext(ctx); ok && principal.IsClient() {
+		tenant, tenantErr := uuid.Parse(tenantID)
+		client, clientErr := uuid.Parse(principal.Subject)
+		if tenantErr != nil || clientErr != nil || client == uuid.Nil || tenant != principal.TenantID {
+			return AsyncDecisionExecutionCreateResult{}, errors.New("invalid client execution owner")
+		}
+		item.ClientOwnerID = client.String()
+	}
 	var created execution.AsyncDecisionExecution
 	err = s.txManager.Run(ctx, func(store ports.MutationStore) error {
 		var err error
 		created, err = store.AsyncDecisionExecutions().Create(ctx, item)
 		if err != nil {
 			return err
+		}
+		if created.ClientOwnerID != item.ClientOwnerID {
+			return errors.New("async execution idempotency key belongs to another principal")
 		}
 		if created.ID == item.ID {
 			if err := s.asyncEnqueuer.EnqueueTx(ctx, store.RawTx(), created.ID, nil); err != nil {
@@ -416,6 +429,25 @@ func (s ExecutionService) ListAsyncDecisionExecutionsByTenantFiltered(ctx contex
 
 func (s ExecutionService) GetAsyncDecisionExecutionByID(ctx context.Context, tenantID, executionID string) (execution.AsyncDecisionExecution, error) {
 	return s.asyncRepo.GetByID(ctx, tenantID, executionID)
+}
+
+func (s ExecutionService) GetClientAsyncDecisionExecution(ctx context.Context, tenantID, executionID string) (execution.AsyncDecisionExecution, error) {
+	principal, ok := platformauth.FromContext(ctx)
+	tenant, tenantErr := uuid.Parse(tenantID)
+	client, clientErr := uuid.Parse(principal.Subject)
+	_, executionErr := uuid.Parse(executionID)
+	if !ok || !principal.IsClient() || tenantErr != nil || clientErr != nil || executionErr != nil ||
+		client == uuid.Nil || tenant != principal.TenantID {
+		return execution.AsyncDecisionExecution{}, pgx.ErrNoRows
+	}
+	item, err := s.asyncRepo.GetByID(ctx, tenantID, executionID)
+	if err != nil {
+		return execution.AsyncDecisionExecution{}, err
+	}
+	if item.ClientOwnerID != client.String() {
+		return execution.AsyncDecisionExecution{}, pgx.ErrNoRows
+	}
+	return item, nil
 }
 
 func (s ExecutionService) GetAsyncDecisionExecutionStatusSummary(ctx context.Context, tenantID string) (ExecutionStatusSummary, error) {

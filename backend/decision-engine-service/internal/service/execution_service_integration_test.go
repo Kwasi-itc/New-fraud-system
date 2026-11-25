@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -19,12 +20,79 @@ import (
 	migratepostgres "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/lib/pq"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/execution"
 	storepostgres "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/store/postgres"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 )
+
+func TestIntegrationClientAsyncExecutionOwnership(t *testing.T) {
+	databaseURL := executionIntegrationDatabaseURL(t)
+	ctx := context.Background()
+	pool := executionIntegrationPool(t, ctx, databaseURL)
+	resetExecutionIntegrationDatabase(t, ctx, pool, databaseURL)
+	pool.Close()
+	pool = executionIntegrationPool(t, ctx, databaseURL)
+	defer pool.Close()
+
+	repo := storepostgres.NewAsyncDecisionExecutionRepository(pool)
+	svc := NewExecutionService(
+		storepostgres.NewTransactionManager(pool), &executionSequenceIDGenerator{next: executionIntegrationUUIDSequence(20)},
+		realClock{}, nil, nil, nil, nil, repo, nil, DecisionService{},
+		ExecutionRetryPolicy{AsyncMaxAttempts: 3}, AsyncExecutionBehavior{}, nil, nil, nil, nil,
+	)
+	tenant := uuid.New()
+	client := uuid.New()
+	clientCtx := platformauth.WithPrincipal(ctx, platformauth.Principal{Type: platformauth.PrincipalClient, Subject: client.String(), TenantID: tenant})
+	otherCtx := platformauth.WithPrincipal(ctx, platformauth.Principal{Type: platformauth.PrincipalClient, Subject: uuid.NewString(), TenantID: tenant})
+	wrongTenantCtx := platformauth.WithPrincipal(ctx, platformauth.Principal{Type: platformauth.PrincipalClient, Subject: client.String(), TenantID: uuid.New()})
+	req := AsyncDecisionExecutionRequest{ObjectType: "transactions", IdempotencyKey: "client-key"}
+	created, err := svc.CreateAsyncDecisionExecution(clientCtx, tenant.String(), req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.Execution.ClientOwnerID != client.String() {
+		t.Fatalf("owner = %q, want %s", created.Execution.ClientOwnerID, client)
+	}
+	if _, err := svc.CreateAsyncDecisionExecution(otherCtx, tenant.String(), req); err == nil {
+		t.Fatal("another client reused an owned idempotency key")
+	}
+	reused, err := svc.CreateAsyncDecisionExecution(clientCtx, tenant.String(), req)
+	if err != nil || reused.Execution.ID != created.Execution.ID {
+		t.Fatalf("same client idempotent reuse: %+v, %v", reused, err)
+	}
+	human, err := svc.CreateAsyncDecisionExecution(ctx, tenant.String(), AsyncDecisionExecutionRequest{ObjectType: "transactions"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.MarkCompleted(ctx, created.Execution.ID, []byte(`{"triggered":true}`), time.Now().UTC(), ""); err != nil {
+		t.Fatal(err)
+	}
+	result, err := svc.GetClientAsyncDecisionExecution(clientCtx, tenant.String(), created.Execution.ID)
+	if err != nil || result.Status != execution.StatusCompleted || string(result.ResultBody) != `{"triggered": true}` {
+		t.Fatalf("owner result: %+v, %v", result, err)
+	}
+	for name, tc := range map[string]struct {
+		ctx context.Context
+		id  string
+	}{
+		"other client":          {otherCtx, created.Execution.ID},
+		"other tenant":          {wrongTenantCtx, created.Execution.ID},
+		"human-owned execution": {clientCtx, human.Execution.ID},
+		"human principal":       {ctx, created.Execution.ID},
+		"invalid id":            {clientCtx, "invalid"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := svc.GetClientAsyncDecisionExecution(tc.ctx, tenant.String(), tc.id)
+			if !errors.Is(err, pgx.ErrNoRows) {
+				t.Fatalf("error = %v, want not found", err)
+			}
+		})
+	}
+}
 
 func TestIntegrationAsyncExecutionCreateReturnsCompletedInlineWhenRowCompletesWithinWaitWindow(t *testing.T) {
 	databaseURL := executionIntegrationDatabaseURL(t)

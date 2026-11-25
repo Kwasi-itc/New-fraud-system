@@ -85,6 +85,13 @@ func fixtureVersion(t *testing.T, version int) (Store, uuid.UUID) {
 		if _, err = db.Exec(ctx, schema+schemaV2+schemaV3+schemaV4+schemaV5+schemaV5Seed); err != nil {
 			t.Fatal(err)
 		}
+	} else if version == 6 {
+		if _, err = db.Exec(ctx, schema+schemaV2+schemaV3+schemaV4+schemaV5+schemaV5Seed+schemaV6); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = db.Exec(ctx, `UPDATE identity.capability_catalog SET client_access='' WHERE name IN ('models:read','scenarios:read','scenarios:write')`); err != nil {
+			t.Fatal(err)
+		}
 	} else {
 		t.Fatal("unsupported fixture version")
 	}
@@ -94,6 +101,41 @@ func fixtureVersion(t *testing.T, version int) (Store, uuid.UUID) {
 	}
 	return s, tenant
 }
+
+func TestMigrationEnablesClientScenarioDraftScopes(t *testing.T) {
+	s, _ := fixtureVersion(t, 6)
+	if err := s.Migrate(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Migrate(context.Background()); err != nil {
+		t.Fatalf("rerun after v7 upgrade: %v", err)
+	}
+	rows, err := s.DB.Query(context.Background(), `SELECT name,client_access FROM identity.capability_catalog WHERE name IN ('models:read','scenarios:read','scenarios:write','scenarios:publish') ORDER BY name`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	got := map[string]string{}
+	for rows.Next() {
+		var name, clientAccess string
+		if err := rows.Scan(&name, &clientAccess); err != nil {
+			t.Fatal(err)
+		}
+		got[name] = clientAccess
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"models:read", "scenarios:read", "scenarios:write"} {
+		if got[name] != "normal" {
+			t.Errorf("%s client access=%q, want normal", name, got[name])
+		}
+	}
+	if got["scenarios:publish"] != "" {
+		t.Errorf("scenario publication client access=%q, want unavailable", got["scenarios:publish"])
+	}
+}
+
 func provision(t *testing.T, s Store, tenant uuid.UUID, subject string, roles ...string) (uuid.UUID, string) {
 	t.Helper()
 	id, err := s.Provision(context.Background(), tenant, "https://provider.test", subject, subject, roles)

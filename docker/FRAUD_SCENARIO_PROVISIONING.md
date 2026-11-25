@@ -1,22 +1,38 @@
-# EC2 fraud scenario provisioning
+# EC2 fraud scenario draft provisioning
 
-`provision-fraud-scenarios-ec2.mjs` imports the supplied portable fraud data model when the target tenant has none, or verifies an exact match when one already exists. It then creates or reconciles Decision Engine scenarios through the EC2 gateway. It is separate from the database/root-tenant setup scripts and never chooses a tenant automatically.
+`provision-fraud-scenarios-ec2.mjs` verifies the active tenant and its existing portable data model, then creates or reconciles Decision Engine scenario drafts through the gateway. It never imports or changes the model and never commits, prepares, or publishes scenario iterations. Existing live scenarios remain unchanged. The target tenant UUID must be supplied explicitly.
 
-The gateway must route `/services/data-model` and `/services/decisions` to their corresponding services. The target tenant must already exist and be active. Provide the gateway's reachable `ip:port` and its tenant UUID explicitly.
+The gateway must route `/oauth/token`, `/services/data-model`, and `/services/decisions`. The target tenant and the matching `fraud-data-model.json` model must already be provisioned.
+
+## Client setup
+
+`platform-keys.mjs` provisions the platform issuer's signing and trust keys as part of auth-service setup. It does not create API-client key pairs. Generate a client-owned pair with `client-proof.mjs`:
+
+```sh
+node backend/auth-service/scripts/client-proof.mjs keygen \
+  --dir .local/client-auth \
+  --kid fraud-scenario-provisioner
+```
+
+Register the resulting `public.pem` and key ID on an API client in the target tenant. Grant exactly these normal client scopes:
+
+- `models:read` to verify tenant status and the existing model
+- `scenarios:read` to inspect scenarios and iterations
+- `scenarios:write` to create scenarios, drafts, rules, and validate drafts
+
+Do not grant `scenarios:publish`. The API keeps commit and publication operations human-only; the automation does not call them.
 
 ## Run
 
-Set the service bearer tokens in the environment without adding them to command-line arguments:
-
 ```sh
-export DATA_MODEL_SERVICE_TOKEN='...'
-export DECISION_ENGINE_SERVICE_TOKEN='...'
 node docker/provision-fraud-scenarios-ec2.mjs \
   --host 10.0.0.10:8080 \
-  --tenant-id 00000000-0000-4000-8000-000000000000
+  --tenant-id 00000000-0000-4000-8000-000000000000 \
+  --client-id 11111111-1111-4111-8111-111111111111 \
+  --key-dir .local/client-auth
 ```
 
-An HTTPS origin is also accepted, for example `--host https://fraud.example:8080`. For private-network HTTP deployments, keep the gateway and machine running this script on a trusted network; bearer tokens are not encrypted over HTTP.
+The token endpoint defaults to `<host>/oauth/token`; use `--token-url` if the public auth endpoint differs. A fresh client proof is created and exchanged for a scoped token in memory for each run. The script does not read or print service bearer tokens or the client access token. Keep `private.pem` private and use HTTPS outside trusted local development.
 
 The model file defaults to `fraud-data-model.json` at the repository root. Override it with `--model-file`. `--late-callback-seconds` controls the Family E late-callback threshold and defaults to `300`. D7's near-limit rule defaults to a limit of `1000` and a lower-band width of `10%`; override these with `--structuring-limit` and `--structuring-band-percent`. For example, the default band is `900 <= amount < 1000`.
 
@@ -24,11 +40,11 @@ Run `--dry-run` first to validate the local model and display the rules that rem
 
 ## Safety and verification
 
-Before any scenario writes, the script verifies that the tenant is active and checks the existing exported model. If the tenant model is empty, it imports the supplied portable model, checks the import summary, and exports it again to verify an exact match. Existing matching models are left unchanged. A partial or different existing model stops the run rather than attempting an unsafe merge. The import endpoint is best-effort across multiple operations and is not globally transactional; if import reports an error or post-import verification fails, inspect the tenant model before retrying.
+Before any scenario writes, the script verifies that the tenant is active and checks the existing exported model. An empty or different model stops the run; model import/update remains a separate human-authorized setup operation. Scenario definitions are matched by name and rules by stable rule ID. If supported rules are missing, the script resumes one compatible draft or creates one from the current live/committed version, adds only missing rules, validates the iteration, and verifies that it remains a draft. Conflicting/duplicate stable IDs, ambiguous scenario names, incompatible drafts, or multiple drafts stop provisioning rather than overwriting unknown configuration.
 
-Scenarios are matched by name and rules by stable rule ID. Existing scenarios with all desired rules are left unchanged. If supported rules are missing, the script reuses a compatible draft or creates one from the current live version, adds only missing rules, validates and commits the iteration, publishes it, then verifies the live iteration and publication history. Conflicting/duplicate stable IDs, ambiguous scenario names, or an incompatible draft stop provisioning rather than overwriting unknown configuration. If a later stage fails, earlier scenario versions may already have published; inspect service state before retrying.
+Completed live scenarios are left unchanged. A compatible new or resumed draft is left unpublished for human review and publication. A failure can leave earlier draft edits in place; inspect service state before retrying. The script's draft-only guarantee is enforced both by its call sequence and by the API authorization boundary, not by relying on omission of a UI action.
 
-Each created or changed iteration is read back and checked, validated, committed, prepared if required, published, and verified before the script proceeds. A successful dry run only validates local input and definitions; it does not exercise service APIs or prove that production query plans are acceptable.
+After reviewing and committing a draft in the frontend, open **Publish**. If indexes are needed, select **Start or retry preparation** and wait for preparation to complete before selecting **Publish**. Preparation runs in the background, so the window can be closed and reopened to check progress.
 
 ## Rule scope and assumptions
 
@@ -55,4 +71,5 @@ Run the standalone Node tests with:
 
 ```sh
 node --test docker/provision-fraud-scenarios-ec2.test.mjs
+node --test backend/auth-service/scripts/client-proof.test.mjs
 ```

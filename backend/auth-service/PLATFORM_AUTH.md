@@ -350,8 +350,10 @@ authenticated Next layout does not secure direct owner APIs. Do not expose this
 development stack as a production permission boundary until those gates close.
 
 
-### Account model after identity v6
+### Account model after identity v7
 
 Each tenant membership and newly created/pending invitation has exactly one role. Keep `roles` as a one-element array when using the administration CLI or APIs; a replacement assignment removes the previous role. The owner migration consolidates legacy multiple-role assignments to an exact equivalent bundle and preserves permissions and pending delivery provenance. See [the current contract](../../docs/authentication/README.md) and [coordinated upgrade instructions](../../docs/authentication/operations.md).
 
 The account UI provides profile, provider sign-in management and session controls, with separate Users & invitations, Roles & capabilities and API clients pages. Role creation/editing uses full pages; copying capabilities is an explicit snapshot without inheritance. `AUTH_MANAGE_SIGN_IN_URL` configures the trusted provider account-console destination.
+
+API clients may receive normal `models:read`, `scenarios:read`, and `scenarios:write` scopes for scenario draft provisioning. The Decision Engine permits clients to create scenarios, drafts, rules, and validate drafts while keeping other scenario operations and all publication operations human-only. `scenarios:publish` remains unavailable to clients.

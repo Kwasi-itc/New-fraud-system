@@ -65,7 +65,7 @@
     "name": "models:read",
     "human": true,
     "service": true,
-    "client": ""
+    "client": "normal"
   },
   {
     "name": "models:write",
@@ -107,13 +107,13 @@
     "name": "scenarios:read",
     "human": true,
     "service": false,
-    "client": ""
+    "client": "normal"
   },
   {
     "name": "scenarios:write",
     "human": true,
     "service": false,
-    "client": ""
+    "client": "normal"
   },
   {
     "name": "scenarios:publish",

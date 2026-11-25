@@ -1,7 +1,7 @@
 CREATE SCHEMA IF NOT EXISTS identity;
 CREATE TABLE IF NOT EXISTS identity.schema_migrations(version integer PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now());
 DO $$ BEGIN
- IF EXISTS(SELECT 1 FROM identity.schema_migrations WHERE version>6) THEN
+ IF EXISTS(SELECT 1 FROM identity.schema_migrations WHERE version>7) THEN
   RAISE EXCEPTION 'identity schema is newer than this binary';
  END IF;
 END $$;

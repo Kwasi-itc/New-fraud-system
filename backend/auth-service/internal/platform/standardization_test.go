@@ -195,7 +195,7 @@ func TestClientProofExchangeApprovalRotationAndReplay(t *testing.T) {
 		t.Fatal(err)
 	}
 	approver := principal(b)
-	client, err := s.SaveClient(ctx, admin, uuid.Nil, ClientChange{Name: "Bank", Scopes: []string{"ingest:write", "decisions:evaluate", "decisions:read", "cases:read"}, Active: true})
+	client, err := s.SaveClient(ctx, admin, uuid.Nil, ClientChange{Name: "Bank", Scopes: []string{"ingest:write", "decisions:evaluate", "decisions:read", "cases:read", "models:read", "scenarios:read", "scenarios:write"}, Active: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -237,7 +237,7 @@ func TestClientProofExchangeApprovalRotationAndReplay(t *testing.T) {
 		t.Fatal(err)
 	}
 	defaultPrincipal, err := verifier.Verify(defaultToken)
-	if err != nil || !defaultPrincipal.Can("ingest:write") || !defaultPrincipal.Can("decisions:evaluate") || !defaultPrincipal.Can("decisions:read") || defaultPrincipal.Can("cases:read") {
+	if err != nil || !defaultPrincipal.Can("ingest:write") || !defaultPrincipal.Can("decisions:evaluate") || !defaultPrincipal.Can("decisions:read") || !defaultPrincipal.Can("models:read") || !defaultPrincipal.Can("scenarios:read") || !defaultPrincipal.Can("scenarios:write") || defaultPrincipal.Can("scenarios:publish") || defaultPrincipal.Can("cases:read") {
 		t.Fatal("default token did not preserve normal grants and sensitive approval boundary", err)
 	}
 	for _, badAudience := range []string{"urn:fraud:ingestion-service", "urn:fraud:decision-engine-service", "urn:fraud:case-manager-service", "urn:other:system"} {
@@ -246,7 +246,7 @@ func TestClientProofExchangeApprovalRotationAndReplay(t *testing.T) {
 			t.Fatal("API-specific or unknown audience accepted", badAudience, err)
 		}
 	}
-	for _, scope := range []string{"cases:read", "records:read", "roles:manage", "unknown:scope"} {
+	for _, scope := range []string{"cases:read", "records:read", "roles:manage", "scenarios:publish", "unknown:scope"} {
 		proof := clientAssertion(t, clientKey, "first", client.ID, app.TokenEndpointURL, uuid.NewString())
 		if _, err := app.ExchangeClientProof(ctx, client.ID, proof, auth.ClientAudience, []string{scope}); err == nil {
 			t.Fatal("unapproved, ungranted or ineligible scope accepted", scope)

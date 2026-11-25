@@ -19,6 +19,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/ports"
 	store "github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/store/postgres"
 	investigator "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -63,7 +64,7 @@ func platformDB(t *testing.T) *pgxpool.Pool {
 	if err != nil || len(files) == 0 {
 		t.Fatal("owner migrations missing", err)
 	}
-	for _, name := range []string{"schema.sql", "schema_v2.sql", "schema_v3.sql", "schema_v4.sql", "schema_v5.sql", "schema_v5_seed.sql", "schema_v6.sql"} {
+	for _, name := range []string{"schema.sql", "schema_v2.sql", "schema_v3.sql", "schema_v4.sql", "schema_v5.sql", "schema_v5_seed.sql", "schema_v6.sql", "schema_v7.sql"} {
 		files = append(files, "../../../auth-service/internal/platform/"+name)
 	}
 	for _, file := range files {
@@ -128,6 +129,21 @@ func TestPlatformDataModelAuthorization(t *testing.T) {
 	list := "/v1/tenants/" + tenant.String() + "/tables"
 	request("GET", list, "", "", 401)
 	request("GET", list, "", raw, 200)
+	clientVerifier, clientToken := authtest.ClientIdentity(t, tenant, uuid.New(), "models:read")
+	clientRouter := NewRouter(slog.Default(), db, RouterConfig{Verifier: clientVerifier})
+	clientRequest := func(method, path string, want int) {
+		t.Helper()
+		req := httptest.NewRequest(method, path, nil)
+		req.Header.Set("Authorization", "Bearer "+clientToken)
+		rec := httptest.NewRecorder()
+		clientRouter.ServeHTTP(rec, req)
+		if rec.Code != want {
+			t.Fatalf("client %s %s: %d want %d: %s", method, path, rec.Code, want, rec.Body.String())
+		}
+	}
+	clientRequest("GET", list, 200)
+	clientRequest("GET", "/v1/tenants/"+other.String()+"/tables", 403)
+	clientRequest("PATCH", "/v1/tables/"+table.String(), 403)
 	request("GET", "/v1/tables/"+table.String()+"/display-settings", "", raw, 200)
 	request("GET", "/v1/tables/"+foreign.String()+"/display-settings", "", raw, 403)
 	request("PUT", "/v1/tables/"+table.String()+"/display-settings", `{"version":0,"caption_field":"","displayed_fields":[],"field_order":[]}`, raw, 403)

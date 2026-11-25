@@ -3,12 +3,13 @@
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { exchangeClientProof } from '../backend/auth-service/scripts/client-proof.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_MODEL_FILE = path.resolve(SCRIPT_DIR, '../fraud-data-model.json');
+const DEFAULT_CLIENT_KEY_DIR = path.resolve(SCRIPT_DIR, '../.local/client-auth');
 const REQUEST_TIMEOUT_MS = 20_000;
-const PREPARATION_TIMEOUT_MS = 120_000;
-const PREPARATION_POLL_MS = 2_000;
+export const CLIENT_SCOPES = ['models:read', 'scenarios:read', 'scenarios:write'];
 
 export const omittedRules = [
   { id: 'A5', reason: 'Needs device-sharing comparisons, but the supplied model has no device identifier and the rule is cross-record/pairwise.' },
@@ -344,6 +345,9 @@ export function parseArgs(args) {
   const parsed = {
     host: undefined,
     tenantId: undefined,
+    clientId: undefined,
+    keyDir: DEFAULT_CLIENT_KEY_DIR,
+    tokenUrl: undefined,
     modelFile: DEFAULT_MODEL_FILE,
     lateCallbackSeconds: 300,
     structuringLimit: 1000,
@@ -353,6 +357,9 @@ export function parseArgs(args) {
   const valuedOptions = new Map([
     ['--host', 'host'],
     ['--tenant-id', 'tenantId'],
+    ['--client-id', 'clientId'],
+    ['--key-dir', 'keyDir'],
+    ['--token-url', 'tokenUrl'],
     ['--model-file', 'modelFile'],
     ['--late-callback-seconds', 'lateCallbackSeconds'],
     ['--structuring-limit', 'structuringLimit'],
@@ -385,7 +392,7 @@ export function parseArgs(args) {
   if (!Number.isFinite(parsed.nearLimitPercent) || parsed.nearLimitPercent <= 0 || parsed.nearLimitPercent > 100) {
     throw new Error('--structuring-band-percent must be greater than 0 and no more than 100');
   }
-  if (parsed.dryRun && (!parsed.host || !parsed.tenantId)) {
+  if (parsed.dryRun) {
     parsed.modelFile = path.resolve(parsed.modelFile);
     if (parsed.host) parsed.origin = parseOrigin(parsed.host);
     if (parsed.tenantId) {
@@ -403,6 +410,14 @@ export function parseArgs(args) {
   }
   parsed.tenantId = parsed.tenantId.toLowerCase();
   parsed.origin = parseOrigin(parsed.host);
+  if (!parsed.clientId) throw new Error('Required option missing: --client-id');
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(parsed.clientId) ||
+      parsed.clientId === '00000000-0000-0000-0000-000000000000') {
+    throw new Error('--client-id must be the registered API client UUID');
+  }
+  parsed.clientId = parsed.clientId.toLowerCase();
+  parsed.keyDir = path.resolve(parsed.keyDir);
+  parsed.tokenUrl ??= `${parsed.origin}/oauth/token`;
   parsed.modelFile = path.resolve(parsed.modelFile);
   return parsed;
 }
@@ -425,12 +440,15 @@ function parseOrigin(host) {
 
 function usage() {
   return `Usage:
-  DATA_MODEL_SERVICE_TOKEN=... DECISION_ENGINE_SERVICE_TOKEN=... \\
-    node docker/provision-fraud-scenarios-ec2.mjs --host ip:port --tenant-id UUID
+  node docker/provision-fraud-scenarios-ec2.mjs --host ip:port --tenant-id UUID \\
+    --client-id CLIENT_UUID [--key-dir DIRECTORY] [--token-url URL]
 
 Options:
   --host ip:port                 Gateway origin (defaults to http:// when scheme is omitted)
   --tenant-id UUID               Required target tenant; this script never selects one
+  --client-id UUID               Registered API client with the draft-authoring scopes
+  --key-dir DIRECTORY            Client private-key directory (default: .local/client-auth)
+  --token-url URL                 Public OAuth endpoint (default: <host>/oauth/token)
   --model-file PATH              Portable model JSON (default: ../fraud-data-model.json)
   --late-callback-seconds N      Late-callback threshold (default: 300)
   --structuring-limit N          D7 amount limit (default: 1000)
@@ -438,7 +456,7 @@ Options:
   --dry-run                      Validate local inputs and list planned rules only
   --help                         Show this help
 
-Secrets are read only from DATA_MODEL_SERVICE_TOKEN and DECISION_ENGINE_SERVICE_TOKEN.
+Requested scopes: ${CLIENT_SCOPES.join(' ')}. The token is exchanged in memory and is never printed.
 `;
 }
 
@@ -517,38 +535,10 @@ export async function verifyExistingModel(origin, tenantId, token, model) {
   ));
   const current = await exportModel();
   if (current.tables.length === 0 && current.links.length === 0 && current.pivots.length === 0) {
-    console.log('Target tenant has no data model; importing the supplied portable model.');
-    const response = await requestJson(origin, '/services/data-model', token, `/tenants/${encodeURIComponent(tenantId)}/data-model/import`, {
-      method: 'POST',
-      body: { data_model: model },
-    });
-    const summary = getEnvelope(response, 'summary', 'Model import');
-    validateImportSummary(summary, model);
-    console.log(`Model import summary verified (${summary.tables_created} tables, ${summary.fields_created} fields).`);
-    const imported = await exportModel();
-    assertEqual(imported, model, 'Imported data model does not exactly match the supplied model; inspect the tenant before retrying.');
-    console.log(`Imported data model verified (${model.tables.length} tables).`);
-    return;
+    throw new Error('Target tenant has no data model. Import the supplied model through a human-authorized setup path before running client draft provisioning.');
   }
   assertEqual(current, model, 'Existing tenant model does not exactly match the supplied model; refusing to modify or recreate it.');
   console.log(`Existing data model verified (${model.tables.length} tables); no import attempted.`);
-}
-
-export function validateImportSummary(summary, model) {
-  const expected = {
-    tables_created: model.tables.length,
-    fields_created: model.tables.reduce((count, table) => count + table.fields.length, 0),
-    links_created: model.links.length,
-    pivots_created: model.pivots.length,
-  };
-  for (const [key, count] of Object.entries(expected)) {
-    if (summary[key] !== count) {
-      throw new Error(`Model import summary reported ${key}=${summary[key]}; expected ${count}.`);
-    }
-  }
-  if (typeof summary.revision_id !== 'string' || summary.revision_id.length === 0) {
-    throw new Error('Model import summary did not include a revision_id.');
-  }
 }
 
 function rulePayload(rule, displayOrder) {
@@ -677,8 +667,11 @@ async function configureIteration(origin, token, scenarioPath, iteration, defini
   }
 }
 
-async function finishAndPublishIteration(origin, token, scenarioPath, scenario, iteration, definition, rules) {
+async function validateDraftIteration(origin, token, scenarioPath, iteration, definition, rules) {
   const scenarioName = definition.name;
+  if (iteration.status !== 'draft') {
+    throw new Error(`Scenario "${scenarioName}" iteration must remain a draft; current status is "${iteration.status}".`);
+  }
   const missing = findMissingRules(rules, definition.rules);
   if (missing.length) {
     throw new Error(`Scenario "${scenarioName}" iteration is missing rules: ${missing.map(({ stable_rule_id }) => stable_rule_id).join(', ')}`);
@@ -695,60 +688,14 @@ async function finishAndPublishIteration(origin, token, scenarioPath, scenario, 
     throw new Error(`Scenario "${scenarioName}" validation failed: ${JSON.stringify(validation.errors ?? validation.trigger_errors ?? validation.rule_results)}`);
   }
   console.log(`Validated ${rules.length} rules for ${scenarioName}.`);
-
-  if (iteration.status === 'draft') {
-    await requestJson(origin, '/services/decisions', token, `${iterationPath}/commit`, {
-      method: 'POST',
-      body: {},
-    });
-    iteration = await getIteration(origin, token, scenarioPath, iteration.id);
+  const validatedIteration = await getIteration(origin, token, scenarioPath, iteration.id);
+  if (validatedIteration.status !== 'draft') {
+    throw new Error(`Scenario "${scenarioName}" changed out of draft status during validation.`);
   }
-  if (iteration.status !== 'committed') {
-    throw new Error(`Scenario "${scenarioName}" iteration is not committed; current status is "${iteration.status}".`);
-  }
-
-  const preparationPath = `${scenarioPath}/publications/preparation?iteration_id=${encodeURIComponent(iteration.id)}`;
-  let preparation = getEnvelope(await requestJson(origin, '/services/decisions', token, preparationPath), 'preparation', 'Publication preparation');
-  if (preparation.preparation_required) {
-    await requestJson(origin, '/services/decisions', token, `${scenarioPath}/publications/preparation`, {
-      method: 'POST',
-      body: { iteration_id: iteration.id },
-    });
-    const deadline = Date.now() + PREPARATION_TIMEOUT_MS;
-    while (preparation.preparation_required && Date.now() < deadline) {
-      await new Promise((resolve) => setTimeout(resolve, PREPARATION_POLL_MS));
-      preparation = getEnvelope(await requestJson(origin, '/services/decisions', token, preparationPath), 'preparation', 'Publication preparation status');
-    }
-  }
-  if (preparation.preparation_required || !preparation.preparation_finished) {
-    throw new Error(`Scenario "${scenarioName}" data-model preparation did not finish within ${PREPARATION_TIMEOUT_MS / 1000} seconds.`);
-  }
-  console.log(`Publication preparation verified for ${scenarioName}.`);
-
-  const latestScenario = getEnvelope(await requestJson(origin, '/services/decisions', token, scenarioPath), 'scenario', 'Scenario before publication');
-  if (latestScenario.live_iteration_id !== iteration.id) {
-    const publicationResponse = await requestJson(origin, '/services/decisions', token, `${scenarioPath}/publications`, {
-      method: 'POST',
-      body: { action: 'publish', iteration_id: iteration.id },
-    });
-    if (!Array.isArray(publicationResponse?.publications) ||
-        !publicationResponse.publications.some((item) => item.action === 'publish' && item.iteration_id === iteration.id)) {
-      throw new Error(`Scenario "${scenarioName}" publish response did not confirm the iteration.`);
-    }
-  }
-  const liveScenario = getEnvelope(await requestJson(origin, '/services/decisions', token, scenarioPath), 'scenario', 'Published scenario readback');
-  if (liveScenario.live_iteration_id !== iteration.id) {
-    throw new Error(`Scenario "${scenarioName}" publication did not set the expected live iteration.`);
-  }
-  const publications = await requestJson(origin, '/services/decisions', token, `${scenarioPath}/publications`);
-  if (!Array.isArray(publications?.publications) ||
-      !publications.publications.some((item) => item.action === 'publish' && item.iteration_id === iteration.id)) {
-    throw new Error(`Scenario "${scenarioName}" publication history failed readback verification.`);
-  }
-  console.log(`Published and verified: ${scenarioName} (iteration ${iteration.version}).`);
+  console.log(`Validated draft remains unpublished: ${scenarioName} (iteration ${iteration.version}).`);
 }
 
-async function createAndPublishScenario(origin, tenantId, token, definition, existingScenario) {
+async function createOrUpdateScenarioDraft(origin, tenantId, token, definition, existingScenario) {
   const tenantPath = `/tenants/${encodeURIComponent(tenantId)}`;
   let scenario = existingScenario;
   if (!scenario) {
@@ -801,19 +748,18 @@ async function createAndPublishScenario(origin, tenantId, token, definition, exi
     .sort((left, right) => right.version - left.version);
   const baseIteration = liveIteration ?? committed[0] ?? null;
   const baseRules = baseIteration ? await getRules(origin, token, scenarioPath, baseIteration.id) : [];
+  const drafts = iterations.filter(({ status }) => status === 'draft');
+  if (drafts.length > 1) {
+    throw new Error(`Scenario "${definition.name}" has multiple drafts; inspect them before provisioning.`);
+  }
   if (baseIteration && !liveIteration &&
       JSON.stringify(canonicalize(baseIteration.trigger_formula)) !== JSON.stringify(canonicalize(definition.trigger))) {
     throw new Error(`Scenario "${definition.name}" committed trigger differs from this script; refusing to change it.`);
   }
-  if (!liveIteration && baseIteration && findMissingRules(baseRules, definition.rules).length === 0) {
-    console.log(`Resuming publication of already committed complete scenario: ${definition.name}`);
-    await finishAndPublishIteration(origin, token, scenarioPath, scenario, baseIteration, definition, baseRules);
+  if (!liveIteration && baseIteration && drafts.length === 0 &&
+      findMissingRules(baseRules, definition.rules).length === 0) {
+    console.log(`Already complete in a committed, non-live iteration; leaving it unpublished: ${definition.name}`);
     return;
-  }
-
-  const drafts = iterations.filter(({ status }) => status === 'draft');
-  if (drafts.length > 1) {
-    throw new Error(`Scenario "${definition.name}" has multiple drafts; inspect them before provisioning.`);
   }
 
   let draft;
@@ -823,7 +769,7 @@ async function createAndPublishScenario(origin, tenantId, token, definition, exi
     draftRules = await getRules(origin, token, scenarioPath, draft.id);
     if (baseIteration) {
       if (JSON.stringify(iterationSettings(draft)) !== JSON.stringify(iterationSettings(baseIteration))) {
-        throw new Error(`Scenario "${definition.name}" draft settings diverge from its base version; refusing to publish it.`);
+        throw new Error(`Scenario "${definition.name}" draft settings diverge from its base version; refusing to overwrite it.`);
       }
       assertRuleSetExtendsBase(baseRules, draftRules, definition.rules, definition.name);
     } else {
@@ -881,7 +827,7 @@ async function createAndPublishScenario(origin, tenantId, token, definition, exi
   }
 
   draftRules = await getRules(origin, token, scenarioPath, draft.id);
-  await finishAndPublishIteration(origin, token, scenarioPath, scenario, draft, definition, draftRules);
+  await validateDraftIteration(origin, token, scenarioPath, draft, definition, draftRules);
 }
 
 async function main() {
@@ -911,19 +857,15 @@ async function main() {
     console.log('Dry run complete; no network requests or changes were made.');
     return;
   }
-  const dataModelToken = process.env.DATA_MODEL_SERVICE_TOKEN;
-  const decisionEngineToken = process.env.DECISION_ENGINE_SERVICE_TOKEN;
-  if (!dataModelToken || !decisionEngineToken) {
-    throw new Error('Set DATA_MODEL_SERVICE_TOKEN and DECISION_ENGINE_SERVICE_TOKEN in the environment.');
-  }
+  const token = await exchangeClientProof(options.keyDir, options.clientId, options.tokenUrl, CLIENT_SCOPES);
 
   const tenantPath = `/tenants/${encodeURIComponent(options.tenantId)}`;
-  const tenantResponse = await requestJson(options.origin, '/services/data-model', dataModelToken, tenantPath);
+  const tenantResponse = await requestJson(options.origin, '/services/data-model', token, tenantPath);
   const tenant = getEnvelope(tenantResponse, 'tenant', 'Tenant lookup');
   if (tenant.id !== options.tenantId || tenant.status !== 'active') {
     throw new Error(`Target tenant must exist and be active; received id=${tenant.id}, status=${tenant.status}.`);
   }
-  const existing = await requestJson(options.origin, '/services/decisions', decisionEngineToken, `${tenantPath}/scenarios`);
+  const existing = await requestJson(options.origin, '/services/decisions', token, `${tenantPath}/scenarios`);
   if (!Array.isArray(existing?.scenarios)) throw new Error('Decision Engine scenario list response is malformed.');
   const byName = new Map();
   for (const scenario of existing.scenarios) {
@@ -934,17 +876,17 @@ async function main() {
   }
   console.log(`Verified active tenant ${options.tenantId}; existing scenarios will be reconciled by name and stable rule ID.`);
 
-  await verifyExistingModel(options.origin, options.tenantId, dataModelToken, model);
+  await verifyExistingModel(options.origin, options.tenantId, token, model);
   for (const definition of scenarios) {
-    await createAndPublishScenario(
+    await createOrUpdateScenarioDraft(
       options.origin,
       options.tenantId,
-      decisionEngineToken,
+      token,
       definition,
       byName.get(definition.name),
     );
   }
-  console.log('Provisioning complete: existing model unchanged; supported rules reconciled and published.');
+  console.log('Provisioning complete: existing model and live scenarios unchanged; supported rules reconciled in validated, unpublished drafts.');
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {

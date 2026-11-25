@@ -1,27 +1,32 @@
 #!/usr/bin/env node
 
-import {
-  randomBytes,
-  randomUUID,
-  generateKeyPairSync,
-  createPrivateKey,
-  sign,
-} from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { existsSync, readFileSync } from 'node:fs';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { buildScenarioDefinitions, portableModel } from './provision-fraud-scenarios-ec2.mjs';
+import { exchangeClientProofDetails } from '../backend/auth-service/scripts/client-proof.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_MODEL_FILE = path.resolve(SCRIPT_DIR, '../fraud-data-model.json');
+const DEFAULT_CLIENT_KEY_DIR = path.resolve(SCRIPT_DIR, '../.local/client-auth');
+export const CLIENT_SCOPES = ['models:read', 'scenarios:read', 'ingest:write', 'decisions:evaluate'];
 const REQUEST_TIMEOUT_MS = 30_000;
 const ASYNC_POLL_TIMEOUT_MS = 120_000;
 const ASYNC_POLL_INTERVAL_MS = 1_000;
 const DEFAULT_TOTAL_TRANSACTIONS = 200_000;
 const DEFAULT_DURATION_HOURS = 24;
 const DEFAULT_BATCH_SIZE = 10;
-const TOKEN_REFRESH_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+const MAX_INGEST_BATCH_SIZE = 500;
+const EVALUATION_CONCURRENCY = 5;
+
+class TokenExchangeError extends Error {}
+class HttpRequestError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
+  }
+}
 
 function canonicalize(value) {
   if (Array.isArray(value)) return value.map(canonicalize);
@@ -66,13 +71,10 @@ function parseArgs(args) {
     durationMinutes: undefined,
     batchSize: DEFAULT_BATCH_SIZE,
     clientId: undefined,
-    privateKeyFile: undefined,
-    keyId: undefined,
-    autoCreateClient: false,
-    adminToken: undefined,
+    keyDir: DEFAULT_CLIENT_KEY_DIR,
+    tokenUrl: undefined,
     resume: false,
     checkpointFile: undefined,
-    sampleEvaluatePercent: 5,
   };
 
   const valuedOptions = new Map([
@@ -88,11 +90,9 @@ function parseArgs(args) {
     ['--duration-minutes', 'durationMinutes'],
     ['--batch-size', 'batchSize'],
     ['--client-id', 'clientId'],
-    ['--private-key-file', 'privateKeyFile'],
-    ['--key-id', 'keyId'],
-    ['--admin-token', 'adminToken'],
+    ['--key-dir', 'keyDir'],
+    ['--token-url', 'tokenUrl'],
     ['--checkpoint-file', 'checkpointFile'],
-    ['--sample-evaluate-percent', 'sampleEvaluatePercent'],
   ]);
 
   for (let index = 0; index < args.length; index += 1) {
@@ -109,10 +109,6 @@ function parseArgs(args) {
       parsed.deterministic = true;
       continue;
     }
-    if (option === '--auto-create-client') {
-      parsed.autoCreateClient = true;
-      continue;
-    }
     if (option === '--resume') {
       parsed.resume = true;
       continue;
@@ -126,7 +122,7 @@ function parseArgs(args) {
     const value = args[index + 1];
     if (!value || value.startsWith('--')) throw new Error(`Missing value for ${option}`);
 
-    if (['lateCallbackSeconds', 'structuringLimit', 'nearLimitPercent', 'totalTransactions', 'durationHours', 'durationMinutes', 'batchSize', 'sampleEvaluatePercent'].includes(key)) {
+    if (['lateCallbackSeconds', 'structuringLimit', 'nearLimitPercent', 'totalTransactions', 'durationHours', 'durationMinutes', 'batchSize'].includes(key)) {
       parsed[key] = Number(value);
     } else {
       parsed[key] = value;
@@ -148,6 +144,12 @@ function parseArgs(args) {
   if (!Number.isInteger(parsed.totalTransactions) || parsed.totalTransactions <= 0) {
     throw new Error('--total-transactions must be a positive integer');
   }
+  if (!Number.isInteger(parsed.batchSize) || parsed.batchSize < 1 || parsed.batchSize > MAX_INGEST_BATCH_SIZE) {
+    throw new Error('--batch-size must be an integer between 1 and 500');
+  }
+  if (parsed.resume) {
+    throw new Error('--resume is unavailable: decision requests are not idempotent and interrupted batches require manual reconciliation.');
+  }
   if (!Number.isFinite(parsed.durationHours) || parsed.durationHours <= 0) {
     throw new Error('--duration-hours must be a positive number');
   }
@@ -168,6 +170,7 @@ function parseArgs(args) {
     }
     parsed.tenantId = parsed.tenantId.toLowerCase();
   }
+  if (!parsed.dryRun && !parsed.clientId) throw new Error('Required option missing: --client-id');
   if (parsed.clientId) {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(parsed.clientId)) {
       throw new Error('--client-id must be a UUID');
@@ -183,6 +186,8 @@ function parseArgs(args) {
     : Math.round(parsed.durationHours * 3600 * 1000);
 
   parsed.modelFile = path.resolve(parsed.modelFile);
+  parsed.keyDir = path.resolve(parsed.keyDir);
+  if (parsed.origin) parsed.tokenUrl ??= `${parsed.origin}/oauth/token`;
   parsed.checkpointFile = parsed.checkpointFile
     ? path.resolve(parsed.checkpointFile)
     : path.resolve(SCRIPT_DIR, `../.local/fraud-simulation-${parsed.runId}.json`);
@@ -193,7 +198,7 @@ function parseArgs(args) {
 function usage() {
   return `Usage:
   node docker/test-fraud-scenarios-ec2.mjs \\
-    --host ip:port --tenant-id UUID --confirm-write [options]
+    --host ip:port --tenant-id UUID --client-id UUID --confirm-write [options]
 
 Core Options:
   --host ip:port                 Gateway origin (defaults to http:// when scheme is omitted)
@@ -207,16 +212,15 @@ Core Options:
   --confirm-write                Required; records and decisions persist in the tenant
   --dry-run                      Simulate traffic locally without making API requests
   --deterministic                Run legacy 1-per-rule deterministic fire/no-fire test instead of 24h simulation
-  --resume                       Resume from existing checkpoint file
-  --checkpoint-file PATH         Custom path for run state checkpoint
+  --checkpoint-file PATH         Custom path for run progress checkpoint (not resumable)
   --help                         Show this help
 
-Auth Options (Proof-to-Token Exchange every 10 minutes):
+Auth Options:
   --client-id UUID               Existing registered auth client ID
-  --private-key-file PATH        RSA private key PEM for signing client assertions
-  --key-id ID                    Key ID registered with auth service (defaults to client key id)
-  --auto-create-client           Automatically register a client & RSA keypair using admin token
-  --admin-token TOKEN            Bearer token used to register auth client (or SERVICE_AUTH_TOKEN)
+  --key-dir DIRECTORY            Client private-key directory (default: .local/client-auth)
+  --token-url URL                Public OAuth endpoint (default: <host>/oauth/token)
+
+Requested scopes: ${CLIENT_SCOPES.join(' ')}. Tokens are kept in memory and refreshed before expiry.
 
 Rule Configuration:
   --late-callback-seconds N      Match scenario provisioning (default: 300)
@@ -225,183 +229,42 @@ Rule Configuration:
 `;
 }
 
-// ---------------------------------------------------------------------------
-// Auth Client & RS256 Proof Exchange (every 10 minutes)
-// ---------------------------------------------------------------------------
-
-export function createClientAssertion(clientId, privateKey, kid, tokenEndpointUrl) {
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: 'RS256', typ: 'JWT', kid };
-  const payload = {
-    iss: clientId,
-    sub: clientId,
-    aud: tokenEndpointUrl,
-    jti: randomUUID(),
-    iat: now,
-    exp: now + 60,
-  };
-  const encode = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
-  const input = `${encode(header)}.${encode(payload)}`;
-  const signature = sign('RSA-SHA256', Buffer.from(input), privateKey).toString('base64url');
-  return `${input}.${signature}`;
-}
-
-export async function exchangeClientProof(origin, clientId, privateKey, kid, scopes = ['ingest:write', 'decisions:evaluate', 'decisions:read']) {
-  const tokenEndpointUrl = `${origin}/oauth/token`;
-  const assertion = createClientAssertion(clientId, privateKey, kid, tokenEndpointUrl);
-  const body = new URLSearchParams({
-    grant_type: 'client_credentials',
-    client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-    client_id: clientId,
-    client_assertion: assertion,
-    scope: scopes.join(' '),
-  });
-
-  const response = await fetch(tokenEndpointUrl, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/x-www-form-urlencoded',
-      accept: 'application/json',
-    },
-    body: body.toString(),
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-  });
-
-  const text = await response.text();
-  let result;
-  try {
-    result = JSON.parse(text);
-  } catch {
-    throw new Error(`Token exchange at /oauth/token returned invalid JSON (HTTP ${response.status})`);
-  }
-
-  if (!response.ok || !result.access_token) {
-    const errorMsg = result?.error_description || result?.error || response.statusText;
-    throw new Error(`Client token exchange failed (HTTP ${response.status}): ${errorMsg}`);
-  }
-
-  return {
-    accessToken: result.access_token,
-    expiresIn: result.expires_in ?? 900,
-    obtainedAt: Date.now(),
-  };
-}
-
-export async function registerAuthClientAndKey(origin, adminToken, tenantId, clientName = 'Fraud scenario simulation client') {
-  const { publicKey, privateKey } = generateKeyPairSync('rsa', {
-    modulusLength: 2048,
-    publicKeyEncoding: { type: 'spki', format: 'pem' },
-    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
-  });
-
-  const kid = `sim-key-${randomBytes(4).toString('hex')}`;
-  const clientResponse = await fetch(`${origin}/services/auth/v1/tenants/${encodeURIComponent(tenantId)}/clients`, {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${adminToken}`,
-      'content-type': 'application/json',
-      accept: 'application/json',
-    },
-    body: JSON.stringify({
-      name: clientName,
-      scopes: ['ingest:write', 'decisions:evaluate', 'decisions:read'],
-      active: true,
-    }),
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-  });
-
-  const clientText = await clientResponse.text();
-  let clientJson;
-  try {
-    clientJson = JSON.parse(clientText);
-  } catch {
-    throw new Error(`Client registration returned HTTP ${clientResponse.status}: ${clientText}`);
-  }
-  if (!clientResponse.ok || !clientJson.client?.id) {
-    throw new Error(`Failed to create client (HTTP ${clientResponse.status}): ${clientText}`);
-  }
-  const clientId = clientJson.client.id;
-
-  const keyResponse = await fetch(`${origin}/services/auth/v1/tenants/${encodeURIComponent(tenantId)}/client-keys`, {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${adminToken}`,
-      'content-type': 'application/json',
-      accept: 'application/json',
-    },
-    body: JSON.stringify({
-      client_id: clientId,
-      kid,
-      public_key_pem: publicKey,
-    }),
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-  });
-
-  if (!keyResponse.ok && keyResponse.status !== 204) {
-    const keyText = await keyResponse.text();
-    throw new Error(`Failed to register client key (HTTP ${keyResponse.status}): ${keyText}`);
-  }
-
-  return { clientId, privateKey, kid };
-}
-
 export class AuthTokenManager {
-  constructor({ origin, clientId, privateKey, kid, scopes, refreshIntervalMs = TOKEN_REFRESH_INTERVAL_MS, onTokenRefresh }) {
-    this.origin = origin;
+  constructor({ keyDir, clientId, tokenUrl, exchange = exchangeClientProofDetails, now = Date.now }) {
+    this.keyDir = keyDir;
     this.clientId = clientId;
-    this.privateKey = privateKey;
-    this.kid = kid;
-    this.scopes = scopes;
-    this.refreshIntervalMs = refreshIntervalMs;
-    this.onTokenRefresh = onTokenRefresh;
+    this.tokenUrl = tokenUrl;
+    this.exchange = exchange;
+    this.now = now;
     this.accessToken = null;
-    this.expiresAt = 0;
-    this.timer = null;
+    this.refreshAt = 0;
     this.refreshing = null;
-  }
-
-  async start() {
-    await this.refreshToken();
-    this.timer = setInterval(() => {
-      this.refreshToken().catch((err) => {
-        console.error(`[Auth] Periodic proof exchange failed: ${err.message}`);
-      });
-    }, this.refreshIntervalMs);
-    if (this.timer.unref) this.timer.unref();
-  }
-
-  stop() {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
-    }
   }
 
   async refreshToken() {
     if (this.refreshing) return this.refreshing;
-    this.refreshing = (async () => {
+    this.refreshing = Promise.resolve().then(async () => {
+      const startedAt = this.now();
       try {
-        const result = await exchangeClientProof(
-          this.origin,
-          this.clientId,
-          this.privateKey,
-          this.kid,
-          this.scopes,
-        );
-        this.accessToken = result.accessToken;
-        this.expiresAt = result.obtainedAt + (result.expiresIn * 1000);
-        if (this.onTokenRefresh) this.onTokenRefresh(this.accessToken, this.expiresAt);
+        const result = await this.exchange(this.keyDir, this.clientId, this.tokenUrl, CLIENT_SCOPES);
+        const lifetime = result.expires_in * 1000;
+        this.refreshAt = startedAt + lifetime - Math.min(120_000, lifetime / 10);
+        if (this.now() >= startedAt + lifetime) throw new Error('Client token expired during exchange.');
+        this.accessToken = result.access_token;
         return this.accessToken;
-      } finally {
-        this.refreshing = null;
+      } catch (error) {
+        throw new TokenExchangeError(`Client token exchange failed: ${error.message}`, { cause: error });
       }
-    })();
-    return this.refreshing;
+    });
+    try {
+      return await this.refreshing;
+    } finally {
+      this.refreshing = null;
+    }
   }
 
   async getToken() {
-    // If token expires in less than 2 minutes, proactively refresh
-    if (!this.accessToken || Date.now() > this.expiresAt - 120_000) {
+    if (!this.accessToken || this.now() >= this.refreshAt) {
       await this.refreshToken();
     }
     return this.accessToken;
@@ -523,7 +386,7 @@ export function createEntityPool(model, runId, { customerCount = 500, walletCoun
     const isRecentCredChange = i >= 50 && i < 70;
     const hasNoIdentity = i >= 70 && i < 90;
 
-    const accountAgeHours = isDayZero ? 0.5 : isNew ? 12 : 200 + (i * 10);
+    const accountAgeHours = isDayZero ? 0 : isNew ? 12 : 200 + (i * 10);
     const daysSinceLastActivity = isDormant ? 95 + (i % 20) : (i % 30);
     const authChangeHoursAgo = isRecentCredChange ? 2 : 500;
 
@@ -719,7 +582,12 @@ async function requestJson(origin, prefix, token, endpoint, { method = 'GET', bo
 
   if (!response.ok) {
     const details = result?.details ?? result?.error?.message ?? result?.error ?? response.statusText;
-    throw new Error(`${method} ${prefix}/v1${endpoint} returned HTTP ${response.status}: ${details}`);
+    const validationErrors = Array.isArray(result?.validation_errors) ? result.validation_errors : [];
+    const examples = [...new Set(validationErrors.map(({ field, code }) => `${field}: ${code}`))].slice(0, 5);
+    const validationSummary = validationErrors.length
+      ? ` (${validationErrors.length} validation errors; ${examples.join(', ')})`
+      : '';
+    throw new HttpRequestError(`${method} ${prefix}/v1${endpoint} returned HTTP ${response.status}: ${details}${validationSummary}`, response.status);
   }
   return { status: response.status, body: result };
 }
@@ -746,11 +614,11 @@ async function loadModel(modelFile) {
   return model;
 }
 
-async function checkExistingModel(options, token, model) {
+async function checkExistingModel(options, tokenManager, model) {
   const response = await requestJson(
     options.origin,
     '/services/data-model',
-    token,
+    await tokenManager.getToken(),
     `/tenants/${encodeURIComponent(options.tenantId)}/data-model/export`,
   );
   const exported = portableModel(assertEnvelope(response.body, 'data_model', 'Model export'));
@@ -759,9 +627,9 @@ async function checkExistingModel(options, token, model) {
   }
 }
 
-async function checkScenarios(options, token, definitions) {
+async function checkScenarios(options, tokenManager, definitions) {
   const tenantPath = `/tenants/${encodeURIComponent(options.tenantId)}`;
-  const response = await requestJson(options.origin, '/services/decisions', token, `${tenantPath}/scenarios`);
+  const response = await requestJson(options.origin, '/services/decisions', await tokenManager.getToken(), `${tenantPath}/scenarios`);
   if (!Array.isArray(response.body?.scenarios)) throw new Error('Scenario list response is malformed.');
   const actualByName = new Map();
   for (const scenario of response.body.scenarios) {
@@ -777,7 +645,7 @@ async function checkScenarios(options, token, definitions) {
     const iterationResponse = await requestJson(
       options.origin,
       '/services/decisions',
-      token,
+      await tokenManager.getToken(),
       `${tenantPath}/scenarios/${encodeURIComponent(scenario.id)}/iterations/${encodeURIComponent(scenario.live_iteration_id)}`,
     );
     const iteration = assertEnvelope(iterationResponse.body, 'iteration', `Scenario "${definition.name}" live iteration`);
@@ -786,7 +654,7 @@ async function checkScenarios(options, token, definitions) {
     const rulesResponse = await requestJson(
       options.origin,
       '/services/decisions',
-      token,
+      await tokenManager.getToken(),
       `${tenantPath}/scenarios/${encodeURIComponent(scenario.id)}/iterations/${encodeURIComponent(scenario.live_iteration_id)}/rules`,
     );
     if (!Array.isArray(rulesResponse.body?.rules)) throw new Error(`Scenario "${definition.name}" rule list is malformed.`);
@@ -796,7 +664,7 @@ async function checkScenarios(options, token, definitions) {
   return live;
 }
 
-async function ingestBatchWithRetry(options, tokenManager, objectType, records, maxRetries = 3) {
+async function ingestChunkWithRetry(options, tokenManager, objectType, records, maxRetries = 3) {
   for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
     const token = await tokenManager.getToken();
     try {
@@ -807,16 +675,37 @@ async function ingestBatchWithRetry(options, tokenManager, objectType, records, 
         `/tenants/${encodeURIComponent(options.tenantId)}/ingest/${encodeURIComponent(objectType)}/batch`,
         { method: 'POST', body: records },
       );
-      if (response.status === 200 && Array.isArray(response.body?.results)) {
+      if (response.status === 200 && Array.isArray(response.body?.results) && response.body.results.length === records.length) {
         return response.body.results.length;
       }
       throw new Error(`Ingestion did not confirm all records (HTTP ${response.status})`);
     } catch (error) {
-      if (attempt === maxRetries) throw error;
+      if (attempt === maxRetries || (error instanceof HttpRequestError && error.status >= 400 && error.status < 500 && error.status !== 408 && error.status !== 429)) throw error;
       const backoff = Math.min(5000, 500 * (2 ** attempt));
       await new Promise((r) => setTimeout(r, backoff));
     }
   }
+}
+
+export async function ingestBatchWithRetry(options, tokenManager, objectType, records) {
+  if (records.length === 0) throw new Error(`Cannot ingest an empty ${objectType} batch.`);
+  let ingested = 0;
+  try {
+    for (let offset = 0; offset < records.length; offset += MAX_INGEST_BATCH_SIZE) {
+      ingested += await ingestChunkWithRetry(options, tokenManager, objectType, records.slice(offset, offset + MAX_INGEST_BATCH_SIZE));
+    }
+  } catch (error) {
+    if (ingested > 0) console.error(`${ingested} ${objectType} records were already ingested before the failure.`);
+    throw error;
+  }
+  return ingested;
+}
+
+export async function ingestSimulationEntities(options, tokenManager, pool) {
+  const customers = pool.customers.map(({ _accountAgeHours, _hasIdentity, ...record }) => record);
+  const wallets = pool.wallets.map(({ _customer, ...record }) => record);
+  await ingestBatchWithRetry(options, tokenManager, 'customers', customers);
+  await ingestBatchWithRetry(options, tokenManager, 'wallets', wallets);
 }
 
 // ---------------------------------------------------------------------------
@@ -1044,10 +933,10 @@ export function buildTestCases(definitions, model, runId, { lateCallbackSeconds 
   return { cases, customers, wallets, transactions };
 }
 
-async function getEvaluation(options, token, scenario, testCase) {
+export async function getEvaluation(options, tokenManager, scenario, testCase) {
   const tenantPath = `/tenants/${encodeURIComponent(options.tenantId)}`;
   const scenarioPath = `${tenantPath}/scenarios/${encodeURIComponent(scenario.id)}`;
-  const response = await requestJson(options.origin, '/services/decisions', token, `${scenarioPath}/evaluate`, {
+  const response = await requestJson(options.origin, '/services/decisions', await tokenManager.getToken(), `${scenarioPath}/evaluate`, {
     method: 'POST',
     body: {
       object_id: testCase.payload.object_id,
@@ -1059,19 +948,23 @@ async function getEvaluation(options, token, scenario, testCase) {
   if (response.status !== 202 || !response.body?.async_decision_execution?.id) {
     throw new Error(`Scenario evaluation for ${testCase.rule.stable_rule_id} was deferred without an execution ID.`);
   }
-  const executionId = response.body.async_decision_execution.id;
+  return pollAsyncEvaluation(options, tokenManager, response.body.async_decision_execution.id, testCase.rule.stable_rule_id);
+}
+
+async function pollAsyncEvaluation(options, tokenManager, executionId, label) {
+  const tenantPath = `/tenants/${encodeURIComponent(options.tenantId)}`;
   const deadline = Date.now() + ASYNC_POLL_TIMEOUT_MS;
   while (Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, ASYNC_POLL_INTERVAL_MS));
     const statusResponse = await requestJson(
       options.origin,
       '/services/decisions',
-      token,
-      `${tenantPath}/async-decision-executions/${encodeURIComponent(executionId)}`,
+      await tokenManager.getToken(),
+      `${tenantPath}/client-async-decision-executions/${encodeURIComponent(executionId)}`,
     );
     const execution = assertEnvelope(statusResponse.body, 'async_decision_execution', 'Async evaluation status');
     if (execution.status === 'failed') {
-      throw new Error(`Async evaluation failed for ${testCase.rule.stable_rule_id}: ${execution.last_error || 'no error details'}`);
+      throw new Error(`Async evaluation failed for ${label} (execution ${executionId}).`);
     }
     if (execution.status === 'completed') {
       const result = typeof execution.result_body === 'string'
@@ -1082,6 +975,51 @@ async function getEvaluation(options, token, scenario, testCase) {
     }
   }
   throw new Error(`Async evaluation ${executionId} did not finish within ${ASYNC_POLL_TIMEOUT_MS / 1000} seconds.`);
+}
+
+export async function evaluateTransaction(options, tokenManager, transaction) {
+  const tenantPath = `/tenants/${encodeURIComponent(options.tenantId)}`;
+  const response = await requestJson(options.origin, '/services/decisions', await tokenManager.getToken(), `${tenantPath}/decisions/all`, {
+    method: 'POST',
+    body: { object_id: transaction.object_id, object_type: 'transactions', fields: transaction },
+  });
+  let result;
+  if (response.status === 200) {
+    result = assertEnvelope(response.body, 'result', 'Transaction evaluation');
+  } else if (response.status === 202 && response.body?.async_decision_execution?.id) {
+    result = await pollAsyncEvaluation(options, tokenManager, response.body.async_decision_execution.id, transaction.object_id);
+  } else {
+    throw new Error(`Transaction evaluation for ${transaction.object_id} returned an unexpected response.`);
+  }
+  if (result.object_id !== transaction.object_id || !Array.isArray(result.results)) {
+    throw new Error(`Transaction evaluation for ${transaction.object_id} returned a malformed result.`);
+  }
+  return result;
+}
+
+export async function evaluateTransactionBatch(options, tokenManager, transactions) {
+  if (transactions.length === 0) throw new Error('Cannot evaluate an empty transaction batch.');
+  let next = 0;
+  const failures = [];
+  let completed = 0;
+  let triggered = 0;
+  const workers = Array.from({ length: Math.min(EVALUATION_CONCURRENCY, transactions.length) }, async () => {
+    while (next < transactions.length) {
+      const transaction = transactions[next++];
+      try {
+        const result = await evaluateTransaction(options, tokenManager, transaction);
+        completed++;
+        triggered += result.results.filter(item => item.triggered).length;
+      } catch (error) {
+        failures.push({ objectId: transaction.object_id, message: error.message });
+      }
+    }
+  });
+  await Promise.all(workers);
+  if (failures.length) {
+    throw new Error(`${completed}/${transactions.length} transaction evaluations completed; ${failures.length} failed or have an unknown outcome: ${failures.map(({ objectId, message }) => `${objectId}: ${message}`).join('; ')}. Do not retry without reconciliation.`);
+  }
+  return { completed, triggered };
 }
 
 function verifyEvaluation(result, scenarioLive, testCase) {
@@ -1107,54 +1045,6 @@ function verifyEvaluation(result, scenarioLive, testCase) {
 // Main 24-Hour Simulation & Runner
 // ---------------------------------------------------------------------------
 
-async function resolveAuthManager(options) {
-  // 1. Direct service auth token fallback
-  const directToken = process.env.SERVICE_AUTH_TOKEN || process.env.INGESTION_SERVICE_TOKEN;
-  if (!options.clientId && !options.autoCreateClient && directToken) {
-    console.log('[Auth] Using static SERVICE_AUTH_TOKEN.');
-    return {
-      async getToken() { return directToken; },
-      stop() {},
-    };
-  }
-
-  let clientId = options.clientId;
-  let privateKey;
-  let kid = options.keyId;
-
-  // 2. Auto-create client if requested or needed
-  if (options.autoCreateClient || (!clientId && (options.adminToken || directToken))) {
-    const adminToken = options.adminToken || directToken;
-    console.log('[Auth] Registering new auth client and RSA public key with auth service...');
-    const created = await registerAuthClientAndKey(options.origin, adminToken, options.tenantId);
-    clientId = created.clientId;
-    privateKey = created.privateKey;
-    kid = created.kid;
-    console.log(`[Auth] Registered client ID: ${clientId} with key ID: ${kid}`);
-  } else if (clientId) {
-    if (!options.privateKeyFile) throw new Error('When passing --client-id, --private-key-file is required.');
-    const pem = await readFile(path.resolve(options.privateKeyFile), 'utf8');
-    privateKey = createPrivateKey(pem);
-    kid = options.keyId || 'default-key';
-  } else {
-    throw new Error('Provide --client-id with --private-key-file, or pass --auto-create-client with admin token.');
-  }
-
-  const manager = new AuthTokenManager({
-    origin: options.origin,
-    clientId,
-    privateKey,
-    kid,
-    scopes: ['ingest:write', 'decisions:evaluate', 'decisions:read'],
-    onTokenRefresh: (token, expiresAt) => {
-      console.log(`[Auth] Successfully exchanged proof for access token at ${new Date().toISOString()} (expires in 15m).`);
-    },
-  });
-
-  await manager.start();
-  return manager;
-}
-
 async function runDeterministic(options, model, definitions) {
   const fixtures = buildTestCases(definitions, model, options.runId, options);
   console.log(`Prepared ${fixtures.cases.length} deterministic fire/no-fire cases across provisioned rules.`);
@@ -1163,10 +1053,9 @@ async function runDeterministic(options, model, definitions) {
     return;
   }
 
-  const tokenManager = await resolveAuthManager(options);
-  const token = await tokenManager.getToken();
-  await checkExistingModel(options, token, model);
-  const live = await checkScenarios(options, token, definitions);
+  const tokenManager = new AuthTokenManager(options);
+  await checkExistingModel(options, tokenManager, model);
+  const live = await checkScenarios(options, tokenManager, definitions);
 
   console.log('Seeding customers, wallets, and deterministic transaction fixtures...');
   await ingestBatchWithRetry(options, tokenManager, 'customers', fixtures.customers);
@@ -1177,17 +1066,16 @@ async function runDeterministic(options, model, definitions) {
   for (const testCase of fixtures.cases) {
     const scenarioLive = live.get(testCase.scenario.name);
     try {
-      const evaluationToken = await tokenManager.getToken();
-      const result = await getEvaluation(options, evaluationToken, scenarioLive.scenario, testCase);
+      const result = await getEvaluation(options, tokenManager, scenarioLive.scenario, testCase);
       verifyEvaluation(result, scenarioLive, testCase);
       console.log(`PASS ${testCase.rule.stable_rule_id}: ${testCase.shouldHit ? 'fires' : 'does not fire'}`);
     } catch (error) {
+      if (error instanceof TokenExchangeError) throw error;
       failures.push({ rule: testCase.rule.stable_rule_id, shouldHit: testCase.shouldHit, error: error.message });
       console.error(`FAIL ${testCase.rule.stable_rule_id}: ${error.message}`);
     }
   }
 
-  tokenManager.stop();
   if (failures.length) {
     console.error(`${failures.length}/${fixtures.cases.length} assertions failed.`);
     process.exitCode = 1;
@@ -1196,7 +1084,7 @@ async function runDeterministic(options, model, definitions) {
   console.log(`PASS: All ${fixtures.cases.length} deterministic evaluations passed.`);
 }
 
-async function runContinuousSimulation(options, model, definitions) {
+export async function runContinuousSimulation(options, model, definitions) {
   console.log(`================================================================`);
   console.log(`24-Hour Fraud Scenarios Simulation (${options.totalTransactions} transactions)`);
   console.log(`Duration: ${(options.durationMs / 3600000).toFixed(2)} hours | Run ID: ${options.runId}`);
@@ -1222,58 +1110,42 @@ async function runContinuousSimulation(options, model, definitions) {
     return;
   }
 
-  const tokenManager = await resolveAuthManager(options);
-  let initialToken = await tokenManager.getToken();
-  await checkExistingModel(options, initialToken, model);
-  const liveScenarios = await checkScenarios(options, initialToken, definitions);
+  const tokenManager = new AuthTokenManager(options);
+  await checkExistingModel(options, tokenManager, model);
+  const liveScenarios = await checkScenarios(options, tokenManager, definitions);
   console.log(`Verified data model and ${liveScenarios.size} live scenarios.`);
 
   // Ingest baseline entity cohort (customers and wallets)
   console.log(`Ingesting baseline entity cohort (${pool.customers.length} customers, ${pool.wallets.length} wallets)...`);
-  await ingestBatchWithRetry(options, tokenManager, 'customers', pool.customers);
-  await ingestBatchWithRetry(options, tokenManager, 'wallets', pool.wallets);
+  await ingestSimulationEntities(options, tokenManager, pool);
   console.log('Baseline entities ingested successfully.');
 
   let completedTransactions = 0;
-  let errorCount = 0;
+  let ingestedTransactions = 0;
+  let triggeredScenarios = 0;
+  let incompleteBatch = null;
   const startTime = Date.now();
-  const ruleHits = new Map();
-
-  // Handle checkpointing
-  if (options.resume && existsSync(options.checkpointFile)) {
-    try {
-      const saved = JSON.parse(await readFile(options.checkpointFile, 'utf8'));
-      completedTransactions = saved.completedTransactions || 0;
-      generator.transactionCounter = completedTransactions;
-      console.log(`[Resume] Picked up from checkpoint: ${completedTransactions} transactions already submitted.`);
-    } catch (e) {
-      console.warn(`[Resume] Could not read checkpoint file: ${e.message}. Starting fresh.`);
-    }
-  }
 
   const saveCheckpoint = async () => {
-    try {
-      await mkdir(path.dirname(options.checkpointFile), { recursive: true });
-      await writeFile(options.checkpointFile, JSON.stringify({
-        runId: options.runId,
-        completedTransactions,
-        totalTransactions: options.totalTransactions,
-        elapsedMs: Date.now() - startTime,
-        ruleHits: Object.fromEntries(ruleHits),
-        lastUpdatedAt: new Date().toISOString(),
-      }, null, 2));
-    } catch {
-      // Ignore checkpoint write failure
-    }
+    await mkdir(path.dirname(options.checkpointFile), { recursive: true });
+    await writeFile(options.checkpointFile, JSON.stringify({
+      runId: options.runId,
+      ingestedTransactions,
+      evaluatedTransactions: completedTransactions,
+      triggeredScenarios,
+      incompleteBatch,
+      totalTransactions: options.totalTransactions,
+      elapsedMs: Date.now() - startTime,
+      lastUpdatedAt: new Date().toISOString(),
+    }, null, 2));
   };
 
   let running = true;
-  const onSignal = async () => {
-    console.log('\n[Shutdown] Received interrupt signal. Saving checkpoint and exiting...');
+  let interrupted = false;
+  const onSignal = () => {
+    console.log('\n[Shutdown] Stopping after the current batch finishes...');
     running = false;
-    await saveCheckpoint();
-    tokenManager.stop();
-    process.exit(0);
+    interrupted = true;
   };
   process.on('SIGINT', onSignal);
   process.on('SIGTERM', onSignal);
@@ -1281,50 +1153,71 @@ async function runContinuousSimulation(options, model, definitions) {
   let lastStatusLog = Date.now();
   console.log(`[Simulation] Starting continuous dispatch loop. Target: ${options.totalTransactions} transactions.`);
 
-  while (running && completedTransactions < options.totalTransactions) {
-    const elapsed = Date.now() - startTime;
-    if (elapsed >= options.durationMs) {
-      console.log(`[Simulation] Reached target duration of ${(options.durationMs / 3600000).toFixed(2)} hours.`);
-      break;
-    }
+  let runError;
+  try {
+    while (running && completedTransactions < options.totalTransactions) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed >= options.durationMs) {
+        console.log(`[Simulation] Reached target duration of ${(options.durationMs / 3600000).toFixed(2)} hours.`);
+        break;
+      }
 
-    const currentBatchSize = Math.min(options.batchSize, options.totalTransactions - completedTransactions);
-    const batch = generator.generateBatch(currentBatchSize, new Date());
-
-    try {
+      const currentBatchSize = Math.min(options.batchSize, options.totalTransactions - completedTransactions);
+      const batch = generator.generateBatch(currentBatchSize, new Date());
+      incompleteBatch = { objectIds: batch.map(transaction => transaction.object_id), stage: 'ingestion' };
       await ingestBatchWithRetry(options, tokenManager, 'transactions', batch);
-      completedTransactions += batch.length;
-    } catch (err) {
-      errorCount += 1;
-      console.error(`[Error] Ingestion failed at transaction ${completedTransactions}: ${err.message}`);
+      ingestedTransactions += batch.length;
+      incompleteBatch.stage = 'evaluation';
+      const evaluated = await evaluateTransactionBatch(options, tokenManager, batch);
+      completedTransactions += evaluated.completed;
+      triggeredScenarios += evaluated.triggered;
+      incompleteBatch = null;
+
+      if (completedTransactions === batch.length) {
+        console.log(`[Simulation] First batch: ${batch.length} transactions ingested and evaluated.`);
+      }
+
+      if (Date.now() - lastStatusLog >= 10 * 60 * 1000) {
+        lastStatusLog = Date.now();
+        const progress = ((completedTransactions / options.totalTransactions) * 100).toFixed(2);
+        const elapsedHours = (elapsed / 3600000).toFixed(2);
+        const remainingHours = Math.max(0, (options.durationMs - elapsed) / 3600000).toFixed(2);
+        const currentRate = (completedTransactions / (elapsed / 1000)).toFixed(2);
+        const diurnalM = calculateDiurnalMultiplier(elapsed, options.durationMs).toFixed(2);
+
+        console.log(`----------------------------------------------------------------`);
+        console.log(`[Status] ${completedTransactions}/${options.totalTransactions} evaluated (${progress}%) | Rate: ${currentRate} tx/s (diurnal factor ${diurnalM}x)`);
+        console.log(`[Time] Elapsed: ${elapsedHours}h | Remaining: ${remainingHours}h | Triggered scenarios: ${triggeredScenarios}`);
+        console.log(`----------------------------------------------------------------`);
+        await saveCheckpoint();
+      }
+
+      if (running && completedTransactions < options.totalTransactions) {
+        const delayMs = pacer.nextDelayMs(elapsed);
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
     }
-
-    // Periodic status reporting (every 10 minutes)
-    if (Date.now() - lastStatusLog >= 10 * 60 * 1000) {
-      lastStatusLog = Date.now();
-      const progress = ((completedTransactions / options.totalTransactions) * 100).toFixed(2);
-      const elapsedHours = (elapsed / 3600000).toFixed(2);
-      const remainingHours = Math.max(0, (options.durationMs - elapsed) / 3600000).toFixed(2);
-      const currentRate = (completedTransactions / (elapsed / 1000)).toFixed(2);
-      const diurnalM = calculateDiurnalMultiplier(elapsed, options.durationMs).toFixed(2);
-
-      console.log(`----------------------------------------------------------------`);
-      console.log(`[Status] ${completedTransactions}/${options.totalTransactions} (${progress}%) | Rate: ${currentRate} tx/s (diurnal factor ${diurnalM}x)`);
-      console.log(`[Time] Elapsed: ${elapsedHours}h | Remaining: ${remainingHours}h | Errors: ${errorCount}`);
-      console.log(`----------------------------------------------------------------`);
+  } catch (error) {
+    runError = error;
+  } finally {
+    process.off('SIGINT', onSignal);
+    process.off('SIGTERM', onSignal);
+    try {
       await saveCheckpoint();
+    } catch (error) {
+      if (runError) throw new Error(`${runError.message}; checkpoint save failed: ${error.message}`, { cause: runError });
+      throw new Error(`Checkpoint save failed: ${error.message}`, { cause: error });
     }
-
-    const delayMs = pacer.nextDelayMs(elapsed);
-    await new Promise((r) => setTimeout(r, delayMs));
   }
 
-  tokenManager.stop();
-  await saveCheckpoint();
+  if (runError) throw runError;
+  if (interrupted) process.exitCode = 130;
+  else if (completedTransactions < options.totalTransactions) process.exitCode = 1;
   const totalElapsedSec = (Date.now() - startTime) / 1000;
   console.log(`================================================================`);
-  console.log(`Simulation complete! Submitted ${completedTransactions} transactions in ${(totalElapsedSec / 3600).toFixed(2)} hours.`);
-  console.log(`Final Error Count: ${errorCount}`);
+  const outcome = interrupted ? 'stopped' : completedTransactions < options.totalTransactions ? 'ended before reaching target' : 'complete';
+  console.log(`Simulation ${outcome}: evaluated ${completedTransactions} transactions in ${(totalElapsedSec / 3600).toFixed(2)} hours.`);
+  console.log(`Triggered scenario evaluations: ${triggeredScenarios}`);
   console.log(`Checkpoint saved at: ${options.checkpointFile}`);
   console.log(`================================================================`);
 }

@@ -1,16 +1,65 @@
 package httpapi
 
 import (
-	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
-	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
+	authtest "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth/authtest"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
+
+func TestClientScenarioAuthoringRoutesRemainDraftOnly(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	var routes []platformauth.RoutePolicy
+	NewRouter(slog.Default(), nil, RouterConfig{
+		PolicyObserver: func(policies []platformauth.RoutePolicy) { routes = policies },
+	})
+	byKey := make(map[string]platformauth.Policy, len(routes))
+	for _, route := range routes {
+		byKey[route.Method+" "+route.Path] = route.Policy
+	}
+
+	clientAuthoring := []string{
+		"POST /v1/tenants/:tenantId/scenarios",
+		"POST /v1/tenants/:tenantId/scenarios/:scenarioId/iterations",
+		"POST /v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/draft",
+		"PUT /v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId",
+		"POST /v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules",
+		"POST /v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/validate",
+	}
+	for _, key := range clientAuthoring {
+		policy, ok := byKey[key]
+		if !ok || policy.Capability != "scenarios:write" || policy.PrincipalType != "" {
+			t.Errorf("%s must allow capability-authorized clients, got %+v (present=%v)", key, policy, ok)
+		}
+	}
+
+	humanOnly := []string{
+		"DELETE /v1/tenants/:tenantId/scenarios/:scenarioId",
+		"PUT /v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules/:ruleId",
+		"GET /v1/tenants/:tenantId/test-runs/:testRunId/decision-data-by-score",
+		"GET /v1/tenants/:tenantId/scenarios/:scenarioId/recurring-schedule",
+		"POST /v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/commit",
+		"POST /v1/tenants/:tenantId/scenarios/:scenarioId/publications/preparation",
+		"POST /v1/tenants/:tenantId/scenarios/:scenarioId/publications",
+		"GET /v1/tenants/:tenantId/async-decision-executions/:executionId",
+	}
+	for _, key := range humanOnly {
+		policy, ok := byKey[key]
+		if !ok || policy.PrincipalType != platformauth.PrincipalUser {
+			t.Errorf("%s must remain human-only, got %+v (present=%v)", key, policy, ok)
+		}
+		clientStatus := byKey["GET /v1/tenants/:tenantId/client-async-decision-executions/:executionId"]
+		if clientStatus.PrincipalType != platformauth.PrincipalClient || clientStatus.Capability != "decisions:evaluate" {
+			t.Errorf("client execution status requires a client with decisions:evaluate, got %+v", clientStatus)
+		}
+	}
+}
 
 func TestRouterHealthz(t *testing.T) {
 	t.Parallel()

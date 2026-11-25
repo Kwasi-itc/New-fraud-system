@@ -40,7 +40,9 @@ import { useAssembledDataModelQuery } from "@/lib/data-model-query";
 import {
   type Decision,
   type Iteration,
+  type PublicationPreparation,
   type Rule,
+  DecisionEngineApiError,
   decisionEngineApi,
 } from "@/lib/decision-engine-api";
 import {
@@ -342,14 +344,26 @@ function PublishModal({
   isOpen,
   iterationLabel,
   isSubmitting,
+  preparation,
+  preparationLoading,
+  preparationError,
+  isPreparing,
   onClose,
   onConfirm,
+  onPrepare,
+  onRetryStatus,
 }: {
   isOpen: boolean;
   iterationLabel: string;
   isSubmitting: boolean;
+  preparation: PublicationPreparation | undefined;
+  preparationLoading: boolean;
+  preparationError: boolean;
+  isPreparing: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  onPrepare: () => void;
+  onRetryStatus: () => void;
 }) {
   if (!isOpen) {
     return null;
@@ -370,6 +384,40 @@ function PublishModal({
             Publishing makes this version active immediately for scenario execution until
             another version is published or the scenario is deactivated.
           </div>
+          <div className="rounded-xl border border-slate-200 px-4 py-3 text-[14px] text-slate-700" role="status">
+            {preparationError ? (
+              <>
+                <p>Could not check index preparation. Retry before publishing.</p>
+                <Button variant="outline" onClick={onRetryStatus} disabled={preparationLoading}>
+                  Retry status check
+                </Button>
+              </>
+            ) : !preparation || (preparationLoading && !preparation.preparation_started) ? (
+              <p>Checking index preparation...</p>
+            ) : preparation.preparation_required ? (
+              <>
+                <p>
+                  {preparation.preparation_started || isPreparing
+                    ? `Preparing indexes (${preparation.pending_items} remaining). You can close this window and return later.`
+                    : `Index preparation is needed (${preparation.pending_items} remaining). Start or retry preparation before publishing.`}
+                </p>
+                {!preparation.preparation_started && (
+                  <Button variant="outline" onClick={onPrepare} disabled={isPreparing || preparationLoading}>
+                    {isPreparing ? "Starting preparation..." : "Start or retry preparation"}
+                  </Button>
+                )}
+              </>
+            ) : preparation.preparation_finished ? (
+              <p>Index preparation is complete.</p>
+            ) : (
+              <p>Index preparation status is incomplete. Retry the status check.</p>
+            )}
+          </div>
+          {!preparationError && preparation && !preparation.preparation_required && !preparation.preparation_finished && (
+            <Button variant="outline" onClick={onRetryStatus} disabled={preparationLoading}>
+              Retry status check
+            </Button>
+          )}
         </div>
         <div className="flex gap-3 border-t border-slate-200 px-5 py-4">
           <Button
@@ -382,7 +430,8 @@ function PublishModal({
           </Button>
           <Button
             onClick={onConfirm}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isPreparing || preparationLoading || preparationError ||
+              !preparation || preparation.preparation_required !== false || preparation.preparation_finished !== true}
             className="h-10 flex-1 rounded-xl bg-[#1f4f96] px-4 text-[14px] shadow-none hover:bg-[#163f79]"
           >
             <CheckCircle2 className="size-4" />
@@ -648,6 +697,37 @@ export function ScenarioEditPage({
     iterations.find((iteration) => iteration.id === selectedIterationId) ??
     routeIteration ??
     preferredIteration;
+  const preparationKey = ["decision-engine", "publication-preparation", tenantId, scenarioId, currentIteration?.id];
+  const preparationQuery = useQuery({
+    queryKey: preparationKey,
+    queryFn: () => decisionEngineApi.getPublicationPreparation(tenantId, scenarioId, currentIteration!.id),
+    enabled: Boolean(publishOpen && currentIteration?.id),
+    retry: false,
+    refetchInterval: (query) =>
+      query.state.data?.preparation?.preparation_required &&
+      query.state.data.preparation.preparation_started ? 2000 : false,
+  });
+  const preparationMutation = useMutation({
+    mutationFn: (iterationId: string) =>
+      decisionEngineApi.startPublicationPreparation(tenantId, scenarioId, iterationId),
+    onSuccess: ({ preparation }) => {
+      queryClient.setQueryData(
+        ["decision-engine", "publication-preparation", tenantId, scenarioId, preparation.iteration_id],
+        { preparation }
+      );
+    },
+    onError: (error) => {
+      pushToast({
+        title: "Failed to start index preparation",
+        description: error instanceof Error ? error.message : "Try again or contact an administrator.",
+        variant: "error",
+      });
+    },
+    onSettled: (_data, _error, iterationId) =>
+      queryClient.invalidateQueries({
+        queryKey: ["decision-engine", "publication-preparation", tenantId, scenarioId, iterationId],
+      }),
+  });
   const rulesQuery = useQuery({
     queryKey: ["decision-engine", "rules", tenantId, scenarioId, currentIteration?.id],
     queryFn: () =>
@@ -871,10 +951,15 @@ export function ScenarioEditPage({
       }
     },
     onError: (error) => {
+      const details = error instanceof DecisionEngineApiError ? error.body?.details : undefined;
+      const needsPreparation = typeof details === "string" &&
+        /^iteration requires data-model preparation for \d+ index jobs$/.test(details);
+      if (needsPreparation) void queryClient.invalidateQueries({ queryKey: preparationKey });
       pushToast({
         title: "Failed to publish iteration",
         description:
-          error instanceof Error ? error.message : "The iteration could not be published.",
+          needsPreparation ? "Index preparation is required. Check the preparation status and retry." :
+            error instanceof Error ? error.message : "The iteration could not be published.",
         variant: "error",
       });
     },
@@ -2447,8 +2532,16 @@ export function ScenarioEditPage({
         isOpen={publishOpen}
         iterationLabel={statusLabel}
         isSubmitting={publishIterationMutation.isPending}
+        preparation={preparationQuery.data?.preparation}
+        preparationLoading={preparationQuery.isFetching}
+        preparationError={preparationQuery.isError}
+        isPreparing={preparationMutation.isPending}
         onClose={() => setPublishOpen(false)}
         onConfirm={() => publishIterationMutation.mutate()}
+        onPrepare={() => {
+          if (currentIteration) preparationMutation.mutate(currentIteration.id);
+        }}
+        onRetryStatus={() => { void preparationQuery.refetch(); }}
       />
 
       <DeactivateModal

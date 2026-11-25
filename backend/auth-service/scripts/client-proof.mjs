@@ -91,6 +91,50 @@ export function createClientProof(directory, clientID, tokenURL) {
   return `${input}.${sign('RSA-SHA256', Buffer.from(input), key).toString('base64url')}`;
 }
 
+export async function exchangeClientProof(directory, clientID, tokenURL, scopes, fetchImpl = fetch) {
+  const result = await exchangeClientProofDetails(directory, clientID, tokenURL, scopes, fetchImpl);
+  return result.access_token;
+}
+
+export async function exchangeClientProofDetails(directory, clientID, tokenURL, scopes, fetchImpl = fetch) {
+  if (!Array.isArray(scopes) || scopes.length === 0 ||
+      scopes.some(scope => typeof scope !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9:._-]{0,99}$/.test(scope)) ||
+      new Set(scopes).size !== scopes.length) {
+    throw new Error('At least one unique, valid client scope is required.');
+  }
+  const assertion = createClientProof(directory, clientID, tokenURL);
+  const form = new URLSearchParams({
+    grant_type: 'client_credentials',
+    client_id: clientID.toLowerCase(),
+    client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+    client_assertion: assertion,
+    audience: 'urn:fraud:system',
+    scope: scopes.join(' '),
+  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20_000);
+  let response;
+  try {
+    response = await fetchImpl(tokenURL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+      body: form,
+      cache: 'no-store',
+      redirect: 'error',
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+  if (!response.ok) throw new Error(`Client token exchange failed with HTTP ${response.status}.`);
+  const result = await response.json();
+  if (typeof result?.access_token !== 'string' || !result.access_token ||
+      result.token_type !== 'Bearer' || !Number.isInteger(result.expires_in) || result.expires_in <= 0) {
+    throw new Error('Client token exchange returned an invalid token response.');
+  }
+  return { access_token: result.access_token, expires_in: result.expires_in };
+}
+
 export function main(args) {
   const [command, ...rest] = args;
   if (!command || command === '--help' || command === '-h') { console.log(help); return; }

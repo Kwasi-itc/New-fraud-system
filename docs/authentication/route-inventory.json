@@ -1049,7 +1049,8 @@
     "service": "decision-engine-service",
     "method": "GET",
     "path": "/v1/rule-functions",
-    "capability": "scenarios:read"
+    "capability": "scenarios:read",
+    "principal_type": "user"
   },
   {
     "service": "decision-engine-service",
@@ -1091,6 +1092,13 @@
     "path": "/v1/tenants/:tenantId/async-decision-executions/status-summary",
     "capability": "executions:read",
     "principal_type": "user"
+  },
+  {
+    "service": "decision-engine-service",
+    "method": "GET",
+    "path": "/v1/tenants/:tenantId/client-async-decision-executions/:executionId",
+    "capability": "decisions:evaluate",
+    "principal_type": "client"
   },
   {
     "service": "decision-engine-service",
@@ -1169,7 +1177,8 @@
     "service": "decision-engine-service",
     "method": "GET",
     "path": "/v1/tenants/:tenantId/platform/custom-list-entries",
-    "capability": "scenarios:read"
+    "capability": "scenarios:read",
+    "principal_type": "user"
   },
   {
     "service": "decision-engine-service",
@@ -1286,8 +1295,7 @@
     "service": "decision-engine-service",
     "method": "POST",
     "path": "/v1/tenants/:tenantId/scenarios",
-    "capability": "scenarios:write",
-    "principal_type": "user"
+    "capability": "scenarios:write"
   },
   {
     "service": "decision-engine-service",
@@ -1333,7 +1341,8 @@
     "service": "decision-engine-service",
     "method": "GET",
     "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/editor-identifiers",
-    "capability": "scenarios:read"
+    "capability": "scenarios:read",
+    "principal_type": "user"
   },
   {
     "service": "decision-engine-service",
@@ -1358,8 +1367,7 @@
     "service": "decision-engine-service",
     "method": "POST",
     "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations",
-    "capability": "scenarios:write",
-    "principal_type": "user"
+    "capability": "scenarios:write"
   },
   {
     "service": "decision-engine-service",
@@ -1371,8 +1379,7 @@
     "service": "decision-engine-service",
     "method": "PUT",
     "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId",
-    "capability": "scenarios:write",
-    "principal_type": "user"
+    "capability": "scenarios:write"
   },
   {
     "service": "decision-engine-service",
@@ -1392,8 +1399,7 @@
     "service": "decision-engine-service",
     "method": "POST",
     "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/draft",
-    "capability": "scenarios:write",
-    "principal_type": "user"
+    "capability": "scenarios:write"
   },
   {
     "service": "decision-engine-service",
@@ -1405,8 +1411,7 @@
     "service": "decision-engine-service",
     "method": "POST",
     "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules",
-    "capability": "scenarios:write",
-    "principal_type": "user"
+    "capability": "scenarios:write"
   },
   {
     "service": "decision-engine-service",
@@ -1426,26 +1431,28 @@
     "service": "decision-engine-service",
     "method": "GET",
     "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/rules/:ruleId/ai-description",
-    "capability": "scenarios:read"
+    "capability": "scenarios:read",
+    "principal_type": "user"
   },
   {
     "service": "decision-engine-service",
     "method": "POST",
     "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations/:iterationId/validate",
-    "capability": "scenarios:write",
-    "principal_type": "user"
+    "capability": "scenarios:write"
   },
   {
     "service": "decision-engine-service",
     "method": "GET",
     "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/iterations/metadata",
-    "capability": "scenarios:read"
+    "capability": "scenarios:read",
+    "principal_type": "user"
   },
   {
     "service": "decision-engine-service",
     "method": "GET",
     "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/publications",
-    "capability": "scenarios:read"
+    "capability": "scenarios:read",
+    "principal_type": "user"
   },
   {
     "service": "decision-engine-service",
@@ -1458,7 +1465,8 @@
     "service": "decision-engine-service",
     "method": "GET",
     "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/publications/preparation",
-    "capability": "scenarios:read"
+    "capability": "scenarios:read",
+    "principal_type": "user"
   },
   {
     "service": "decision-engine-service",
@@ -1471,7 +1479,8 @@
     "service": "decision-engine-service",
     "method": "GET",
     "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/recurring-schedule",
-    "capability": "scenarios:read"
+    "capability": "scenarios:read",
+    "principal_type": "user"
   },
   {
     "service": "decision-engine-service",
@@ -1484,13 +1493,15 @@
     "service": "decision-engine-service",
     "method": "GET",
     "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/rule-groups",
-    "capability": "scenarios:read"
+    "capability": "scenarios:read",
+    "principal_type": "user"
   },
   {
     "service": "decision-engine-service",
     "method": "GET",
     "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/rule-snoozes",
-    "capability": "scenarios:read"
+    "capability": "scenarios:read",
+    "principal_type": "user"
   },
   {
     "service": "decision-engine-service",
@@ -1503,7 +1514,8 @@
     "service": "decision-engine-service",
     "method": "GET",
     "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/rules/latest",
-    "capability": "scenarios:read"
+    "capability": "scenarios:read",
+    "principal_type": "user"
   },
   {
     "service": "decision-engine-service",
@@ -1614,7 +1626,8 @@
     "service": "decision-engine-service",
     "method": "GET",
     "path": "/v1/tenants/:tenantId/scenarios/:scenarioId/test-runs",
-    "capability": "scenarios:read"
+    "capability": "scenarios:read",
+    "principal_type": "user"
   },
   {
     "service": "decision-engine-service",
@@ -1795,7 +1808,8 @@
     "service": "decision-engine-service",
     "method": "GET",
     "path": "/v1/tenants/:tenantId/test-runs/:testRunId",
-    "capability": "scenarios:read"
+    "capability": "scenarios:read",
+    "principal_type": "user"
   },
   {
     "service": "decision-engine-service",
@@ -1808,13 +1822,15 @@
     "service": "decision-engine-service",
     "method": "GET",
     "path": "/v1/tenants/:tenantId/test-runs/:testRunId/data-by-rule-execution",
-    "capability": "scenarios:read"
+    "capability": "scenarios:read",
+    "principal_type": "user"
   },
   {
     "service": "decision-engine-service",
     "method": "GET",
     "path": "/v1/tenants/:tenantId/test-runs/:testRunId/decision-data-by-score",
-    "capability": "scenarios:read"
+    "capability": "scenarios:read",
+    "principal_type": "user"
   },
   {
     "service": "decision-engine-service",

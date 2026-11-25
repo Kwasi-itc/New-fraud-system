@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { createClientProof, generateClientKeyPair } from './client-proof.mjs';
+import { createClientProof, exchangeClientProof, exchangeClientProofDetails, generateClientKeyPair } from './client-proof.mjs';
 
 const script = fileURLToPath(new URL('./client-proof.mjs', import.meta.url));
 const endpoint = 'http://localhost:8088/oauth/token';
@@ -59,6 +59,44 @@ test('proof carries the exact client/audience, a 60-second lifetime and a fresh 
   assert.notEqual(proof.payload.jti, decode(second).payload.jti);
   assert(verify('RSA-SHA256', Buffer.from(proof.input), readFileSync(files.public_key_file), proof.signature));
   assert(!verify('RSA-SHA256', Buffer.from(proof.input + 'tampered'), readFileSync(files.public_key_file), proof.signature));
+});
+
+test('exchanges a fresh proof for only the requested client scopes', async t => {
+  const { dir } = fixture(t);
+  generateClientKeyPair(dir, 'customer-3');
+  const clientID = randomUUID();
+  let request;
+  const token = await exchangeClientProof(dir, clientID, endpoint, ['models:read', 'scenarios:read', 'scenarios:write'], async (url, options) => {
+    request = { url, options };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ access_token: 'opaque-test-token', token_type: 'Bearer', expires_in: 900 }),
+    };
+  });
+  assert.equal(token, 'opaque-test-token');
+  assert.equal(request.url, endpoint);
+  assert.equal(request.options.method, 'POST');
+  assert.equal(request.options.redirect, 'error');
+  const form = new URLSearchParams(request.options.body);
+  assert.equal(form.get('grant_type'), 'client_credentials');
+  assert.equal(form.get('client_id'), clientID);
+  assert.equal(form.get('audience'), 'urn:fraud:system');
+  assert.equal(form.get('scope'), 'models:read scenarios:read scenarios:write');
+  assert.equal(decode(form.get('client_assertion')).payload.aud, endpoint);
+});
+
+test('requires a valid expiry in the exchanged token response', async t => {
+  const { dir } = fixture(t);
+  generateClientKeyPair(dir, 'expiry-test');
+  const clientID = randomUUID();
+  const exchange = expires_in => exchangeClientProofDetails(dir, clientID, endpoint, ['decisions:evaluate'], async () => ({
+    ok: true, json: async () => ({ access_token: 'test-token', token_type: 'Bearer', expires_in }),
+  }));
+  assert.deepEqual(await exchange(42), { access_token: 'test-token', expires_in: 42 });
+  for (const invalid of [undefined, 0, -1, 1.5, '42']) {
+    await assert.rejects(exchange(invalid), /invalid token response/);
+  }
 });
 
 test('proof file output stays private and cannot replace the key or an existing proof', t => {

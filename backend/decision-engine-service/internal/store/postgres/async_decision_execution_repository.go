@@ -20,21 +20,21 @@ func (r AsyncDecisionExecutionRepository) Create(ctx context.Context, item execu
 			insert into core.async_decision_executions (
 				id, tenant_id, scenario_id, object_type, status, idempotency_key, attempt_count, max_attempts, next_attempt_at,
 				request_body, result_body, callback_url, callback_status, callback_attempt_count, callback_last_error,
-				callback_sent_at, created_at, completed_at, failed_at
-			) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+				callback_sent_at, created_at, completed_at, failed_at, client_owner_id
+			) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
 			on conflict do nothing
 			returning id, tenant_id, scenario_id::text as scenario_id, object_type, status, idempotency_key, attempt_count, max_attempts, next_attempt_at,
 				request_body, result_body, callback_url, callback_status, callback_attempt_count,
-				callback_last_error, callback_sent_at, created_at, completed_at, failed_at, last_error
+				callback_last_error, callback_sent_at, created_at, completed_at, failed_at, last_error, client_owner_id
 		)
 		select id, tenant_id, coalesce(scenario_id, ''), object_type, status, coalesce(idempotency_key, ''), attempt_count, max_attempts, next_attempt_at,
 			request_body, result_body, coalesce(callback_url, ''), coalesce(callback_status, ''), callback_attempt_count,
-			coalesce(callback_last_error, ''), callback_sent_at, created_at, completed_at, failed_at, coalesce(last_error, '')
+			coalesce(callback_last_error, ''), callback_sent_at, created_at, completed_at, failed_at, coalesce(last_error, ''), coalesce(client_owner_id::text, '')
 		from inserted
 		union all
 		select id, tenant_id, coalesce(scenario_id::text, ''), object_type, status, coalesce(idempotency_key, ''), attempt_count, max_attempts, next_attempt_at,
 			request_body, result_body, coalesce(callback_url, ''), coalesce(callback_status, ''), callback_attempt_count,
-			coalesce(callback_last_error, ''), callback_sent_at, created_at, completed_at, failed_at, coalesce(last_error, '')
+			coalesce(callback_last_error, ''), callback_sent_at, created_at, completed_at, failed_at, coalesce(last_error, ''), coalesce(client_owner_id::text, '')
 		from core.async_decision_executions
 		where tenant_id = $2 and $6 is not null and idempotency_key = $6
 		limit 1
@@ -45,11 +45,11 @@ func (r AsyncDecisionExecutionRepository) Create(ctx context.Context, item execu
 		item.ID, item.TenantID, nullableEmptyString(item.ScenarioID), item.ObjectType, string(item.Status), nullableEmptyString(item.IdempotencyKey),
 		item.AttemptCount, item.MaxAttempts, item.NextAttemptAt, item.RequestBody, item.ResultBody,
 		nullableEmptyString(item.CallbackURL), nullableEmptyString(item.CallbackStatus), item.CallbackAttemptCount,
-		item.CallbackLastError, item.CallbackSentAt, item.CreatedAt, item.CompletedAt, item.FailedAt,
+		item.CallbackLastError, item.CallbackSentAt, item.CreatedAt, item.CompletedAt, item.FailedAt, nullableEmptyString(item.ClientOwnerID),
 	).Scan(
 		&out.ID, &out.TenantID, &out.ScenarioID, &out.ObjectType, &status, &out.IdempotencyKey, &out.AttemptCount, &out.MaxAttempts, &out.NextAttemptAt,
 		&out.RequestBody, &out.ResultBody, &out.CallbackURL, &out.CallbackStatus, &out.CallbackAttemptCount,
-		&out.CallbackLastError, &out.CallbackSentAt, &out.CreatedAt, &out.CompletedAt, &out.FailedAt, &out.LastError,
+		&out.CallbackLastError, &out.CallbackSentAt, &out.CreatedAt, &out.CompletedAt, &out.FailedAt, &out.LastError, &out.ClientOwnerID,
 	)
 	out.Status = execution.Status(status)
 	return out, err
@@ -59,7 +59,7 @@ func (r AsyncDecisionExecutionRepository) GetByID(ctx context.Context, tenantID,
 	const stmt = `
 		select id, tenant_id, coalesce(scenario_id::text, ''), object_type, status, coalesce(idempotency_key, ''), attempt_count, max_attempts, next_attempt_at,
 			request_body, result_body, coalesce(callback_url, ''), coalesce(callback_status, ''), callback_attempt_count,
-			coalesce(callback_last_error, ''), callback_sent_at, created_at, completed_at, failed_at, coalesce(last_error, '')
+			coalesce(callback_last_error, ''), callback_sent_at, created_at, completed_at, failed_at, coalesce(last_error, ''), coalesce(client_owner_id::text, '')
 		from core.async_decision_executions
 		where tenant_id = $1 and id = $2
 	`
@@ -69,7 +69,7 @@ func (r AsyncDecisionExecutionRepository) GetByID(ctx context.Context, tenantID,
 		Scan(
 			&item.ID, &item.TenantID, &item.ScenarioID, &item.ObjectType, &status, &item.IdempotencyKey, &item.AttemptCount, &item.MaxAttempts, &item.NextAttemptAt,
 			&item.RequestBody, &item.ResultBody, &item.CallbackURL, &item.CallbackStatus, &item.CallbackAttemptCount,
-			&item.CallbackLastError, &item.CallbackSentAt, &item.CreatedAt, &item.CompletedAt, &item.FailedAt, &item.LastError,
+			&item.CallbackLastError, &item.CallbackSentAt, &item.CreatedAt, &item.CompletedAt, &item.FailedAt, &item.LastError, &item.ClientOwnerID,
 		)
 	item.Status = execution.Status(status)
 	return item, err

@@ -42,6 +42,7 @@ type ScheduledExecution struct {
 type AsyncDecisionExecution struct {
 	ID                   string
 	TenantID             string
+	ClientOwnerID        string
 	ScenarioID           string
 	ObjectType           string
 	Status               Status

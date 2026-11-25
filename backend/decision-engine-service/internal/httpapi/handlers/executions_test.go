@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,6 +18,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/riverjobs"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
+	platformauth "github.com/Kwasi-itc/New-fraud-system/backend/platform-auth"
 )
 
 type executionHandlerTxManager struct {
@@ -93,6 +95,7 @@ func (executionHandlerAsyncEnqueuer) EnqueueTx(context.Context, pgx.Tx, string, 
 type executionHandlerAsyncRepoStub struct {
 	created       execution.AsyncDecisionExecution
 	getByIDResult execution.AsyncDecisionExecution
+	getByIDError  error
 }
 
 func (s *executionHandlerAsyncRepoStub) Create(_ context.Context, item execution.AsyncDecisionExecution) (execution.AsyncDecisionExecution, error) {
@@ -100,6 +103,9 @@ func (s *executionHandlerAsyncRepoStub) Create(_ context.Context, item execution
 	return item, nil
 }
 func (s *executionHandlerAsyncRepoStub) GetByID(context.Context, string, string) (execution.AsyncDecisionExecution, error) {
+	if s.getByIDError != nil {
+		return execution.AsyncDecisionExecution{}, s.getByIDError
+	}
 	if s.getByIDResult.ID != "" {
 		return s.getByIDResult, nil
 	}
@@ -131,6 +137,45 @@ func (s *executionHandlerAsyncRepoStub) UpdateCallbackDelivery(context.Context, 
 }
 func (s *executionHandlerAsyncRepoStub) ResetForRetry(context.Context, string, execution.Status) error {
 	return nil
+}
+
+func TestClientAsyncExecutionResponseAndErrors(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	tenant, client, id := uuid.New(), uuid.New(), uuid.New()
+	repo := &executionHandlerAsyncRepoStub{getByIDResult: execution.AsyncDecisionExecution{
+		ID: id.String(), TenantID: tenant.String(), ClientOwnerID: client.String(),
+		Status: execution.StatusCompleted, ResultBody: json.RawMessage(`{"triggered":true}`),
+		RequestBody: json.RawMessage(`{"secret":"request"}`), LastError: "internal error",
+	}}
+	handler := newExecutionHandlerForTests(repo)
+	request := func(subject uuid.UUID) *httptest.ResponseRecorder {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		ctx := platformauth.WithPrincipal(context.Background(), platformauth.Principal{Type: platformauth.PrincipalClient, Subject: subject.String(), TenantID: tenant})
+		c.Request = httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx)
+		c.Params = gin.Params{{Key: "tenantId", Value: tenant.String()}, {Key: "executionId", Value: id.String()}}
+		handler.GetClientAsyncDecisionExecution(c)
+		return w
+	}
+	w := request(client)
+	if w.Code != http.StatusOK {
+		t.Fatalf("owner status = %d, body = %s", w.Code, w.Body.String())
+	}
+	var body map[string]map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	item := body["async_decision_execution"]
+	if len(item) != 3 || item["id"] != id.String() || item["status"] != "completed" || item["result_body"] == nil {
+		t.Fatalf("unexpected client response: %s", w.Body.String())
+	}
+	if got := request(uuid.New()); got.Code != http.StatusNotFound {
+		t.Fatalf("other client status = %d", got.Code)
+	}
+	repo.getByIDError = errors.New("database unavailable")
+	if got := request(client); got.Code != http.StatusInternalServerError {
+		t.Fatalf("database failure status = %d", got.Code)
+	}
 }
 
 func newExecutionHandlerForTests(repo ports.AsyncDecisionExecutionRepository) ExecutionHandler {

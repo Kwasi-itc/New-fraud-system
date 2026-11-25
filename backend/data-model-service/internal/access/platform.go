@@ -1,4 +1,4 @@
-// Package access carries the verified human request into owner transactions.
+// Package access carries verified platform principals into owner transactions.
 package access
 
 import (
@@ -50,7 +50,9 @@ var ownership = map[string]string{
 
 func Check(ctx context.Context, db Queryer, g Grant, lock bool) error {
 	p := g.Principal
-	if p.TenantID == uuid.Nil || g.ID == uuid.Nil || (!p.IsHuman() && !p.IsService()) || (p.IsHuman() && p.AuthzVersion < 1) {
+	if p.TenantID == uuid.Nil || g.ID == uuid.Nil ||
+		(!p.IsHuman() && !p.IsService() && !(p.IsClient() && !g.Write)) ||
+		(p.IsHuman() && p.AuthzVersion < 1) {
 		return Denied()
 	}
 	capability := investigator.RequiredCapability(ctx)
