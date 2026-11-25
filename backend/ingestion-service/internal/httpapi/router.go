@@ -37,6 +37,8 @@ type RouterConfig struct {
 	WritePathOverloadMode          string
 	ReadQueryConcurrencyLimit      int
 	AggregateQueryConcurrencyLimit int
+	EnableRollupAggregates         bool
+	RollupShadowMode               bool
 	OverloadThresholds             OverloadThresholds
 }
 
@@ -79,12 +81,15 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 		dataModelReader = datamodel.NewContractReader(storepostgres.NewIngestionContractStore(db), dataModelReader, cfg.DataModelCacheMaxEntries, cfg.DataModelCacheMaxBytes)
 	}
 	var txManager ports.TransactionManager
+	var rollupCache *storepostgres.RollupDefinitionCache
 	var uploadLogRepository ports.UploadLogRepository
 	var deferredIngestRepository ports.DeferredIngestRepository
 	var uploadLogEnqueuer riverjobs.UploadLogEnqueuer = riverjobs.NoopUploadLogEnqueuer{}
 	var deferredIngestEnqueuer riverjobs.DeferredIngestEnqueuer = riverjobs.NoopDeferredIngestEnqueuer{}
 	if db != nil {
-		txManager = storepostgres.NewTransactionManager(db)
+		pgTxManager := storepostgres.NewTransactionManager(db)
+		rollupCache = pgTxManager.RollupCache()
+		txManager = pgTxManager
 		uploadLogRepository = storepostgres.NewUploadLogRepository(db)
 		deferredIngestRepository = storepostgres.NewDeferredIngestRepository(db)
 		riverClient, _ := river.NewClient(riverpgxv5.New(db), &river.Config{})
@@ -93,7 +98,9 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 	}
 	var readDataReader ports.TenantDataReader
 	if readDB != nil {
-		readDataReader = storepostgres.NewTenantDataReader(readDB)
+		readDataReader = storepostgres.NewTenantDataReader(readDB).
+			WithStatementTimeout(cfg.AggregateQueryTimeout).
+			WithRollups(rollupCache, cfg.EnableRollupAggregates, cfg.RollupShadowMode)
 	}
 	modelContractService := service.NewModelContractService(dataModelReader)
 	_ = modelContractService
@@ -138,6 +145,7 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 	deferredIngestMetricsHandler := handlers.NewDeferredIngestMetricsHandler(func(c *gin.Context) (any, error) {
 		return deferredIngestService.MetricsSnapshot(c.Request.Context())
 	})
+	rollupHandler := handlers.NewRollupHandler(storepostgres.NewRollupRepository(db), rollupCache, dataModelReader, handlers.DefaultMaxRollupsPerTable)
 
 	v1 := router.Group("/v1")
 	v1.POST("/tenants/:tenantId/ingest/:objectType", platformauth.Policy{Capability: "ingest:write"}, ingestHandler.PostIngest)
@@ -146,6 +154,10 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, readDB *pgxpool.Pool, cfg 
 	v1.PATCH("/tenants/:tenantId/ingest/:objectType/batch", platformauth.Policy{Capability: "ingest:write"}, ingestHandler.PatchBatchIngest)
 	v1.GET("/admin/read-metrics", platformauth.Policy{Capability: "metrics:read"}, readMetricsHandler.Get)
 	v1.GET("/admin/deferred-ingest-metrics", platformauth.Policy{Capability: "metrics:read"}, deferredIngestMetricsHandler.Get)
+	v1.GET("/admin/rollup-metrics", platformauth.Policy{Capability: "metrics:read"}, rollupHandler.Metrics)
+	v1.POST("/tenants/:tenantId/rollups", platformauth.Policy{Capability: "ingest:write"}, rollupHandler.Create)
+	v1.GET("/tenants/:tenantId/rollups", platformauth.Policy{Capability: "records:read"}, rollupHandler.List)
+	v1.POST("/tenants/:tenantId/rollups/:definitionId/disable", platformauth.Policy{Capability: "ingest:write"}, rollupHandler.Disable)
 	readRoutes := v1.Group("")
 	readRoutes.GET("/tenants/:tenantId/records/:objectType", platformauth.Policy{Capability: "records:read"}, readMetrics.middleware("list_records"), ingestHandler.ListRecords)
 	readRoutes.GET("/tenants/:tenantId/records/:objectType/search", platformauth.Policy{Capability: "records:read"}, readMetrics.middleware("query_records"), ingestHandler.QueryRecords)

@@ -103,6 +103,11 @@ func (r DecisionRepository) CountByObject(ctx context.Context, tenantID, objectT
 	return r.count(ctx, stmt, tenantID, objectType, objectID)
 }
 
+func (r DecisionRepository) CountByObjectOutcome(ctx context.Context, tenantID, objectType, objectID, outcome string) (int, error) {
+	const stmt = `select count(*) from core.decisions where tenant_id = $1 and object_type = $2 and object_id = $3 and outcome = $4`
+	return r.count(ctx, stmt, tenantID, objectType, objectID, outcome)
+}
+
 func (r DecisionRepository) ListByObjectPage(ctx context.Context, tenantID, objectType, objectID string, limit, offset int) ([]decision.Decision, bool, error) {
 	const stmt = `
 		select id, tenant_id, scenario_id, scenario_iteration_id, object_id, object_type, outcome, score, triggered, created_at

@@ -208,9 +208,10 @@ def main():
     print(f"[✓] Saved {len(pep_records)} verified Judicial PEP records to {out_root}")
 
     out_scripts = os.path.join("scripts", "gh_pep_judiciary.json")
-    with open(out_scripts, "w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2, ensure_ascii=False)
-    print(f"[✓] Synced to {out_scripts}")
+    if os.path.isdir("scripts"):
+        with open(out_scripts, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=False)
+        print(f"[✓] Synced to {out_scripts}")
 
     active_cnt = sum(1 for r in pep_records if "active" in r["properties"]["sourceStatus"][0])
     cooling_cnt = sum(1 for r in pep_records if "cooling_off" in r["properties"]["sourceStatus"][0])

@@ -114,6 +114,7 @@ type DecisionRepository interface {
 	ListByObject(ctx context.Context, tenantID, objectType, objectID string) ([]decision.Decision, error)
 	ListByObjectPage(ctx context.Context, tenantID, objectType, objectID string, limit, offset int) ([]decision.Decision, bool, error)
 	CountByObject(ctx context.Context, tenantID, objectType, objectID string) (int, error)
+	CountByObjectOutcome(ctx context.Context, tenantID, objectType, objectID, outcome string) (int, error)
 	ListFiltered(ctx context.Context, tenantID string, filter DecisionListFilter) ([]decision.Decision, error)
 	ListFilteredPage(ctx context.Context, tenantID string, filter DecisionListFilter, limit, offset int) ([]decision.Decision, bool, error)
 	ListFilteredCursor(ctx context.Context, tenantID string, filter DecisionListFilter, limit int, cursor *DecisionListCursor) ([]decision.Decision, bool, error)

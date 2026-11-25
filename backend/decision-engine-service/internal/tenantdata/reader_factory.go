@@ -16,11 +16,15 @@ const (
 	ReadModeDirectDB      = "direct_db"
 )
 
-func NewReader(readMode string, db *pgxpool.Pool, dataModelReader ports.DataModelReader, ingestionServiceURL string, timeout time.Duration) ports.TenantDataReader {
+func NewReader(readMode string, db *pgxpool.Pool, dataModelReader ports.DataModelReader, ingestionServiceURL string, timeout time.Duration, statementTimeout ...time.Duration) ports.TenantDataReader {
 	switch strings.ToLower(strings.TrimSpace(readMode)) {
 	case ReadModeDirectDB:
 		if db != nil {
-			return storepostgres.NewTenantDataReader(db, dataModelReader)
+			reader := storepostgres.NewTenantDataReader(db, dataModelReader)
+			if len(statementTimeout) > 0 && statementTimeout[0] > 0 {
+				reader = reader.WithStatementTimeout(statementTimeout[0])
+			}
+			return reader
 		}
 	}
 	return ingestionclient.NewHTTPClient(ingestionServiceURL, timeout)

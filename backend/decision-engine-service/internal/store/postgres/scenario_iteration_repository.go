@@ -19,11 +19,15 @@ func (r ScenarioIterationRepository) Create(ctx context.Context, item scenario.I
 	const stmt = `
 		insert into core.scenario_iterations (
 			id, scenario_id, tenant_id, version, status, trigger_formula, score_review_threshold,
-			score_block_and_review_threshold, score_decline_threshold, schedule, created_at, committed_at
-		) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			score_block_and_review_threshold, score_decline_threshold, schedule, evaluation_semantics, created_at, committed_at
+		) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		returning id, scenario_id, tenant_id, version, status, trigger_formula, score_review_threshold,
-			score_block_and_review_threshold, score_decline_threshold, schedule, created_at, committed_at
+			score_block_and_review_threshold, score_decline_threshold, schedule, evaluation_semantics, created_at, committed_at
 	`
+	semantics := item.EvaluationSemantics
+	if semantics == "" {
+		semantics = scenario.EvaluationSemanticsV1
+	}
 	var out scenario.Iteration
 	var status string
 	err := r.q.QueryRow(
@@ -39,6 +43,7 @@ func (r ScenarioIterationRepository) Create(ctx context.Context, item scenario.I
 		item.ScoreBlockAndReviewThreshold,
 		item.ScoreDeclineThreshold,
 		item.Schedule,
+		semantics,
 		item.CreatedAt,
 		item.CommittedAt,
 	).Scan(
@@ -52,6 +57,7 @@ func (r ScenarioIterationRepository) Create(ctx context.Context, item scenario.I
 		&out.ScoreBlockAndReviewThreshold,
 		&out.ScoreDeclineThreshold,
 		&out.Schedule,
+		&out.EvaluationSemantics,
 		&out.CreatedAt,
 		&out.CommittedAt,
 	)
@@ -62,7 +68,7 @@ func (r ScenarioIterationRepository) Create(ctx context.Context, item scenario.I
 func (r ScenarioIterationRepository) ListByScenario(ctx context.Context, tenantID, scenarioID string) ([]scenario.Iteration, error) {
 	const stmt = `
 		select id, scenario_id, tenant_id, version, status, trigger_formula, score_review_threshold,
-			score_block_and_review_threshold, score_decline_threshold, schedule, created_at, committed_at
+			score_block_and_review_threshold, score_decline_threshold, schedule, evaluation_semantics, created_at, committed_at
 		from core.scenario_iterations
 		where tenant_id = $1 and scenario_id = $2
 		order by version desc, created_at desc
@@ -88,6 +94,7 @@ func (r ScenarioIterationRepository) ListByScenario(ctx context.Context, tenantI
 			&item.ScoreBlockAndReviewThreshold,
 			&item.ScoreDeclineThreshold,
 			&item.Schedule,
+			&item.EvaluationSemantics,
 			&item.CreatedAt,
 			&item.CommittedAt,
 		); err != nil {
@@ -106,7 +113,7 @@ func (r ScenarioIterationRepository) ListLiveScheduled(ctx context.Context, limi
 
 	const stmt = `
 		select i.id, i.scenario_id, i.tenant_id, i.version, i.status, i.trigger_formula, i.score_review_threshold,
-			i.score_block_and_review_threshold, i.score_decline_threshold, i.schedule, i.created_at, i.committed_at
+			i.score_block_and_review_threshold, i.score_decline_threshold, i.schedule, i.evaluation_semantics, i.created_at, i.committed_at
 		from core.scenarios s
 		join core.scenario_iterations i on i.id = s.live_iteration_id
 		where s.live_iteration_id is not null and i.schedule <> ''
@@ -134,6 +141,7 @@ func (r ScenarioIterationRepository) ListLiveScheduled(ctx context.Context, limi
 			&item.ScoreBlockAndReviewThreshold,
 			&item.ScoreDeclineThreshold,
 			&item.Schedule,
+			&item.EvaluationSemantics,
 			&item.CreatedAt,
 			&item.CommittedAt,
 		); err != nil {
@@ -159,7 +167,7 @@ func (r ScenarioIterationRepository) NextVersion(ctx context.Context, tenantID, 
 func (r ScenarioIterationRepository) GetByID(ctx context.Context, tenantID, scenarioID, iterationID string) (scenario.Iteration, error) {
 	const stmt = `
 		select id, scenario_id, tenant_id, version, status, trigger_formula, score_review_threshold,
-			score_block_and_review_threshold, score_decline_threshold, schedule, created_at, committed_at
+			score_block_and_review_threshold, score_decline_threshold, schedule, evaluation_semantics, created_at, committed_at
 		from core.scenario_iterations
 		where tenant_id = $1 and scenario_id = $2 and id = $3
 	`
@@ -176,6 +184,7 @@ func (r ScenarioIterationRepository) GetByID(ctx context.Context, tenantID, scen
 		&item.ScoreBlockAndReviewThreshold,
 		&item.ScoreDeclineThreshold,
 		&item.Schedule,
+		&item.EvaluationSemantics,
 		&item.CreatedAt,
 		&item.CommittedAt,
 	)
@@ -189,7 +198,7 @@ func (r ScenarioIterationRepository) Commit(ctx context.Context, tenantID, scena
 		set status = 'committed', committed_at = $1
 		where tenant_id = $2 and scenario_id = $3 and id = $4
 		returning id, scenario_id, tenant_id, version, status, trigger_formula, score_review_threshold,
-			score_block_and_review_threshold, score_decline_threshold, schedule, created_at, committed_at
+			score_block_and_review_threshold, score_decline_threshold, schedule, evaluation_semantics, created_at, committed_at
 	`
 	var item scenario.Iteration
 	var status string
@@ -204,6 +213,7 @@ func (r ScenarioIterationRepository) Commit(ctx context.Context, tenantID, scena
 		&item.ScoreBlockAndReviewThreshold,
 		&item.ScoreDeclineThreshold,
 		&item.Schedule,
+		&item.EvaluationSemantics,
 		&item.CreatedAt,
 		&item.CommittedAt,
 	)
@@ -221,7 +231,7 @@ func (r ScenarioIterationRepository) Update(ctx context.Context, item scenario.I
 			schedule = $5
 		where tenant_id = $6 and scenario_id = $7 and id = $8
 		returning id, scenario_id, tenant_id, version, status, trigger_formula, score_review_threshold,
-			score_block_and_review_threshold, score_decline_threshold, schedule, created_at, committed_at
+			score_block_and_review_threshold, score_decline_threshold, schedule, evaluation_semantics, created_at, committed_at
 	`
 	var out scenario.Iteration
 	var status string
@@ -247,6 +257,7 @@ func (r ScenarioIterationRepository) Update(ctx context.Context, item scenario.I
 		&out.ScoreBlockAndReviewThreshold,
 		&out.ScoreDeclineThreshold,
 		&out.Schedule,
+		&out.EvaluationSemantics,
 		&out.CreatedAt,
 		&out.CommittedAt,
 	)

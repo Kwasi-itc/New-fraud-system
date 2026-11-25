@@ -8,6 +8,34 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
 )
 
+func ValidateAggregatorPolicy(node domainast.Node, mode string, allowedAggregates []string) []string {
+	var errs []string
+	visitAggregatorPolicy(node, mode, allowedAggregates, &errs)
+	return errs
+}
+
+func visitAggregatorPolicy(node domainast.Node, mode string, allowedAggregates []string, errs *[]string) {
+	if canonicalFunctionName(node.Function) == "aggregator" {
+		if strings.EqualFold(strings.TrimSpace(mode), AggregatePushdownModeDisabled) {
+			*errs = append(*errs, "aggregator rules are disabled when AGGREGATE_PUSHDOWN_MODE=disabled")
+		} else if aggNode, ok := node.NamedChildren["aggregator"]; ok {
+			if aggName, ok := constantStringNode(aggNode); ok {
+				canonical := normalizeAggregateName(aggName)
+				rt := Runtime{AggregatePushdownAggregates: allowedAggregates}
+				if !rt.aggregatePushdownSupportsAggregate(canonical) {
+					*errs = append(*errs, fmt.Sprintf("aggregate %q is not enabled in AGGREGATE_PUSHDOWN_AGGREGATES", canonical))
+				}
+			}
+		}
+	}
+	for _, child := range node.Children {
+		visitAggregatorPolicy(child, mode, allowedAggregates, errs)
+	}
+	for _, child := range node.NamedChildren {
+		visitAggregatorPolicy(child, mode, allowedAggregates, errs)
+	}
+}
+
 func ValidateNode(node domainast.Node, model ports.TenantModel, currentTableName string) (domainast.ValueType, []string) {
 	table, ok := model.Tables[currentTableName]
 	if !ok {

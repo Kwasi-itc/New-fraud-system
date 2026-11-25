@@ -31,4 +31,5 @@ COPY --from=builder /bin/source-notice /app/source-notice
 COPY --from=builder /app/screening-service/internal/migrations /app/internal/migrations
 
 EXPOSE 8085
+USER nonroot
 ENTRYPOINT ["/app/server"]

@@ -29,11 +29,14 @@ const DEFAULT_DATASETS = [
   'gh-pep-judiciary',
   'gh-pep-parties',
   'gh-pep-local-gov',
+  'gh-pep-traditional',
+  'gh-pep-security',
+  'global-pep-heads',
+  'worldbank-debarred',
   'ofac-sdn',
   'un-consolidated',
   'uksl',
   'eu-fsf',
-  'standalone-demo',
 ];
 
 function parseArgs(argv) {

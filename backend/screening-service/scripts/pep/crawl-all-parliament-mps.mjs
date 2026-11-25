@@ -80,11 +80,13 @@ async function main() {
   }
 
   console.log(`[Parliament Crawler] Total MPs successfully crawled and parsed: ${allMps.length}`);
-  const rootTarget = path.join(ROOT_DIR, "parliament_crawled_mps.json");
+  const cwdTarget = path.join(process.cwd(), "parliament_crawled_mps.json");
   const scriptsTarget = path.join(__dirname, "parliament_crawled_mps.json");
-  fs.writeFileSync(rootTarget, JSON.stringify(allMps, null, 2), "utf8");
-  fs.writeFileSync(scriptsTarget, JSON.stringify(allMps, null, 2), "utf8");
-  console.log(`[Parliament Crawler] Saved:\n  1. ${rootTarget}\n  2. ${scriptsTarget}`);
+  fs.writeFileSync(cwdTarget, JSON.stringify(allMps, null, 2), "utf8");
+  if (cwdTarget !== scriptsTarget) {
+    fs.writeFileSync(scriptsTarget, JSON.stringify(allMps, null, 2), "utf8");
+  }
+  console.log(`[Parliament Crawler] Saved:\n  1. ${cwdTarget}\n  2. ${scriptsTarget}`);
 }
 
 main().catch(console.error);

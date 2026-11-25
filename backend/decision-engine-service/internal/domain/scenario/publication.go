@@ -25,4 +25,5 @@ type PublicationPreparationStatus struct {
 	PreparationStarted  bool
 	PreparationFinished bool
 	PendingItems        int
+	Warnings            []string
 }

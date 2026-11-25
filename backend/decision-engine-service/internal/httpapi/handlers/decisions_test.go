@@ -75,6 +75,10 @@ func (s *decisionHandlerRepoStub) CountByObject(context.Context, string, string,
 	return s.totalCount, nil
 }
 
+func (s *decisionHandlerRepoStub) CountByObjectOutcome(context.Context, string, string, string, string) (int, error) {
+	return s.totalCount, nil
+}
+
 func (s *decisionHandlerRepoStub) ListFiltered(context.Context, string, ports.DecisionListFilter) ([]decision.Decision, error) {
 	return s.items, nil
 }

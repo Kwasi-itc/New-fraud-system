@@ -14,12 +14,32 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/ingestion-service/internal/domain/ingestion"
 )
 
+type readOnlyTxBeginner interface {
+	BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, error)
+}
+
 type TenantDataReader struct {
-	db txExecutor
+	db               txExecutor
+	statementTimeout time.Duration
+	rollupCache      *RollupDefinitionCache
+	rollupsEnabled   bool
+	rollupShadowMode bool
 }
 
 func NewTenantDataReader(db txExecutor) TenantDataReader {
 	return TenantDataReader{db: db}
+}
+
+func (r TenantDataReader) WithStatementTimeout(timeout time.Duration) TenantDataReader {
+	r.statementTimeout = timeout
+	return r
+}
+
+func (r TenantDataReader) WithRollups(cache *RollupDefinitionCache, enabled, shadowMode bool) TenantDataReader {
+	r.rollupCache = cache
+	r.rollupsEnabled = enabled
+	r.rollupShadowMode = shadowMode
+	return r
 }
 
 func (r TenantDataReader) GetRecord(ctx context.Context, model ingestion.PublishedDataModel, objectType, objectID string) (map[string]any, error) {
@@ -152,6 +172,35 @@ func (r TenantDataReader) AggregateRecords(ctx context.Context, model ingestion.
 	if err != nil {
 		return nil, err
 	}
+
+	var rollupCand *RollupQueryCandidate
+	if (r.rollupsEnabled || r.rollupShadowMode) && r.rollupCache != nil {
+		if defs, defErr := r.rollupCache.GetActiveForTable(ctx, r.db, model.TenantID.String(), table.Name); defErr == nil && len(defs) > 0 {
+			cand, fallbackReason := checkRollupEligibility(model, table, query, defs, time.Now().UTC())
+			if fallbackReason == "" {
+				rollupCand = &cand
+				if r.rollupsEnabled && !r.rollupShadowMode {
+					rollupSQL, rollupArgs, buildErr := buildRollupUnionSQL(model, table, cand)
+					if buildErr == nil {
+						rollupVal, rollupErr := executeRollupQuery(ctx, r.db, r.statementTimeout, rollupSQL, rollupArgs)
+						if rollupErr == nil {
+							recordAggregateSQLDuration("rollup", time.Since(startedAt))
+							return rollupVal, nil
+						}
+						slog.Default().Warn("rollup aggregate query failed; falling back to raw",
+							"tenant_id", model.TenantID,
+							"object_type", query.ObjectType,
+							"definition_id", cand.Definition.ID,
+							"error", rollupErr,
+						)
+					}
+				}
+			} else {
+				recordRollupPathFallback(fallbackReason)
+			}
+		}
+	}
+
 	whereSQL := ""
 	args := []any{}
 	if query.Filter != nil {
@@ -165,9 +214,31 @@ func (r TenantDataReader) AggregateRecords(ctx context.Context, model ingestion.
 	}
 
 	schemaName := schemaNameForModel(model)
-	sql := fmt.Sprintf(`SELECT %s FROM %s%s`, aggregateExpr, sanitizeIdentifier(schemaName, table.Name), whereSQL)
+	castedExpr := castRawAggregateExpr(strings.TrimSpace(query.Aggregate), aggregateExpr, table.Fields[fieldName].DataType)
+	sql := fmt.Sprintf(`SELECT %s FROM %s%s`, castedExpr, sanitizeIdentifier(schemaName, table.Name), whereSQL)
 	var value any
-	if err := r.db.QueryRow(ctx, sql, args...).Scan(&value); err != nil {
+	var queryErr error
+	if r.statementTimeout > 0 {
+		if beginner, ok := r.db.(readOnlyTxBeginner); ok {
+			tx, txErr := beginner.BeginTx(ctx, pgx.TxOptions{AccessMode: pgx.ReadOnly})
+			if txErr != nil {
+				return nil, txErr
+			}
+			defer func() { _ = tx.Rollback(context.Background()) }()
+			if _, execErr := tx.Exec(ctx, fmt.Sprintf("SET LOCAL statement_timeout = '%dms'", max(1, int(r.statementTimeout.Milliseconds())))); execErr != nil {
+				return nil, execErr
+			}
+			queryErr = tx.QueryRow(ctx, sql, args...).Scan(&value)
+			if queryErr == nil {
+				queryErr = tx.Commit(ctx)
+			}
+		} else {
+			queryErr = r.db.QueryRow(ctx, sql, args...).Scan(&value)
+		}
+	} else {
+		queryErr = r.db.QueryRow(ctx, sql, args...).Scan(&value)
+	}
+	if queryErr != nil {
 		slog.Default().Warn("aggregate query execution failed",
 			"tenant_id", model.TenantID,
 			"object_type", query.ObjectType,
@@ -175,9 +246,9 @@ func (r TenantDataReader) AggregateRecords(ctx context.Context, model ingestion.
 			"field", fieldName,
 			"filter_present", query.Filter != nil,
 			"duration_ms", time.Since(startedAt).Milliseconds(),
-			"error", err,
+			"error", queryErr,
 		)
-		return nil, err
+		return nil, queryErr
 	}
 	slog.Default().Info("aggregate query executed",
 		"tenant_id", model.TenantID,
@@ -187,7 +258,46 @@ func (r TenantDataReader) AggregateRecords(ctx context.Context, model ingestion.
 		"filter_present", query.Filter != nil,
 		"duration_ms", time.Since(startedAt).Milliseconds(),
 	)
+	recordAggregateSQLDuration("raw", time.Since(startedAt))
+
+	if r.rollupShadowMode && rollupCand != nil {
+		if rollupSQL, rollupArgs, buildErr := buildRollupUnionSQL(model, table, *rollupCand); buildErr == nil {
+			rollupStarted := time.Now()
+			if rollupVal, rollupErr := executeRollupQuery(ctx, r.db, r.statementTimeout, rollupSQL, rollupArgs); rollupErr == nil {
+				recordAggregateSQLDuration("rollup_shadow", time.Since(rollupStarted))
+				if !compareRollupShadowValues(rollupCand.Aggregate, value, rollupVal) {
+					recordRollupShadowMismatch()
+					slog.Default().Warn("rollup shadow mismatch",
+						"tenant_id", model.TenantID,
+						"definition_id", rollupCand.Definition.ID,
+						"aggregate", rollupCand.Aggregate,
+						"raw_value", value,
+						"rollup_value", rollupVal,
+					)
+				}
+			}
+		}
+	}
+
 	return value, nil
+}
+
+func castRawAggregateExpr(aggName, expr, dataType string) string {
+	switch strings.ToLower(strings.TrimSpace(aggName)) {
+	case "sum":
+		dt := strings.ToLower(strings.TrimSpace(dataType))
+		if dt == "int" || dt == "integer" || dt == "int4" || dt == "int8" || dt == "bigint" {
+			return "(" + expr + ")::bigint"
+		}
+		if dt == "float" || dt == "float8" || dt == "double precision" || dt == "numeric" {
+			return "(" + expr + ")::double precision"
+		}
+		return expr
+	case "avg":
+		return "(" + expr + ")::double precision"
+	default:
+		return expr
+	}
 }
 
 func buildAggregateExpression(name, fieldName string) (string, error) {
@@ -200,6 +310,32 @@ func buildAggregateExpression(name, fieldName string) (string, error) {
 		return fmt.Sprintf("COALESCE(SUM(%s), 0)", sanitizeIdentifier(fieldName)), nil
 	case "avg":
 		return fmt.Sprintf("AVG(%s)", sanitizeIdentifier(fieldName)), nil
+	case "min":
+		return fmt.Sprintf("MIN(%s)", sanitizeIdentifier(fieldName)), nil
+	case "max":
+		return fmt.Sprintf("MAX(%s)", sanitizeIdentifier(fieldName)), nil
+	default:
+		return "", fmt.Errorf("aggregate %q is not supported", name)
+	}
+}
+
+func buildAggregateExpressionForField(name, fieldName, dataType string) (string, error) {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "count":
+		return fmt.Sprintf("COUNT(%s)", sanitizeIdentifier(fieldName)), nil
+	case "count_distinct":
+		return fmt.Sprintf("COUNT(DISTINCT %s)", sanitizeIdentifier(fieldName)), nil
+	case "sum":
+		dt := strings.ToLower(strings.TrimSpace(dataType))
+		if dt == "int" || dt == "integer" || dt == "int4" || dt == "int8" || dt == "bigint" {
+			return fmt.Sprintf("COALESCE(SUM(%s), 0)::bigint", sanitizeIdentifier(fieldName)), nil
+		}
+		if dt == "float" || dt == "float8" || dt == "double precision" || dt == "numeric" {
+			return fmt.Sprintf("COALESCE(SUM(%s), 0)::double precision", sanitizeIdentifier(fieldName)), nil
+		}
+		return fmt.Sprintf("COALESCE(SUM(%s), 0)", sanitizeIdentifier(fieldName)), nil
+	case "avg":
+		return fmt.Sprintf("AVG(%s)::double precision", sanitizeIdentifier(fieldName)), nil
 	case "min":
 		return fmt.Sprintf("MIN(%s)", sanitizeIdentifier(fieldName)), nil
 	case "max":

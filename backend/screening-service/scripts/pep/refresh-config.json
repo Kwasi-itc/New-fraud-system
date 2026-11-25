@@ -1,28 +1,56 @@
 {
   "sources": {
+    "un-consolidated": {
+      "enabled": true,
+      "interval_minutes": 720
+    },
+    "ofac-sdn": {
+      "enabled": true,
+      "interval_minutes": 720
+    },
+    "uksl": {
+      "enabled": true,
+      "interval_minutes": 720
+    },
+    "worldbank": {
+      "enabled": true,
+      "interval_minutes": 720
+    },
     "parliament": {
       "enabled": true,
-      "interval_minutes": 360
+      "interval_minutes": 43200
     },
     "wikidata": {
       "enabled": true,
-      "interval_minutes": 720
+      "interval_minutes": 10080
     },
     "judiciary": {
       "enabled": true,
-      "interval_minutes": 1440
+      "interval_minutes": 43200
     },
     "parties": {
       "enabled": true,
-      "interval_minutes": 1440
+      "interval_minutes": 43200
     },
     "siga": {
       "enabled": true,
-      "interval_minutes": 720
+      "interval_minutes": 10080
     },
     "mmdce": {
       "enabled": true,
-      "interval_minutes": 720
+      "interval_minutes": 20160
+    },
+    "traditional": {
+      "enabled": true,
+      "interval_minutes": 43200
+    },
+    "security": {
+      "enabled": true,
+      "interval_minutes": 10080
+    },
+    "foreign_heads": {
+      "enabled": true,
+      "interval_minutes": 10080
     }
   }
 }

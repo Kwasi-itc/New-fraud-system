@@ -63,3 +63,28 @@ func TestCreateUniqueIndexDoesNotSchemaQualifyIndexName(t *testing.T) {
 		t.Fatalf("expected schema-qualified table target, got %s", query)
 	}
 }
+
+func TestManagedIndexNameWithIncludesDiffersAndStaysWithin63Bytes(t *testing.T) {
+	t.Parallel()
+
+	longTable := "very_long_merchant_financial_transactions_table_name_for_tenant"
+	plain := managedIndexNameWithIncludes(longTable, []string{"merchant_id", "created_at"}, nil, false)
+	covering := managedIndexNameWithIncludes(longTable, []string{"merchant_id", "created_at"}, []string{"amount"}, false)
+	if plain == covering {
+		t.Fatalf("expected distinct index names, both = %q", plain)
+	}
+	if len(plain) > 63 || len(covering) > 63 {
+		t.Fatalf("index names exceed 63-byte Postgres limit: plain=%d covering=%d", len(plain), len(covering))
+	}
+
+	ddl := buildCreateIndexDDL("tenant_abc", "transactions", covering, []string{"merchant_id", "created_at"}, []string{"amount", "status"}, false, true)
+	if !strings.Contains(ddl, "CREATE INDEX CONCURRENTLY ") {
+		t.Fatalf("expected CONCURRENTLY DDL, got %s", ddl)
+	}
+	if strings.Contains(ddl, "IF NOT EXISTS") {
+		t.Fatalf("expected no IF NOT EXISTS on CONCURRENTLY DDL, got %s", ddl)
+	}
+	if !strings.Contains(ddl, `INCLUDE ("amount", "status")`) {
+		t.Fatalf("expected INCLUDE clause, got %s", ddl)
+	}
+}

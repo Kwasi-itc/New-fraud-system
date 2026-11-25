@@ -125,6 +125,7 @@ type DecisionService struct {
 	ruleEvaluationConcurrency     int
 	scenarioEvaluationConcurrency int
 	aggregateRemoteConcurrency    int
+	aggregateRemoteMaxWait        time.Duration
 	evaluationCache               *decisionEvaluationCache
 	metadataLoadGroup             *singleflight.Group
 	dbPoolStatsProvider           DBPoolStatsProvider
@@ -137,6 +138,13 @@ func (s *DecisionService) SetGeoIPLookup(lookup ports.GeoIPLookup) {
 		return
 	}
 	s.geoIPLookup = lookup
+}
+
+func (s *DecisionService) SetAggregateRemoteMaxWait(maxWait time.Duration) {
+	if s == nil {
+		return
+	}
+	s.aggregateRemoteMaxWait = maxWait
 }
 
 type cacheMetricCounters struct {
@@ -473,6 +481,8 @@ func (s DecisionService) evaluateScenario(
 		AggregatePushdownMode:       s.aggregatePushdownMode,
 		AggregatePushdownAggregates: s.aggregatePushdownAggregates,
 		AggregateRemoteConcurrency:  s.aggregateRemoteConcurrency,
+		AggregateRemoteMaxWait:      s.aggregateRemoteMaxWait,
+		EvaluationSemantics:         iteration.EvaluationSemantics,
 		EvalCache:                   evalCache,
 		AggregateResultCache:        aggregateCache,
 		RelatedPathCache:            asteval.NewRelatedPathCache(),
@@ -2165,10 +2175,8 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 		scn := scn
 		group.Go(func() error {
 			scenarioRequest := req
-			if s.InlinePolicy.Enabled {
-				plans[i].ctx = ctx
-				scenarioRequest.staged = &plans[i]
-			}
+			plans[i].ctx = ctx
+			scenarioRequest.staged = &plans[i]
 			result, err := s.evaluateScenario(groupCtx, tenantID, scn.ID, scenarioRequest, evalCache, aggregateCache, evaluationNow)
 			if err != nil {
 				return err
@@ -2180,7 +2188,14 @@ func (s DecisionService) EvaluateAllLiveScenarios(
 	if err := group.Wait(); err != nil {
 		return MultiScenarioEvaluationResult{}, err
 	}
-	if s.InlinePolicy.Enabled {
+	hasStaged := false
+	for i := range plans {
+		if plans[i].save != nil {
+			hasStaged = true
+			break
+		}
+	}
+	if hasStaged {
 		if e := s.txManager.Run(ctx, func(store ports.MutationStore) error {
 			for i := range plans {
 				if plans[i].save != nil {

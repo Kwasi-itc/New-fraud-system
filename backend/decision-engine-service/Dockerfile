@@ -22,4 +22,5 @@ COPY --from=builder /app/decision-engine-service/internal/migrations /app/intern
 
 EXPOSE 8082
 
+USER nonroot
 ENTRYPOINT ["/app/server"]

@@ -60,13 +60,14 @@ for (let i = 0; i < observed.length; i++) {
   if (!name) continue;
   const district = (row.district || row.assembly || '').trim();
   const region = (row.region || '').trim();
-  const dedupKey = `${name.toLowerCase()}|${district.toLowerCase()}`;
+  const position = (row.position || 'Chief Executive').trim();
+  const dedupKey = `${name.toLowerCase()}|${district.toLowerCase()}|${position.toLowerCase()}`;
   if (seen.has(dedupKey)) continue;
   seen.add(dedupKey);
 
-  const role = district
-    ? `Metropolitan/Municipal/District Chief Executive, ${district}${region ? ` (${region} Region)` : ''}`
-    : 'Metropolitan/Municipal/District Chief Executive';
+  const role = row.role || (district
+    ? `${position}, ${district}${region ? ` (${region} Region)` : ''}`
+    : position);
 
   records.push({
     id: row.id || `gh-pep-mmdce-${String(i + 1).padStart(4, '0')}`,

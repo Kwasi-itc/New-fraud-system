@@ -21,7 +21,7 @@ func NewIndexJobRepository(db executor) IndexJobRepository {
 }
 
 func (r IndexJobRepository) GetByDedupeKey(ctx context.Context, key string) (*datamodel.IndexJob, error) {
-	job, err := scanIndexJob(r.db.QueryRow(ctx, `SELECT id, tenant_id, table_id, table_name, index_type, columns, status,
+	job, err := scanIndexJob(r.db.QueryRow(ctx, `SELECT id, tenant_id, table_id, table_name, index_type, columns, include_columns, status,
  requested_by_operation, error_message, attempt_count, requested_at, started_at, completed_at, scheduled_at, dedupe_key
  FROM core.index_jobs WHERE dedupe_key=$1 AND dedupe_key<>''`, key))
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -36,14 +36,14 @@ func (r IndexJobRepository) GetByDedupeKey(ctx context.Context, key string) (*da
 func (r IndexJobRepository) Create(ctx context.Context, job datamodel.IndexJob) error {
 	query := `
 		INSERT INTO core.index_jobs (
-			id, tenant_id, table_id, table_name, index_type, columns, status,
+			id, tenant_id, table_id, table_name, index_type, columns, include_columns, status,
 			requested_by_operation, error_message, attempt_count, requested_at,
 			started_at, completed_at, scheduled_at, dedupe_key
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 	`
 	if _, err := r.db.Exec(ctx, query,
-		job.ID, job.TenantID, job.TableID, job.TableName, job.IndexType, job.Columns, job.Status,
+		job.ID, job.TenantID, job.TableID, job.TableName, job.IndexType, job.Columns, job.IncludeColumns, job.Status,
 		job.RequestedByOperation, job.ErrorMessage, job.AttemptCount, job.RequestedAt,
 		job.StartedAt, job.CompletedAt, job.ScheduledAt, job.DedupeKey,
 	); err != nil {
@@ -54,7 +54,7 @@ func (r IndexJobRepository) Create(ctx context.Context, job datamodel.IndexJob) 
 
 func (r IndexJobRepository) GetByID(ctx context.Context, id uuid.UUID) (datamodel.IndexJob, error) {
 	query := `
-		SELECT id, tenant_id, table_id, table_name, index_type, columns, status,
+		SELECT id, tenant_id, table_id, table_name, index_type, columns, include_columns, status,
 			requested_by_operation, error_message, attempt_count, requested_at,
 			started_at, completed_at, scheduled_at, dedupe_key
 		FROM core.index_jobs
@@ -65,7 +65,7 @@ func (r IndexJobRepository) GetByID(ctx context.Context, id uuid.UUID) (datamode
 
 func (r IndexJobRepository) ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]datamodel.IndexJob, error) {
 	query := `
-		SELECT id, tenant_id, table_id, table_name, index_type, columns, status,
+		SELECT id, tenant_id, table_id, table_name, index_type, columns, include_columns, status,
 			requested_by_operation, error_message, attempt_count, requested_at,
 			started_at, completed_at, scheduled_at, dedupe_key
 		FROM core.index_jobs
@@ -101,7 +101,7 @@ func (r IndexJobRepository) StartAttempt(ctx context.Context, id uuid.UUID, star
 			error_message = NULL,
 			completed_at = NULL
 		WHERE id = $1
-		RETURNING id, tenant_id, table_id, table_name, index_type, columns, status,
+		RETURNING id, tenant_id, table_id, table_name, index_type, columns, include_columns, status,
 			requested_by_operation, error_message, attempt_count, requested_at,
 			started_at, completed_at, scheduled_at, dedupe_key
 	`
@@ -184,6 +184,7 @@ func scanIndexJob(scanner indexJobScanner) (datamodel.IndexJob, error) {
 		&job.TableName,
 		&indexType,
 		&job.Columns,
+		&job.IncludeColumns,
 		&status,
 		&job.RequestedByOperation,
 		&errorMessage,

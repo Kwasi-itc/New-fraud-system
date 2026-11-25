@@ -40,6 +40,9 @@ func evaluateNodeWithEvidence(ctx context.Context, node domainast.Node, runtime 
 
 	switch canonicalFunctionName(node.Function) {
 	case "and":
+		if runtime.isV2Semantics() {
+			return evaluateLogicalWithEvidenceV2(ctx, evaluation, "and", node.Children, runtime)
+		}
 		evaluation.Children = make([]domainast.EvaluationNode, 0, len(node.Children))
 		for index, child := range node.Children {
 			childEval, err := evaluateNodeWithEvidence(ctx, child, runtime)
@@ -65,6 +68,9 @@ func evaluateNodeWithEvidence(ctx context.Context, node domainast.Node, runtime 
 		evaluation.ReturnValue = true
 		return evaluation, nil
 	case "or":
+		if runtime.isV2Semantics() {
+			return evaluateLogicalWithEvidenceV2(ctx, evaluation, "or", node.Children, runtime)
+		}
 		evaluation.Children = make([]domainast.EvaluationNode, 0, len(node.Children))
 		for index, child := range node.Children {
 			childEval, err := evaluateNodeWithEvidence(ctx, child, runtime)

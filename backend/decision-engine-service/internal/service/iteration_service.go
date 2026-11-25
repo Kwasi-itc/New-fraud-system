@@ -57,6 +57,7 @@ func (s IterationService) CreateDraft(ctx context.Context, tenantID, scenarioID 
 			ScoreReviewThreshold:         intPtr(1),
 			ScoreBlockAndReviewThreshold: intPtr(10),
 			ScoreDeclineThreshold:        intPtr(20),
+			EvaluationSemantics:          scenario.EvaluationSemanticsV2,
 			CreatedAt:                    s.clock.Now(),
 		}
 		if err := item.Validate(); err != nil {

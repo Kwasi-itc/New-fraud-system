@@ -50,6 +50,8 @@ type RouterConfig struct {
 	RuleEvaluationConcurrency           int
 	ScenarioEvaluationConcurrency       int
 	AggregateRemoteConcurrencyLimit     int
+	AggregateRemoteMaxWait              time.Duration
+	AggregateSQLStatementTimeout        time.Duration
 	ScheduledExecutionMaxAttempts       int
 	ScheduledExecutionRetryBackoff      time.Duration
 	AsyncExecutionMaxAttempts           int
@@ -187,15 +189,18 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		outboxEnqueuer = riverjobs.NewRiverOutboxEventEnqueuer(riverClient, 1, cfg.OutboxQueueName)
 	}
 	dataModelReader = datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
-	tenantDataReader = tenantdata.NewReader(cfg.TenantDataReadMode, db, dataModelReader, cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
+	tenantDataReader = tenantdata.NewReader(cfg.TenantDataReadMode, db, dataModelReader, cfg.IngestionServiceURL, cfg.HTTPClientTimeout, cfg.AggregateSQLStatementTimeout)
 
 	scenarioService := service.NewScenarioService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo)
 	accessorService := service.NewAccessorService(scenarioRepo, dataModelReader)
 	validationService := service.NewValidationService(dataModelReader, scenarioRepo, iterationRepo, ruleRepo)
+	validationService.SetAggregatePushdownPolicy(cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates)
 	iterationService := service.NewIterationService(txManager, uuidGenerator{}, systemClock{}, iterationRepo, ruleRepo, validationService)
 	publicationService := service.NewPublicationService(txManager, uuidGenerator{}, systemClock{}, publicationRepo, scenarioRepo, iterationRepo, ruleRepo, dataModelReader)
+	publicationService.SetAggregatePushdownPolicy(cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates)
 	ruleService := service.NewRuleService(txManager, uuidGenerator{}, systemClock{}, ruleRepo, iterationRepo)
 	decisionService := service.NewDecisionService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, tenantDataReader, decisionRepo, ruleExecutionRepo, workflowRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo, workflowExecutionRepo, ruleSnoozeRepo, outboxRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, screeningConfigRepo, screeningExecutionRepo, scoringConfigRepo, scoringRequestRepo, workflowEnqueuer, screeningEnqueuer, scoringEnqueuer, outboxEnqueuer, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency, cfg.ScenarioEvaluationConcurrency, cfg.AggregateRemoteConcurrencyLimit, dbPoolStatsProvider(db))
+	decisionService.SetAggregateRemoteMaxWait(cfg.AggregateRemoteMaxWait)
 	testRunService := service.NewTestRunService(txManager, uuidGenerator{}, systemClock{}, scenarioRepo, iterationRepo, ruleRepo, dataModelReader, tenantDataReader, decisionRepo, testRunRepo, phantomDecisionRepo, phantomRuleExecRepo, customListRepo, recordTagRepo, riskRepo, ipFlagRepo, cfg.AggregatePushdownMode, cfg.AggregatePushdownAggregates, cfg.RuleEvaluationConcurrency)
 	decisionService.NameRecognizer = namerecognition.New(cfg.NameRecognitionURL, cfg.NameRecognitionToken, cfg.HTTPClientTimeout)
 	decisionService.SetGeoIPLookup(cfg.GeoIPLookup)

@@ -11,10 +11,11 @@ import (
 )
 
 type RuleValidationResult struct {
-	RuleID string   `json:"rule_id"`
-	Name   string   `json:"name"`
-	Valid  bool     `json:"valid"`
-	Errors []string `json:"errors"`
+	RuleID   string   `json:"rule_id"`
+	Name     string   `json:"name"`
+	Valid    bool     `json:"valid"`
+	Errors   []string `json:"errors"`
+	Warnings []string `json:"warnings,omitempty"`
 }
 
 type IterationValidationResult struct {
@@ -23,6 +24,7 @@ type IterationValidationResult struct {
 	TriggerErrors []string               `json:"trigger_errors"`
 	RuleResults   []RuleValidationResult `json:"rule_results"`
 	Errors        []string               `json:"errors"`
+	Warnings      []string               `json:"warnings,omitempty"`
 }
 
 type IterationValidator interface {
@@ -30,10 +32,12 @@ type IterationValidator interface {
 }
 
 type ValidationService struct {
-	dataModelReader ports.DataModelReader
-	scenarioRepo    ports.ScenarioRepository
-	iterationRepo   ports.ScenarioIterationRepository
-	ruleRepo        ports.RuleRepository
+	dataModelReader             ports.DataModelReader
+	scenarioRepo                ports.ScenarioRepository
+	iterationRepo               ports.ScenarioIterationRepository
+	ruleRepo                    ports.RuleRepository
+	aggregatePushdownMode       string
+	aggregatePushdownAggregates []string
 }
 
 func NewValidationService(
@@ -48,6 +52,11 @@ func NewValidationService(
 		iterationRepo:   iterationRepo,
 		ruleRepo:        ruleRepo,
 	}
+}
+
+func (s *ValidationService) SetAggregatePushdownPolicy(mode string, aggregates []string) {
+	s.aggregatePushdownMode = mode
+	s.aggregatePushdownAggregates = append([]string(nil), aggregates...)
 }
 
 func (s ValidationService) ValidateIteration(ctx context.Context, tenantID, scenarioID, iterationID string) (IterationValidationResult, error) {
@@ -94,6 +103,10 @@ func (s ValidationService) ValidateIteration(ctx context.Context, tenantID, scen
 			result.TriggerErrors = append(result.TriggerErrors, "trigger formula is not valid JSON AST")
 		} else {
 			valueType, errs := asteval.ValidateNode(triggerNode, model, scn.TriggerObjectType)
+			if len(s.aggregatePushdownMode) > 0 || len(s.aggregatePushdownAggregates) > 0 {
+				errs = append(errs, asteval.ValidateAggregatorPolicy(triggerNode, s.aggregatePushdownMode, s.aggregatePushdownAggregates)...)
+			}
+			result.Warnings = append(result.Warnings, asteval.LintAggregatorWarnings(triggerNode)...)
 			if len(errs) > 0 {
 				result.Valid = false
 				result.TriggerErrors = append(result.TriggerErrors, errs...)
@@ -132,6 +145,12 @@ func (s ValidationService) ValidateIteration(ctx context.Context, tenantID, scen
 			ruleResult.Errors = append(ruleResult.Errors, "rule formula is not valid JSON AST")
 		} else {
 			valueType, errs := asteval.ValidateNode(node, model, scn.TriggerObjectType)
+			if len(s.aggregatePushdownMode) > 0 || len(s.aggregatePushdownAggregates) > 0 {
+				errs = append(errs, asteval.ValidateAggregatorPolicy(node, s.aggregatePushdownMode, s.aggregatePushdownAggregates)...)
+			}
+			ruleWarnings := asteval.LintAggregatorWarnings(node)
+			ruleResult.Warnings = append(ruleResult.Warnings, ruleWarnings...)
+			result.Warnings = append(result.Warnings, ruleWarnings...)
 			if len(errs) > 0 {
 				ruleResult.Valid = false
 				ruleResult.Errors = append(ruleResult.Errors, errs...)

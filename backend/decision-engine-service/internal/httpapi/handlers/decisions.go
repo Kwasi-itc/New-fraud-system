@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/decision"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/httpapi/dto"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/ports"
+	asteval "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval"
 	"github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/service"
 )
 
@@ -70,6 +72,10 @@ func (h DecisionHandler) EvaluateScenario(c *gin.Context) {
 		Fields:     req.Fields,
 	})
 	if err != nil {
+		if errors.Is(err, asteval.ErrAggregateOverloaded) {
+			h.deferAsyncScenarioExecution(c, tenantID, scenarioID, req.ObjectID, req.ObjectType, req.Fields)
+			return
+		}
 		writeDecisionEvaluationError(c, "evaluate_scenario_failed", "scenario evaluation failed", err, "tenant_id", tenantID, "scenario_id", scenarioID, "object_id", req.ObjectID, "object_type", req.ObjectType)
 		return
 	}
@@ -100,6 +106,10 @@ func (h DecisionHandler) CreateDecision(c *gin.Context) {
 		Fields:     req.Fields,
 	})
 	if err != nil {
+		if errors.Is(err, asteval.ErrAggregateOverloaded) {
+			h.deferAsyncScenarioExecution(c, tenantID, req.ScenarioID, req.ObjectID, req.ObjectType, req.Fields)
+			return
+		}
 		writeDecisionEvaluationError(c, "create_decision_failed", "decision creation failed", err, "tenant_id", tenantID, "scenario_id", req.ScenarioID, "object_id", req.ObjectID, "object_type", req.ObjectType)
 		return
 	}
@@ -130,6 +140,10 @@ func (h DecisionHandler) CreateAllDecisions(c *gin.Context) {
 		Fields:     req.Fields,
 	})
 	if err != nil {
+		if errors.Is(err, asteval.ErrAggregateOverloaded) {
+			h.deferAsyncAllScenariosExecution(c, tenantID, req.ObjectID, req.ObjectType, req.Fields)
+			return
+		}
 		writeDecisionEvaluationError(c, "create_all_decisions_failed", "multi-scenario evaluation failed", err, "tenant_id", tenantID, "object_id", req.ObjectID, "object_type", req.ObjectType)
 		return
 	}
@@ -436,6 +450,10 @@ func (h DecisionHandler) HandleRecordIngested(c *gin.Context) {
 		Fields:     req.Fields,
 	})
 	if err != nil {
+		if errors.Is(err, asteval.ErrAggregateOverloaded) {
+			h.enqueueAsyncAllScenariosExecution(c, tenantID, req.ObjectID, req.ObjectType, req.Fields, req.WaitTimeoutMS, req.CallbackURL)
+			return
+		}
 		writeDecisionEvaluationError(c, "record_ingested_processing_failed", "ingestion-triggered evaluation failed", err, "tenant_id", tenantID, "object_id", req.ObjectID, "object_type", req.ObjectType)
 		return
 	}

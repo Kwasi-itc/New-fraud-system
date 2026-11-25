@@ -63,6 +63,30 @@ func TestLoadConfigRejectsAggregateRemoteConcurrencyAboveGuardrail(t *testing.T)
 	}
 }
 
+func TestLoadConfigDefaultsAllSupportedPushdownAggregatesAndTimeouts(t *testing.T) {
+	setRequiredConfigEnv(t)
+
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("LoadConfig() error = %v", err)
+	}
+	wantAgg := []string{"count", "count_distinct", "sum", "avg", "min", "max"}
+	if len(cfg.AggregatePushdownAggregates) != len(wantAgg) {
+		t.Fatalf("AggregatePushdownAggregates = %v, want %v", cfg.AggregatePushdownAggregates, wantAgg)
+	}
+	for i := range wantAgg {
+		if cfg.AggregatePushdownAggregates[i] != wantAgg[i] {
+			t.Fatalf("AggregatePushdownAggregates[%d] = %q, want %q", i, cfg.AggregatePushdownAggregates[i], wantAgg[i])
+		}
+	}
+	if cfg.AggregateRemoteMaxWait.Milliseconds() != 50 {
+		t.Fatalf("AggregateRemoteMaxWait = %v, want 50ms", cfg.AggregateRemoteMaxWait)
+	}
+	if cfg.AggregateSQLStatementTimeout.Milliseconds() != 500 {
+		t.Fatalf("AggregateSQLStatementTimeout = %v, want 500ms", cfg.AggregateSQLStatementTimeout)
+	}
+}
+
 func TestLoadConfigUsesAllWorkerTasksByDefault(t *testing.T) {
 	setRequiredConfigEnv(t)
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -19,15 +20,25 @@ type txExecutor interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
+type readOnlyTxBeginner interface {
+	BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, error)
+}
+
 type TenantDataReader struct {
-	db              txExecutor
-	dataModelReader ports.DataModelReader
-	snapshot        *ports.TenantModel
-	snapshotTenant  string
+	db               txExecutor
+	dataModelReader  ports.DataModelReader
+	snapshot         *ports.TenantModel
+	snapshotTenant   string
+	statementTimeout time.Duration
 }
 
 func (r TenantDataReader) WithModel(tenantID string, model ports.TenantModel) ports.TenantDataReader {
 	r.snapshot, r.snapshotTenant = &model, tenantID
+	return r
+}
+
+func (r TenantDataReader) WithStatementTimeout(timeout time.Duration) TenantDataReader {
+	r.statementTimeout = timeout
 	return r
 }
 
@@ -149,6 +160,22 @@ func (r TenantDataReader) AggregateRecords(ctx context.Context, tenantID string,
 
 	sql := fmt.Sprintf(`SELECT %s FROM %s%s`, aggregateExpr, sanitizeIdentifier(schemaName, table.Name), whereSQL)
 	var value any
+	if r.statementTimeout > 0 {
+		if beginner, ok := r.db.(readOnlyTxBeginner); ok {
+			tx, txErr := beginner.BeginTx(ctx, pgx.TxOptions{AccessMode: pgx.ReadOnly})
+			if txErr != nil {
+				return nil, txErr
+			}
+			defer func() { _ = tx.Rollback(context.Background()) }()
+			if _, execErr := tx.Exec(ctx, fmt.Sprintf("SET LOCAL statement_timeout = '%dms'", max(1, int(r.statementTimeout.Milliseconds())))); execErr != nil {
+				return nil, execErr
+			}
+			if err := tx.QueryRow(ctx, sql, args...).Scan(&value); err != nil {
+				return nil, err
+			}
+			return value, tx.Commit(ctx)
+		}
+	}
 	if err := r.db.QueryRow(ctx, sql, args...).Scan(&value); err != nil {
 		return nil, err
 	}
@@ -245,7 +272,7 @@ func buildAggregateFilterSQL(model ports.TenantModel, table ports.TenantModelTab
 			op = "and"
 		}
 		switch op {
-		case "and":
+		case "and", "or":
 			if len(filter.Children) == 0 {
 				return "", nil
 			}
@@ -263,6 +290,18 @@ func buildAggregateFilterSQL(model ports.TenantModel, table ports.TenantModelTab
 				return "", nil
 			}
 			return strings.Join(parts, " "+strings.ToUpper(op)+" "), nil
+		case "not":
+			if len(filter.Children) != 1 {
+				return "", fmt.Errorf("filter group operator %q expects exactly one child", filter.Operator)
+			}
+			part, err := buildAggregateFilterSQL(model, table, filter.Children[0], args)
+			if err != nil {
+				return "", err
+			}
+			if part == "" {
+				return "", nil
+			}
+			return "NOT (" + part + ")", nil
 		default:
 			return "", fmt.Errorf("filter group operator %q is not supported", filter.Operator)
 		}
@@ -317,6 +356,9 @@ func buildAggregatePredicateSQL(model ports.TenantModel, table ports.TenantModel
 		return fmt.Sprintf("%s IS NULL", column), nil
 	case "is_not_null":
 		return fmt.Sprintf("%s IS NOT NULL", column), nil
+	case "starts_with":
+		*args = append(*args, filter.Value)
+		return fmt.Sprintf("%s LIKE ($%d || '%%')", column, len(*args)), nil
 	default:
 		return "", fmt.Errorf("filter operator %q is not supported", filter.Op)
 	}

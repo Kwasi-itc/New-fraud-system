@@ -272,6 +272,9 @@ func (decisionCreateRepoStub) ListByObjectPage(context.Context, string, string, 
 func (decisionCreateRepoStub) CountByObject(context.Context, string, string, string) (int, error) {
 	return 0, nil
 }
+func (decisionCreateRepoStub) CountByObjectOutcome(context.Context, string, string, string, string) (int, error) {
+	return 0, nil
+}
 func (decisionCreateRepoStub) ListFiltered(context.Context, string, ports.DecisionListFilter) ([]decision.Decision, error) {
 	return nil, nil
 }

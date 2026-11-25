@@ -325,3 +325,28 @@ func TestValidateNodeAggregationFunctions(t *testing.T) {
 		}
 	})
 }
+
+func TestValidateAggregatorPolicyRejectsDisabledAggregate(t *testing.T) {
+	t.Parallel()
+
+	node := domainast.Node{
+		Function: ">",
+		Children: []domainast.Node{
+			{
+				Function: "Aggregator",
+				NamedChildren: map[string]domainast.Node{
+					"tableName":  {Constant: "transactions"},
+					"fieldName":  {Constant: "amount"},
+					"aggregator": {Constant: "SUM"},
+				},
+			},
+			{Constant: 100},
+		},
+	}
+	if errs := asteval.ValidateAggregatorPolicy(node, "enabled", []string{"count"}); len(errs) == 0 {
+		t.Fatal("expected policy error for SUM when only count is enabled")
+	}
+	if errs := asteval.ValidateAggregatorPolicy(node, "enabled", []string{"count", "sum"}); len(errs) != 0 {
+		t.Fatalf("unexpected policy errors = %v", errs)
+	}
+}

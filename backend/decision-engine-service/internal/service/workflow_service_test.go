@@ -335,6 +335,9 @@ func (nilDecisionRepository) ListByObjectPage(context.Context, string, string, s
 func (nilDecisionRepository) CountByObject(context.Context, string, string, string) (int, error) {
 	return 0, nil
 }
+func (nilDecisionRepository) CountByObjectOutcome(context.Context, string, string, string, string) (int, error) {
+	return 0, nil
+}
 
 func (nilDecisionRepository) ListFiltered(context.Context, string, ports.DecisionListFilter) ([]decision.Decision, error) {
 	return nil, nil

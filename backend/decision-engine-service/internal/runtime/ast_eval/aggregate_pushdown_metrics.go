@@ -31,6 +31,9 @@ type AggregatePushdownMetrics struct {
 	RemoteLimiterWaitCount           uint64
 	RemoteLimiterWaitTotal           time.Duration
 	RemoteConcurrencyLimit           int
+	ShortCircuitSkipsTotal           uint64
+	AggregateOverloadedTotal         uint64
+	AggregatePathCounts              map[string]uint64
 	TopRules                         map[string]AggregateRulePressure
 	TopShapes                        map[string]uint64
 	TopRemoteShapes                  map[string]uint64
@@ -74,6 +77,28 @@ var aggregatePushdownRuleRemoteShapes = map[string]map[string]struct{}{}
 var aggregatePushdownShapeCounts = map[string]uint64{}
 var aggregatePushdownRemoteShapeCounts = map[string]uint64{}
 var aggregateRemoteLimiterState atomic.Int64
+var aggregateShortCircuitSkipsTotal atomic.Uint64
+var aggregateOverloadedTotal atomic.Uint64
+var aggregatePathCountsMu sync.Mutex
+var aggregatePathCounts = map[string]uint64{}
+
+func recordAggregateShortCircuitSkips(count uint64) {
+	if count == 0 {
+		return
+	}
+	aggregateShortCircuitSkipsTotal.Add(count)
+}
+
+func RecordAggregateOverloaded() {
+	aggregateOverloadedTotal.Add(1)
+}
+
+func RecordAggregatePath(path, reason string) {
+	key := path + ":" + reason
+	aggregatePathCountsMu.Lock()
+	aggregatePathCounts[key]++
+	aggregatePathCountsMu.Unlock()
+}
 
 func recordAggregatePushdownCompile(supported bool) {
 	if supported {
@@ -255,6 +280,12 @@ func AggregatePushdownMetricsSnapshot() AggregatePushdownMetrics {
 		remoteShapeCounts[key] = value
 	}
 	aggregatePushdownRuleMetricsMu.Unlock()
+	aggregatePathCountsMu.Lock()
+	pathCounts := make(map[string]uint64, len(aggregatePathCounts))
+	for key, value := range aggregatePathCounts {
+		pathCounts[key] = value
+	}
+	aggregatePathCountsMu.Unlock()
 	return AggregatePushdownMetrics{
 		CompileSupportedCount:            aggregatePushdownCompileSupportedCount.Load(),
 		CompileUnsupportedCount:          aggregatePushdownCompileUnsupportedCount.Load(),
@@ -275,6 +306,9 @@ func AggregatePushdownMetricsSnapshot() AggregatePushdownMetrics {
 		RemoteLimiterWaitCount:           aggregatePushdownRemoteLimiterWaitCount.Load(),
 		RemoteLimiterWaitTotal:           time.Duration(aggregatePushdownRemoteLimiterWaitTotalNanos.Load()),
 		RemoteConcurrencyLimit:           int(aggregateRemoteLimiterState.Load()),
+		ShortCircuitSkipsTotal:           aggregateShortCircuitSkipsTotal.Load(),
+		AggregateOverloadedTotal:         aggregateOverloadedTotal.Load(),
+		AggregatePathCounts:              pathCounts,
 		TopRules:                         ruleMetrics,
 		TopShapes:                        shapeCounts,
 		TopRemoteShapes:                  remoteShapeCounts,

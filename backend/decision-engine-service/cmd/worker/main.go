@@ -228,6 +228,7 @@ func main() {
 	)
 	decisionService.NameRecognizer = namerecognition.New(cfg.NameRecognitionURL, cfg.NameRecognitionToken, cfg.HTTPClientTimeout)
 	decisionService.SetGeoIPLookup(geoIPLookup)
+	decisionService.SetAggregateRemoteMaxWait(cfg.AggregateRemoteMaxWait)
 	decisionService.InlinePolicy = cfg.InternalScreeningPolicy
 	if cfg.InternalScreeningPolicy.Enabled {
 		decisionService.InlineScreening = lookup.Facade{DB: db, Transport: cfg.ProviderTransport}

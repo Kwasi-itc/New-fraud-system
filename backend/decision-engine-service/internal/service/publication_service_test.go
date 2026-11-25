@@ -158,3 +158,233 @@ func TestPublicationPreparationFinishesBeforeCurrentAuthorityTransaction(t *test
 		t.Fatal("publication bypassed preparation/current-authority boundary", err)
 	}
 }
+
+func (s *publicationDataModelReader) CreateCoveringIndexJob(_ context.Context, _, tableID, indexType string, columns, includeColumns []string, _ string) (ports.ManagedIndexJob, error) {
+	job := ports.ManagedIndexJob{
+		ID:             "job-1",
+		TableName:      tableNameByID(s.model, tableID),
+		IndexType:      indexType,
+		Status:         "pending",
+		Columns:        append([]string(nil), columns...),
+		IncludeColumns: append([]string(nil), includeColumns...),
+	}
+	s.created = append(s.created, job)
+	s.jobs = append(s.jobs, job)
+	return job, nil
+}
+
+func TestStartPreparationOrdersKeysCanonicallyAndExtractsIncludeColumns(t *testing.T) {
+	t.Parallel()
+
+	formula, _ := json.Marshal(domainast.Node{
+		Function: ">",
+		Children: []domainast.Node{
+			{
+				Function: "Aggregator",
+				NamedChildren: map[string]domainast.Node{
+					"tableName":  {Constant: "transactions"},
+					"fieldName":  {Constant: "amount"},
+					"aggregator": {Constant: "SUM"},
+					"filters": {
+						Function: "List",
+						Children: []domainast.Node{
+							{
+								Function: "Filter",
+								NamedChildren: map[string]domainast.Node{
+									"tableName": {Constant: "transactions"},
+									"fieldName": {Constant: "created_at"},
+									"operator":  {Constant: ">="},
+									"value":     {Constant: "2026-11-18T00:00:00Z"},
+								},
+							},
+							{
+								Function: "Filter",
+								NamedChildren: map[string]domainast.Node{
+									"tableName": {Constant: "transactions"},
+									"fieldName": {Constant: "status"},
+									"operator":  {Constant: "!="},
+									"value":     {Constant: "void"},
+								},
+							},
+							{
+								Function: "Filter",
+								NamedChildren: map[string]domainast.Node{
+									"tableName": {Constant: "transactions"},
+									"fieldName": {Constant: "merchant_id"},
+									"operator":  {Constant: "="},
+									"value":     {Constant: "m1"},
+								},
+							},
+						},
+					},
+				},
+			},
+			{Constant: 1000},
+		},
+	})
+
+	dataModel := &publicationDataModelReader{
+		model: ports.TenantModel{
+			Tables: map[string]ports.TenantModelTable{
+				"transactions": {
+					ID:   "table-1",
+					Name: "transactions",
+					Fields: map[string]ports.TenantModelField{
+						"merchant_id": {Name: "merchant_id", Type: "string"},
+						"created_at":  {Name: "created_at", Type: "timestamp"},
+						"amount":      {Name: "amount", Type: "float"},
+						"status":      {Name: "status", Type: "string"},
+					},
+				},
+			},
+		},
+	}
+	svc := PublicationService{
+		scenarioRepo: scenarioRepoStub{item: scenario.Scenario{
+			ID: "scenario-1", TenantID: "tenant-1", TriggerObjectType: "transactions",
+		}},
+		iterationRepo: scenarioIterationRepoStub{iteration: scenario.Iteration{
+			ID: "iteration-1", ScenarioID: "scenario-1", TenantID: "tenant-1", TriggerFormula: formula,
+		}},
+		ruleRepo:        ruleRepoStub{},
+		dataModelReader: dataModel,
+	}
+
+	if _, err := svc.StartPreparation(context.Background(), "tenant-1", "scenario-1", "iteration-1"); err != nil {
+		t.Fatalf("StartPreparation() error = %v", err)
+	}
+	if len(dataModel.created) != 1 {
+		t.Fatalf("created jobs = %d, want 1", len(dataModel.created))
+	}
+	job := dataModel.created[0]
+	if len(job.Columns) != 2 || job.Columns[0] != "merchant_id" || job.Columns[1] != "created_at" {
+		t.Fatalf("key columns = %v, want [merchant_id created_at]", job.Columns)
+	}
+	if len(job.IncludeColumns) != 2 || job.IncludeColumns[0] != "amount" || job.IncludeColumns[1] != "status" {
+		t.Fatalf("include columns = %v, want [amount status]", job.IncludeColumns)
+	}
+}
+
+func TestStartPreparationIgnoresOrSubtreesAndSubsumesAppliedIndexes(t *testing.T) {
+	t.Parallel()
+
+	node := domainast.Node{
+		Function: "Aggregator",
+		NamedChildren: map[string]domainast.Node{
+			"tableName":  {Constant: "transactions"},
+			"fieldName":  {Constant: "amount"},
+			"aggregator": {Constant: "SUM"},
+			"filters": {
+				Function: "or",
+				Children: []domainast.Node{
+					{
+						Function: "Filter",
+						NamedChildren: map[string]domainast.Node{
+							"fieldName": {Constant: "merchant_id"},
+							"operator":  {Constant: "="},
+							"value":     {Constant: "m1"},
+						},
+					},
+				},
+			},
+		},
+	}
+	model := ports.TenantModel{
+		Tables: map[string]ports.TenantModelTable{
+			"transactions": {
+				ID:   "t1",
+				Name: "transactions",
+				Fields: map[string]ports.TenantModelField{
+					"merchant_id": {Name: "merchant_id", Type: "string"},
+					"amount":      {Name: "amount", Type: "float"},
+				},
+			},
+		},
+	}
+	if _, ok := aggregatorIndexRequirement(model, "transactions", node); ok {
+		t.Fatal("expected or-only filter subtree not to emit composite B-tree index requirement")
+	}
+
+	applied := []ports.ManagedIndexJob{{
+		TableName:      "transactions",
+		Status:         "applied",
+		Columns:        []string{"merchant_id", "created_at", "currency"},
+		IncludeColumns: []string{"amount", "status"},
+	}}
+	req := indexRequirement{
+		TableName:      "transactions",
+		Columns:        []string{"merchant_id", "created_at"},
+		IncludeColumns: []string{"amount"},
+	}
+	if !requirementSatisfiedByJobs(applied, req) {
+		t.Fatal("expected wider applied index to subsume narrower requirement")
+	}
+}
+
+func TestStartPreparationEnforcesPerTableIndexCapAndAggregatePolicy(t *testing.T) {
+	t.Parallel()
+
+	formula, _ := json.Marshal(domainast.Node{
+		Function: ">",
+		Children: []domainast.Node{
+			{
+				Function: "Aggregator",
+				NamedChildren: map[string]domainast.Node{
+					"tableName":  {Constant: "transactions"},
+					"fieldName":  {Constant: "amount"},
+					"aggregator": {Constant: "SUM"},
+					"filters": {
+						Function: "List",
+						Children: []domainast.Node{{
+							Function: "Filter",
+							NamedChildren: map[string]domainast.Node{
+								"fieldName": {Constant: "merchant_id"},
+								"operator":  {Constant: "="},
+								"value":     {Constant: "m1"},
+							},
+						}},
+					},
+				},
+			},
+			{Constant: 100},
+		},
+	})
+
+	dataModel := &publicationDataModelReader{
+		model: ports.TenantModel{
+			Tables: map[string]ports.TenantModelTable{
+				"transactions": {
+					ID:   "table-1",
+					Name: "transactions",
+					Fields: map[string]ports.TenantModelField{
+						"merchant_id": {Name: "merchant_id", Type: "string"},
+						"amount":      {Name: "amount", Type: "float"},
+					},
+				},
+			},
+		},
+		jobs: []ports.ManagedIndexJob{
+			{ID: "j1", TableName: "transactions", IndexType: "search", Status: "applied", Columns: []string{"a"}},
+			{ID: "j2", TableName: "transactions", IndexType: "search", Status: "applied", Columns: []string{"b"}},
+		},
+	}
+	svc := PublicationService{
+		scenarioRepo: scenarioRepoStub{item: scenario.Scenario{
+			ID: "s1", TenantID: "t1", TriggerObjectType: "transactions",
+		}},
+		iterationRepo: scenarioIterationRepoStub{iteration: scenario.Iteration{
+			ID: "i1", ScenarioID: "s1", TenantID: "t1", TriggerFormula: formula,
+		}},
+		ruleRepo:        ruleRepoStub{},
+		dataModelReader: dataModel,
+	}
+	svc.SetMaxSearchIndexesPerTable(2)
+	if _, err := svc.StartPreparation(context.Background(), "t1", "s1", "i1"); err == nil {
+		t.Fatal("expected per-table index cap error")
+	}
+
+	svc.SetAggregatePushdownPolicy("enabled", []string{"count"})
+	if _, err := svc.GetPreparationStatus(context.Background(), "t1", "s1", "i1"); err == nil {
+		t.Fatal("expected disabled aggregate policy error for SUM when only count is enabled")
+	}
+}

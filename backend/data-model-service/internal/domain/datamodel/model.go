@@ -252,6 +252,7 @@ type IndexJob struct {
 	TableName            string
 	IndexType            IndexJobType
 	Columns              []string
+	IncludeColumns       []string
 	Status               IndexJobStatus
 	RequestedByOperation string
 	ErrorMessage         *string
@@ -266,6 +267,7 @@ type IndexJob struct {
 type ManagedIndexState struct {
 	Name   string
 	Exists bool
+	Valid  bool
 }
 
 func NewDeleteReport() DeleteReport {
@@ -292,6 +294,10 @@ func ParseIndexJobType(value string) (IndexJobType, error) {
 }
 
 func ValidateIndexJobCreate(jobType IndexJobType, columns []string) error {
+	return ValidateIndexJobCreateWithIncludes(jobType, columns, nil)
+}
+
+func ValidateIndexJobCreateWithIncludes(jobType IndexJobType, columns, includeColumns []string) error {
 	switch jobType {
 	case IndexJobTypeNavigation, IndexJobTypeSearch, IndexJobTypeRepair:
 	default:
@@ -302,7 +308,7 @@ func ValidateIndexJobCreate(jobType IndexJobType, columns []string) error {
 		return fmt.Errorf("at least one column is required")
 	}
 
-	seen := make(map[string]struct{}, len(columns))
+	seen := make(map[string]struct{}, len(columns)+len(includeColumns))
 	for _, column := range columns {
 		name := NormalizeName(column)
 		if err := ValidateObjectName("index column", name); err != nil {
@@ -313,12 +319,30 @@ func ValidateIndexJobCreate(jobType IndexJobType, columns []string) error {
 		}
 		seen[name] = struct{}{}
 	}
+	for _, column := range includeColumns {
+		name := NormalizeName(column)
+		if err := ValidateObjectName("include index column", name); err != nil {
+			return err
+		}
+		if _, ok := seen[name]; ok {
+			return fmt.Errorf("duplicate or key-overlapping include column: %s", name)
+		}
+		seen[name] = struct{}{}
+	}
 
 	return nil
 }
 
 func BuildIndexJobDedupeKey(tenantID, tableID uuid.UUID, indexType IndexJobType, columns []string) string {
-	sum := sha1.Sum([]byte(tenantID.String() + ":" + tableID.String() + ":" + string(indexType) + ":" + strings.Join(columns, ",")))
+	return BuildIndexJobDedupeKeyWithIncludes(tenantID, tableID, indexType, columns, nil)
+}
+
+func BuildIndexJobDedupeKeyWithIncludes(tenantID, tableID uuid.UUID, indexType IndexJobType, columns, includeColumns []string) string {
+	raw := tenantID.String() + ":" + tableID.String() + ":" + string(indexType) + ":" + strings.Join(columns, ",")
+	if len(includeColumns) > 0 {
+		raw += ":inc:" + strings.Join(includeColumns, ",")
+	}
+	sum := sha1.Sum([]byte(raw))
 	return hex.EncodeToString(sum[:])
 }
 

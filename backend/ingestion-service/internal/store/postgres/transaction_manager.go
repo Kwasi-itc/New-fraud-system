@@ -11,11 +11,20 @@ import (
 )
 
 type TransactionManager struct {
-	db *pgxpool.Pool
+	db          *pgxpool.Pool
+	rollupCache *RollupDefinitionCache
 }
 
 func NewTransactionManager(db *pgxpool.Pool) TransactionManager {
-	return TransactionManager{db: db}
+	var cache *RollupDefinitionCache
+	if db != nil {
+		cache = NewRollupDefinitionCache(db, DefaultRollupDefinitionCacheTTL)
+	}
+	return TransactionManager{db: db, rollupCache: cache}
+}
+
+func (m TransactionManager) RollupCache() *RollupDefinitionCache {
+	return m.rollupCache
 }
 
 func (m TransactionManager) Run(ctx context.Context, fn func(ports.MutationStore) error) error {
@@ -27,16 +36,24 @@ func (m TransactionManager) Run(ctx context.Context, fn func(ports.MutationStore
 		_ = tx.Rollback(ctx)
 	}()
 
-	store := mutationStore{tx: tx}
+	deltaBuf := &[]ingestion.RollupDelta{}
+	store := mutationStore{tx: tx, rollupCache: m.rollupCache, deltaBuf: deltaBuf}
 	if err := fn(store); err != nil {
 		return err
+	}
+	if len(*deltaBuf) > 0 {
+		if err := insertRollupDeltasTx(ctx, tx, *deltaBuf); err != nil {
+			return err
+		}
 	}
 
 	return tx.Commit(ctx)
 }
 
 type mutationStore struct {
-	tx pgx.Tx
+	tx          pgx.Tx
+	rollupCache *RollupDefinitionCache
+	deltaBuf    *[]ingestion.RollupDelta
 }
 
 func (s mutationStore) RecordIngestion(ctx context.Context, audit ingestion.IngestionAudit, event ingestion.OutboxEvent) error {
@@ -61,6 +78,8 @@ func (s mutationStore) UploadLogs() ports.UploadLogRepository { return NewUpload
 func (s mutationStore) DeferredIngests() ports.DeferredIngestRepository {
 	return NewDeferredIngestRepository(s.tx)
 }
-func (s mutationStore) TenantWriter() ports.TenantDataWriter { return NewTenantDataWriter(s.tx) }
+func (s mutationStore) TenantWriter() ports.TenantDataWriter {
+	return NewTenantDataWriterWithRollups(s.tx, s.rollupCache, s.deltaBuf)
+}
 func (s mutationStore) TenantReader() ports.TenantDataReader { return NewTenantDataReader(s.tx) }
 func (s mutationStore) RawTx() pgx.Tx                        { return s.tx }

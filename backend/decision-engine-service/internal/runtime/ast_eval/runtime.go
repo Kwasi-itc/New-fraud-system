@@ -29,6 +29,8 @@ type Runtime struct {
 	AggregatePushdownMode       string
 	AggregatePushdownAggregates []string
 	AggregateRemoteConcurrency  int
+	AggregateRemoteMaxWait      time.Duration
+	EvaluationSemantics         string
 	EvalCache                   *EvaluationCache
 	AggregateResultCache        *AggregateResultCache
 	RelatedPathCache            *RelatedPathCache
@@ -58,6 +60,10 @@ func (r Runtime) aggregatePushdownEnabled() bool {
 
 func (r Runtime) aggregatePushdownStrict() bool {
 	return r.aggregatePushdownMode() == AggregatePushdownModeStrict
+}
+
+func (r Runtime) isV2Semantics() bool {
+	return strings.EqualFold(strings.TrimSpace(r.EvaluationSemantics), "v2")
 }
 
 func (r Runtime) aggregatePushdownSupportsAggregate(name string) bool {

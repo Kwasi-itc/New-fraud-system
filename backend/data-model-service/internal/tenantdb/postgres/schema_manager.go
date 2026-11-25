@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Kwasi-itc/New-fraud-system/backend/data-model-service/internal/domain/tenant"
 )
@@ -17,11 +18,13 @@ type executor interface {
 }
 
 type SchemaManager struct {
-	db executor
+	db   executor
+	pool *pgxpool.Pool
 }
 
 func NewSchemaManager(db executor) SchemaManager {
-	return SchemaManager{db: db}
+	pool, _ := db.(*pgxpool.Pool)
+	return SchemaManager{db: db, pool: pool}
 }
 
 func (m SchemaManager) ProvisionTenantSchema(ctx context.Context, record tenant.Tenant) error {

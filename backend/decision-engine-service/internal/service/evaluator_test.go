@@ -411,6 +411,16 @@ func (s stubDecisionRepo) CountByObject(ctx context.Context, tenantID, objectTyp
 	return len(s.items), nil
 }
 
+func (s stubDecisionRepo) CountByObjectOutcome(ctx context.Context, tenantID, objectType, objectID, outcome string) (int, error) {
+	count := 0
+	for _, item := range s.items {
+		if string(item.Outcome) == outcome {
+			count++
+		}
+	}
+	return count, nil
+}
+
 func (s stubDecisionRepo) ListFiltered(ctx context.Context, tenantID string, filter ports.DecisionListFilter) ([]decision.Decision, error) {
 	return s.items, nil
 }

@@ -1,6 +1,9 @@
 package ports
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type TenantModel struct {
 	RevisionID          string
@@ -10,11 +13,13 @@ type TenantModel struct {
 }
 
 type ManagedIndexJob struct {
-	ID        string
-	TableName string
-	IndexType string
-	Status    string
-	Columns   []string
+	ID             string
+	TableName      string
+	IndexType      string
+	Status         string
+	Columns        []string
+	IncludeColumns []string
+	CompletedAt    *time.Time
 }
 
 type TenantModelTable struct {
@@ -47,4 +52,8 @@ type DataModelReader interface {
 	CreateIndexJob(ctx context.Context, tenantID, tableID, indexType string, columns []string, requestedByOperation string) (ManagedIndexJob, error)
 	ListIndexJobs(ctx context.Context, tenantID string) ([]ManagedIndexJob, error)
 	RetryIndexJob(ctx context.Context, tenantID, jobID string) error
+}
+
+type CoveringIndexCreator interface {
+	CreateCoveringIndexJob(ctx context.Context, tenantID, tableID, indexType string, columns, includeColumns []string, requestedByOperation string) (ManagedIndexJob, error)
 }

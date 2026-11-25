@@ -12,6 +12,9 @@ type IterationStatus string
 const (
 	IterationStatusDraft     IterationStatus = "draft"
 	IterationStatusCommitted IterationStatus = "committed"
+
+	EvaluationSemanticsV1 = "v1"
+	EvaluationSemanticsV2 = "v2"
 )
 
 type Scenario struct {
@@ -49,6 +52,7 @@ type Iteration struct {
 	ScoreBlockAndReviewThreshold *int
 	ScoreDeclineThreshold        *int
 	Schedule                     string
+	EvaluationSemantics          string
 	CreatedAt                    time.Time
 	CommittedAt                  *time.Time
 }

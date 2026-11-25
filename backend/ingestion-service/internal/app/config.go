@@ -39,6 +39,8 @@ type Config struct {
 	WritePathOverloadMode           string
 	ReadQueryConcurrencyLimit       int
 	AggregateQueryConcurrencyLimit  int
+	EnableRollupAggregates          bool
+	RollupShadowMode                bool
 	DBPoolSaturationThresholdPct    int
 	RequestQueueDepthThreshold      int
 	ServiceCPUThresholdPct          int
@@ -94,6 +96,8 @@ func LoadConfig() (Config, error) {
 		WritePathOverloadMode:           strings.ToLower(strings.TrimSpace(getEnv("WRITE_PATH_OVERLOAD_MODE", "defer_async"))),
 		ReadQueryConcurrencyLimit:       getEnvInt("READ_QUERY_CONCURRENCY_LIMIT", 64),
 		AggregateQueryConcurrencyLimit:  getEnvInt("AGGREGATE_QUERY_CONCURRENCY_LIMIT", 16),
+		EnableRollupAggregates:          strings.EqualFold(strings.TrimSpace(getEnv("ENABLE_ROLLUP_AGGREGATES", "false")), "true"),
+		RollupShadowMode:                strings.EqualFold(strings.TrimSpace(getEnv("ROLLUP_SHADOW_MODE", "false")), "true"),
 		DBPoolSaturationThresholdPct:    getEnvInt("DB_POOL_SATURATION_THRESHOLD_PCT", 80),
 		RequestQueueDepthThreshold:      getEnvInt("REQUEST_QUEUE_DEPTH_THRESHOLD", 8),
 		ServiceCPUThresholdPct:          getEnvInt("SERVICE_CPU_THRESHOLD_PCT", 80),

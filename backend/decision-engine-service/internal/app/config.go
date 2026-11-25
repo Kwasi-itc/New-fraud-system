@@ -45,6 +45,8 @@ type Config struct {
 	RuleEvaluationConcurrency           int
 	ScenarioEvaluationConcurrency       int
 	AggregateRemoteConcurrencyLimit     int
+	AggregateRemoteMaxWait              time.Duration
+	AggregateSQLStatementTimeout        time.Duration
 	WorkerMode                          string
 	WorkerTasks                         []string
 	WorkerTaskPriorities                map[string]int
@@ -222,6 +224,14 @@ func LoadConfig() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	aggregateRemoteMaxWait, err := getEnvDuration("AGGREGATE_REMOTE_MAX_WAIT", 50*time.Millisecond)
+	if err != nil {
+		return Config{}, err
+	}
+	aggregateSQLStatementTimeout, err := getEnvDuration("AGGREGATE_SQL_STATEMENT_TIMEOUT", 500*time.Millisecond)
+	if err != nil {
+		return Config{}, err
+	}
 
 	databaseMaxConns, err := getEnvInt("DATABASE_MAX_CONNS", 0)
 	if err != nil {
@@ -260,7 +270,7 @@ func LoadConfig() (Config, error) {
 		GinMode:                             getEnv("GIN_MODE", "debug"),
 		HTTPClientTimeout:                   httpClientTimeout,
 		AggregatePushdownMode:               strings.ToLower(getEnv("AGGREGATE_PUSHDOWN_MODE", "enabled")),
-		AggregatePushdownAggregates:         parseCSVEnv("AGGREGATE_PUSHDOWN_AGGREGATES", []string{"count"}),
+		AggregatePushdownAggregates:         parseCSVEnv("AGGREGATE_PUSHDOWN_AGGREGATES", []string{"count", "count_distinct", "sum", "avg", "min", "max"}),
 		LiveDecisionMode:                    strings.ToLower(getEnv("LIVE_DECISION_MODE", "sync")),
 		LiveAsyncObjectTypes:                normalizeLowercaseList(parseCSVEnv("LIVE_ASYNC_OBJECT_TYPES", nil)),
 		LiveDecisionConcurrencyLimit:        liveDecisionConcurrencyLimit,
@@ -268,6 +278,8 @@ func LoadConfig() (Config, error) {
 		RuleEvaluationConcurrency:           ruleEvaluationConcurrency,
 		ScenarioEvaluationConcurrency:       scenarioEvaluationConcurrency,
 		AggregateRemoteConcurrencyLimit:     aggregateRemoteConcurrencyLimit,
+		AggregateRemoteMaxWait:              aggregateRemoteMaxWait,
+		AggregateSQLStatementTimeout:        aggregateSQLStatementTimeout,
 		WorkerMode:                          strings.ToLower(getEnv("WORKER_MODE", "batch")),
 		WorkerTasks:                         workerTasks,
 		WorkerTaskPriorities:                workerTaskPriorities,
@@ -419,6 +431,12 @@ func LoadConfig() (Config, error) {
 	}
 	if cfg.AggregateRemoteConcurrencyLimit > maxAggregateRemoteConcurrencyLimit {
 		return Config{}, fmt.Errorf("AGGREGATE_REMOTE_CONCURRENCY_LIMIT must be less than or equal to %d", maxAggregateRemoteConcurrencyLimit)
+	}
+	if cfg.AggregateRemoteMaxWait < 0 {
+		return Config{}, fmt.Errorf("AGGREGATE_REMOTE_MAX_WAIT must be greater than or equal to zero")
+	}
+	if cfg.AggregateSQLStatementTimeout < 0 {
+		return Config{}, fmt.Errorf("AGGREGATE_SQL_STATEMENT_TIMEOUT must be greater than or equal to zero")
 	}
 
 	cfg.ProviderTransport, err = lookup.TransportFromEnvironment(cfg.HTTPClientTimeout)

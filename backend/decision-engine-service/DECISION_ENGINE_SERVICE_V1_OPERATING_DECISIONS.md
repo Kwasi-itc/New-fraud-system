@@ -383,13 +383,12 @@ Current control knobs:
   - `strict`
 - `AGGREGATE_PUSHDOWN_AGGREGATES`
   - comma-separated remote aggregate allow-list
-  - current default: `count`
+  - current default: `count,count_distinct,sum,avg,min,max`
 
 This means:
 
-- V1 can keep `count` as the first remote aggregate in production
-- wider remote aggregate rollout can be enabled explicitly without changing rule authoring
-- unsupported or disabled aggregate shapes still have a compatibility path when mode is not `strict`
+- all supported SQL pushdown aggregates (`count`, `count_distinct`, `sum`, `avg`, `min`, `max`) are enabled by default so authoring/evaluation matches ingestion capabilities
+- environments can still restrict the allow-list explicitly; rule validation and publication reject `Aggregator(...)` functions not in the active allow-list at authoring time rather than failing at decision time
 
 ### Current supported remote scope
 
@@ -488,3 +487,25 @@ The following are explicitly deferred from remote pushdown in V1:
 - arbitrary SQL-like expression pushdown
 
 These are deferred by contract, not by accident. A later change to support them should be treated as an explicit capability expansion.
+
+
+## 7. `TENANT_DATA_READ_MODE=direct_db` and Phase 3 Rollup Interaction
+
+- `decision-engine-service` defaults to `TENANT_DATA_READ_MODE=ingestion_http`, delegating all aggregate queries to `ingestion-service`.
+- When `TENANT_DATA_READ_MODE=direct_db` is enabled, `decision-engine-service` executes raw SQL aggregates directly via its own `TenantDataReader` using the identical SQL expression/filter contract (`count`, `count_distinct`, `sum`, `avg`, `min`, `max`, `and`/`or`/`not`, `eq`/`neq`/`gt`/`gte`/`lt`/`lte`/`in`/`is_null`/`is_not_null`/`starts_with`) and `SET LOCAL statement_timeout` (`AGGREGATE_SQL_STATEMENT_TIMEOUT`, default `500ms`).
+- **Phase 3 Rollup Boundary**: `core_ingestion.rollup_*` tables are owned exclusively by `ingestion-service`. Under `direct_db` mode, `decision-engine-service` never reads `core_ingestion.rollup_*` directly across service boundaries; rollup-eligible queries either execute on the Phase 1 covering index raw path or route explicitly through `ingestion-service`'s aggregate HTTP contract when `ENABLE_ROLLUP_AGGREGATES` is active.
+
+## 8. Shared PostgreSQL Connection Budget
+
+All services share the same logical PostgreSQL instance (`AGENTS.md`). Pool limits must be sized per replica so the fleet sum stays below PostgreSQL `max_connections` (leaving ≥20 connections reserved for migrations, admin, and `CONCURRENTLY` index builds):
+
+| Component | Default / Budgeted `DATABASE_MAX_CONNS` | Role |
+| :--- | :---: | :--- |
+| `decision-engine-service` (API) | `24` per replica | Live decisions, River enqueues, `direct_db` reads |
+| `decision-engine-service` (Worker) | `16` per replica | River scheduled/async queues, outbox, workflows |
+| `ingestion-service` (API) | `32` per replica (write) + `24` (`READ_DATABASE_MAX_CONNS`) | Record upserts + aggregate pushdown queries |
+| `ingestion-service` (Worker) | `8` per replica | Deferred ingests, upload logs, Phase 3 rollup appliers |
+| `data-model-service` (API + Worker) | `8` API + `4` Worker | Model metadata + pinned non-tx `CREATE INDEX CONCURRENTLY` |
+| `case-manager-service` / `screening` / `auth` | `16` total | Case management, screening, auth |
+
+Bound `AGGREGATE_REMOTE_CONCURRENCY_LIMIT` (max `128`, with `AGGREGATE_REMOTE_MAX_WAIT=50ms`) on `decision-engine-service` to match `ingestion-service`'s `AGGREGATE_QUERY_CONCURRENCY_LIMIT` × `READ_DATABASE_MAX_CONNS`.

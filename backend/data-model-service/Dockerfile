@@ -21,4 +21,5 @@ COPY --from=builder /app/data-model-service/internal/migrations /app/internal/mi
 
 EXPOSE 8080
 
+USER nonroot
 ENTRYPOINT ["/app/server"]

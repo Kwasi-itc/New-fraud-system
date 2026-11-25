@@ -67,7 +67,37 @@ const SOURCE_DEFS = [
     args: () => [path.join(PEP_DIR, 'scrape-live-mmdces.mjs')],
     builds: ['subnational'],
   },
+  {
+    key: 'worldbank',
+    label: 'World Bank Debarred Firms & Individuals (live)',
+    cmd: () => 'node',
+    args: () => [path.join(PEP_DIR, 'crawl-worldbank-debarred.mjs')],
+    builds: [],
+  },
+  {
+    key: 'traditional',
+    label: 'Ghana Traditional Rulers (Wikidata Live)',
+    cmd: () => 'node',
+    args: () => [path.join(PEP_DIR, 'crawl-extended-peps.mjs'), '--only', 'traditional'],
+    builds: [],
+  },
+  {
+    key: 'security',
+    label: 'Ghana Senior Security Officials (Wikidata Live)',
+    cmd: () => 'node',
+    args: () => [path.join(PEP_DIR, 'crawl-extended-peps.mjs'), '--only', 'security'],
+    builds: [],
+  },
+  {
+    key: 'foreign_heads',
+    label: 'Global Foreign Heads of State & Gov (Wikidata Live)',
+    cmd: () => 'node',
+    args: () => [path.join(PEP_DIR, 'crawl-extended-peps.mjs'), '--only', 'foreign_heads'],
+    builds: [],
+  },
 ];
+
+const XML_SOURCES = ['un-consolidated', 'ofac-sdn', 'uksl'];
 
 const SNAPSHOT_MAPPINGS = [
   { file: 'gh_pep_parliament.json', dataset: 'gh-pep-parliament', label: 'Ghana Parliament PEPs (Live)' },
@@ -77,6 +107,10 @@ const SNAPSHOT_MAPPINGS = [
   { file: 'gh_pep_judiciary.json', dataset: 'gh-pep-judiciary', label: 'Ghana Judiciary Supreme Court PEPs (Live)' },
   { file: 'gh_pep_parties.json', dataset: 'gh-pep-parties', label: 'Ghana Political Party Leadership PEPs (Live)' },
   { file: 'gh_pep_local_gov.json', dataset: 'gh-pep-local-gov', label: 'Ghana Sub-National MMDCE PEPs (Live)' },
+  { file: 'worldbank_fixture.json', dataset: 'worldbank-debarred', label: 'World Bank Ineligible Firms & Individuals', category: 'regulatory_warning' },
+  { file: 'gh_pep_traditional.json', dataset: 'gh-pep-traditional', label: 'Ghana Traditional Rulers (Wikidata Live)' },
+  { file: 'gh_pep_security.json', dataset: 'gh-pep-security', label: 'Ghana Senior Security Officials (Wikidata Live)' },
+  { file: 'global_pep_heads.json', dataset: 'global-pep-heads', label: 'Global Foreign Heads of State & Government (Wikidata Live)' },
 ];
 
 function parseArgs(argv) {
@@ -129,6 +163,17 @@ function loadConfig(defaultOverrideMinutes) {
       config.sources[def.key].enabled = envEnabled === 'true';
     }
   }
+  for (const xmlKey of XML_SOURCES) {
+    const envKey = xmlKey.toUpperCase().replace(/-/g, '_');
+    const envInterval = process.env[`PEP_REFRESH_${envKey}_MINUTES`];
+    if (envInterval && Number.isFinite(Number(envInterval)) && Number(envInterval) >= 15) {
+      config.sources[xmlKey].interval_minutes = Number(envInterval);
+    }
+    const envEnabled = process.env[`PEP_REFRESH_${envKey}_ENABLED`];
+    if (envEnabled === 'true' || envEnabled === 'false') {
+      config.sources[xmlKey].enabled = envEnabled === 'true';
+    }
+  }
   return config;
 }
 
@@ -156,6 +201,85 @@ function runStep(label, cmd, args, env = {}, cwd = WORK_DIR) {
   return true;
 }
 
+function readSourceDSN() {
+  const dsnFile = process.env.SOURCE_DATABASE_URL_FILE;
+  return (dsnFile && fs.existsSync(dsnFile))
+    ? fs.readFileSync(dsnFile, 'utf8').trim()
+    : (process.env.SOURCE_DATABASE_URL || '').trim();
+}
+
+function syncXmlSourceConfig(xmlKey, cfg) {
+  const dsn = readSourceDSN();
+  if (!dsn) return;
+  const mins = Math.max(15, Math.min(525600, Number(cfg.interval_minutes) || 720));
+  const enabled = cfg.enabled ? 'true' : 'false';
+  const sql = `
+    UPDATE screening.source_connections
+    SET enabled=${enabled}, poll_interval=make_interval(mins=>${mins})
+    WHERE owner_scope='00000000-0000-0000-0000-000000000000' AND dataset_id='${xmlKey}' AND rights_state='approved';
+  `;
+  spawnSync('psql', [dsn, '-v', 'ON_ERROR_STOP=1', '-c', sql], { cwd: WORK_DIR, stdio: 'inherit' });
+}
+
+function triggerXmlSources(xmlKeys) {
+  const dsn = readSourceDSN();
+  if (!dsn || xmlKeys.length === 0) return;
+  const inList = xmlKeys.map(k => `'${k}'`).join(',');
+  const sql = `
+    UPDATE screening.source_connections
+    SET enabled=true, next_check_at=now(), failures=0, lease_token=NULL, lease_until=NULL, fence=fence+1
+    WHERE owner_scope='00000000-0000-0000-0000-000000000000' AND dataset_id IN (${inList}) AND rights_state='approved';
+  `;
+  spawnSync('psql', [dsn, '-v', 'ON_ERROR_STOP=1', '-c', sql], { cwd: WORK_DIR, stdio: 'inherit' });
+}
+
+function readXmlSourceStatuses() {
+  const dsn = readSourceDSN();
+  if (!dsn) return {};
+  const inList = XML_SOURCES.map(k => `'${k}'`).join(',');
+  const sql = `SELECT json_agg(json_build_object('dataset_id',dataset_id,'enabled',enabled,'last_run_at',last_success_at,'next_run_at',next_check_at,'last_status',CASE WHEN last_error='' THEN 'ok' ELSE last_error END)) FROM screening.source_connections WHERE owner_scope='00000000-0000-0000-0000-000000000000' AND dataset_id IN (${inList});`;
+  const res = spawnSync('psql', [dsn, '-t', '-A', '-c', sql], { cwd: WORK_DIR, encoding: 'utf8' });
+  if (res.status !== 0 || !res.stdout) return {};
+  try {
+    const rows = JSON.parse(res.stdout.trim()) || [];
+    const out = {};
+    for (const r of rows) {
+      out[r.dataset_id] = {
+        last_run_at: r.last_run_at,
+        next_run_at: r.next_run_at,
+        last_status: r.last_status || 'pending',
+      };
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function ensureDatasetRegisteredInContainer(item, parserVersion) {
+  const dsn = readSourceDSN();
+  if (!dsn) return;
+
+  const safeLabel = item.label.replace(/'/g, "''");
+  const category = item.category || 'pep_evidence';
+  const parser = (parserVersion || 'gh-pep-v1').replace(/'/g, "''");
+  const sql = `
+    INSERT INTO screening.source_datasets(owner_scope, id, label, category, enabled)
+    VALUES ('00000000-0000-0000-0000-000000000000', '${item.dataset}', '${safeLabel}', '${category}', true)
+    ON CONFLICT (owner_scope, id) DO UPDATE SET enabled=true, label=excluded.label;
+    INSERT INTO screening.source_connections(owner_scope, dataset_id, connector, config, enabled, rights_state, rights_review_reference, max_stale)
+    VALUES ('00000000-0000-0000-0000-000000000000', '${item.dataset}', '${item.dataset}', '{"parser":"${parser}"}', true, 'approved', 'Live PEP scraper intake', interval '30 days')
+    ON CONFLICT (owner_scope, dataset_id) DO UPDATE SET enabled=true, rights_state='approved', connector=excluded.connector, config=excluded.config;
+  `;
+  const res = spawnSync('psql', [dsn, '-v', 'ON_ERROR_STOP=1', '-c', sql], {
+    cwd: WORK_DIR,
+    stdio: 'inherit',
+  });
+  if (res.status !== 0) {
+    console.warn(`[Refresh] WARN: Could not pre-register ${item.dataset} via psql (status ${res.status}).`);
+  }
+}
+
 function importDirectInContainer(strict) {
   const sourceImportBin = process.env.SOURCE_IMPORT_BIN || '/app/source-import';
   let imported = 0;
@@ -165,16 +289,14 @@ function importDirectInContainer(strict) {
     const parsed = JSON.parse(fs.readFileSync(src, 'utf8'));
     if (!Array.isArray(parsed.records) || parsed.records.length === 0) continue;
 
+    ensureDatasetRegisteredInContainer(item, parsed.parser);
+
     const args = [
       '-file', src,
       '-dataset', item.dataset,
       '-snapshot-reference', `Scheduled live refresh ${new Date().toISOString()}`,
     ];
-    let ok = runStep(`Import ${item.dataset} (${parsed.records.length} records)`, sourceImportBin, args);
-    if (!ok) {
-      const regArgs = ['-register', '-label', item.label, '-file', src, '-dataset', item.dataset];
-      ok = runStep(`Register & import ${item.dataset}`, sourceImportBin, regArgs);
-    }
+    const ok = runStep(`Import ${item.dataset} (${parsed.records.length} records)`, sourceImportBin, args);
     if (ok) imported++;
     else if (strict) throw new Error(`Failed to import ${item.dataset}`);
   }
@@ -261,7 +383,7 @@ function startControlServer(opts, state, triggerFn) {
       return send(200, {
         running: state.running,
         config: state.config,
-        sources: state.status,
+        sources: { ...state.status, ...readXmlSourceStatuses() },
       });
     }
     if (req.method === 'PUT' && url.pathname === '/v1/refresh/config') {
@@ -293,6 +415,9 @@ function startControlServer(opts, state, triggerFn) {
             }
           }
           saveConfig(state.config);
+          for (const xmlKey of XML_SOURCES) {
+            if (body.sources[xmlKey]) syncXmlSourceConfig(xmlKey, state.config.sources[xmlKey]);
+          }
           return send(200, { config: state.config });
         } catch {
           return send(400, { error: 'invalid_json' });
@@ -309,12 +434,18 @@ function startControlServer(opts, state, triggerFn) {
       req.on('end', () => {
         try {
           const body = raw ? JSON.parse(raw) : {};
-          const keys = Array.isArray(body.sources) ? body.sources : SOURCE_DEFS.map(s => s.key);
+          const allKeys = [...SOURCE_DEFS.map(s => s.key), ...XML_SOURCES];
+          const keys = Array.isArray(body.sources) ? body.sources : allKeys;
           for (const k of keys) {
             if (!state.config.sources[k]) return send(400, { error: `unknown_source:${k}` });
           }
-          if (state.running) return send(409, { error: 'refresh_already_running' });
-          setImmediate(() => triggerFn(keys));
+          const xmlKeys = keys.filter(k => XML_SOURCES.includes(k));
+          const pepKeys = keys.filter(k => !XML_SOURCES.includes(k));
+          if (xmlKeys.length > 0) triggerXmlSources(xmlKeys);
+          if (pepKeys.length > 0) {
+            if (state.running) return send(409, { error: 'refresh_already_running' });
+            setImmediate(() => triggerFn(pepKeys));
+          }
           return send(202, { accepted: true, sources: keys });
         } catch {
           return send(400, { error: 'invalid_json' });

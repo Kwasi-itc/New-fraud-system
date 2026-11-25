@@ -12,9 +12,21 @@ import (
 	asteval "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval"
 )
 
+type TestRunSemanticsParity struct {
+	Matches        bool   `json:"matches"`
+	V1Triggered    bool   `json:"v1_triggered"`
+	V2Triggered    bool   `json:"v2_triggered"`
+	V1Outcome      string `json:"v1_outcome,omitempty"`
+	V2Outcome      string `json:"v2_outcome,omitempty"`
+	V1Score        int    `json:"v1_score"`
+	V2Score        int    `json:"v2_score"`
+	MismatchDetail string `json:"mismatch_detail,omitempty"`
+}
+
 type TestRunEvaluationResult struct {
-	Live    DecisionEvaluationResult `json:"live"`
-	Phantom DecisionEvaluationResult `json:"phantom"`
+	Live            DecisionEvaluationResult `json:"live"`
+	Phantom         DecisionEvaluationResult `json:"phantom"`
+	SemanticsParity *TestRunSemanticsParity  `json:"semantics_parity,omitempty"`
 }
 
 type TestRunDecisionSummary struct {
@@ -251,10 +263,61 @@ func (s TestRunService) Evaluate(ctx context.Context, tenantID, testRunID string
 		}
 	}
 
+	parity, _ := s.CompareSemanticsParity(ctx, tr.TenantID, tr.ScenarioID, tr.PhantomIterationID, req)
+
 	return TestRunEvaluationResult{
-		Live:    liveResult,
-		Phantom: phantomResult,
+		Live:            liveResult,
+		Phantom:         phantomResult,
+		SemanticsParity: &parity,
 	}, nil
+}
+
+// CompareSemanticsParity evaluates an iteration under both v1 and v2 evaluation semantics
+// so authors can verify outcome parity before publishing v2 iterations.
+func (s TestRunService) CompareSemanticsParity(
+	ctx context.Context,
+	tenantID, scenarioID, iterationID string,
+	req DecisionEvaluationRequest,
+) (TestRunSemanticsParity, error) {
+	v1Res, err := evaluateScenarioByIterationWithSemantics(ctx, s.idGen, s.clock, tenantID, scenarioID, iterationID, req, s.iterationRepo, s.ruleRepo, s.dataModelReader, s.tenantDataReader, s.decisionRepo, s.customListRepo, s.recordTagRepo, s.riskRepo, s.ipFlagRepo, s.aggregatePushdownMode, s.aggregatePushdownAggregates, s.ruleEvaluationConcurrency, scenario.EvaluationSemanticsV1, s.geoIPLookup)
+	if err != nil {
+		return TestRunSemanticsParity{}, err
+	}
+	v2Res, err := evaluateScenarioByIterationWithSemantics(ctx, s.idGen, s.clock, tenantID, scenarioID, iterationID, req, s.iterationRepo, s.ruleRepo, s.dataModelReader, s.tenantDataReader, s.decisionRepo, s.customListRepo, s.recordTagRepo, s.riskRepo, s.ipFlagRepo, s.aggregatePushdownMode, s.aggregatePushdownAggregates, s.ruleEvaluationConcurrency, scenario.EvaluationSemanticsV2, s.geoIPLookup)
+	if err != nil {
+		return TestRunSemanticsParity{}, err
+	}
+	parity := TestRunSemanticsParity{
+		Matches:     true,
+		V1Triggered: v1Res.Triggered,
+		V2Triggered: v2Res.Triggered,
+	}
+	if v1Res.Decision != nil {
+		parity.V1Outcome = string(v1Res.Decision.Outcome)
+		parity.V1Score = v1Res.Decision.Score
+	}
+	if v2Res.Decision != nil {
+		parity.V2Outcome = string(v2Res.Decision.Outcome)
+		parity.V2Score = v2Res.Decision.Score
+	}
+	if parity.V1Triggered != parity.V2Triggered {
+		parity.Matches = false
+		parity.MismatchDetail = fmt.Sprintf("triggered differs: v1=%v v2=%v", parity.V1Triggered, parity.V2Triggered)
+		return parity, nil
+	}
+	if parity.V1Outcome != parity.V2Outcome || parity.V1Score != parity.V2Score {
+		parity.Matches = false
+		parity.MismatchDetail = fmt.Sprintf("outcome/score differs: v1=(%s,%d) v2=(%s,%d)", parity.V1Outcome, parity.V1Score, parity.V2Outcome, parity.V2Score)
+		return parity, nil
+	}
+	for i := 0; i < len(v1Res.RuleExecutions) && i < len(v2Res.RuleExecutions); i++ {
+		if v1Res.RuleExecutions[i].Outcome != v2Res.RuleExecutions[i].Outcome {
+			parity.Matches = false
+			parity.MismatchDetail = fmt.Sprintf("rule %q outcome differs: v1=%s v2=%s", v1Res.RuleExecutions[i].RuleName, v1Res.RuleExecutions[i].Outcome, v2Res.RuleExecutions[i].Outcome)
+			return parity, nil
+		}
+	}
+	return parity, nil
 }
 
 func (s TestRunService) DecisionSummaries(ctx context.Context, tenantID, testRunID string) ([]TestRunDecisionSummary, error) {
@@ -342,9 +405,43 @@ func evaluateScenarioByIteration(
 	ruleEvaluationConcurrency int,
 	geoIPLookups ...ports.GeoIPLookup,
 ) (DecisionEvaluationResult, error) {
+	return evaluateScenarioByIterationWithSemantics(
+		ctx, idGen, clock, tenantID, scenarioID, iterationID, req,
+		iterationRepo, ruleRepo, dataModelReader, tenantDataReader, decisionRepo,
+		customListRepo, recordTagRepo, riskRepo, ipFlagRepo,
+		aggregatePushdownMode, aggregatePushdownAggregates, ruleEvaluationConcurrency,
+		"", geoIPLookups...,
+	)
+}
+
+func evaluateScenarioByIterationWithSemantics(
+	ctx context.Context,
+	idGen ports.IDGenerator,
+	clock ports.Clock,
+	tenantID, scenarioID, iterationID string,
+	req DecisionEvaluationRequest,
+	iterationRepo ports.ScenarioIterationRepository,
+	ruleRepo ports.RuleRepository,
+	dataModelReader ports.DataModelReader,
+	tenantDataReader ports.TenantDataReader,
+	decisionRepo ports.DecisionRepository,
+	customListRepo ports.CustomListRepository,
+	recordTagRepo ports.RecordTagRepository,
+	riskRepo ports.RiskSnapshotRepository,
+	ipFlagRepo ports.IPFlagRepository,
+	aggregatePushdownMode string,
+	aggregatePushdownAggregates []string,
+	ruleEvaluationConcurrency int,
+	semanticsOverride string,
+	geoIPLookups ...ports.GeoIPLookup,
+) (DecisionEvaluationResult, error) {
 	iteration, err := iterationRepo.GetByID(ctx, tenantID, scenarioID, iterationID)
 	if err != nil {
 		return DecisionEvaluationResult{}, err
+	}
+	semantics := iteration.EvaluationSemantics
+	if semanticsOverride != "" {
+		semantics = semanticsOverride
 	}
 	if req.prepared == nil {
 		if dataModelReader == nil {
@@ -377,6 +474,7 @@ func evaluateScenarioByIteration(
 		GeoIPLookup:                 firstGeoIPLookup(geoIPLookups),
 		AggregatePushdownMode:       aggregatePushdownMode,
 		AggregatePushdownAggregates: aggregatePushdownAggregates,
+		EvaluationSemantics:         semantics,
 		AggregateResultCache:        asteval.NewAggregateResultCache(),
 		GeoIPResultCache:            asteval.NewGeoIPResultCache(),
 	}
@@ -487,6 +585,7 @@ func evaluatePhantomByIteration(
 		GeoIPLookup:                 firstGeoIPLookup(geoIPLookups),
 		AggregatePushdownMode:       aggregatePushdownMode,
 		AggregatePushdownAggregates: aggregatePushdownAggregates,
+		EvaluationSemantics:         iteration.EvaluationSemantics,
 		AggregateResultCache:        asteval.NewAggregateResultCache(),
 		GeoIPResultCache:            asteval.NewGeoIPResultCache(),
 	}

@@ -129,7 +129,7 @@ func (s stubWorkerSchemaManager) CreateManagedIndex(context.Context, tenant.Tena
 	return s.err
 }
 func (s stubWorkerSchemaManager) GetManagedIndexState(context.Context, tenant.Tenant, datamodel.Table, datamodel.IndexJob) (datamodel.ManagedIndexState, error) {
-	return datamodel.ManagedIndexState{Name: "idx_cases_deadbeef", Exists: s.exists}, nil
+	return datamodel.ManagedIndexState{Name: "idx_cases_deadbeef", Exists: s.exists, Valid: s.exists}, nil
 }
 
 type stubWorkerIDGenerator struct {

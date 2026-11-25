@@ -51,6 +51,9 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		}
 		return runtime.Fields[fieldName], nil
 	case "and":
+		if runtime.isV2Semantics() {
+			return evaluateLogicalV2(ctx, "and", node.Children, runtime)
+		}
 		for _, child := range node.Children {
 			val, err := EvaluateNode(ctx, child, runtime)
 			if err != nil {
@@ -69,6 +72,9 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		}
 		return true, nil
 	case "or":
+		if runtime.isV2Semantics() {
+			return evaluateLogicalV2(ctx, "or", node.Children, runtime)
+		}
 		for _, child := range node.Children {
 			val, err := EvaluateNode(ctx, child, runtime)
 			if err != nil {
@@ -392,20 +398,18 @@ func evaluateNodeUncached(ctx context.Context, node domainast.Node, runtime Runt
 		if runtime.DecisionRepo == nil {
 			return nil, fmt.Errorf("decision repository is not configured")
 		}
-		decisions, err := runtime.DecisionRepo.ListByObject(ctx, runtime.TenantID, runtime.ObjectType, runtime.ObjectID)
-		if err != nil {
-			return nil, err
-		}
 		outcomeFilter, hasOutcome, err := evalOptionalNamedString(ctx, node, "outcome", runtime)
 		if err != nil {
 			return nil, err
 		}
-		count := 0
-		for _, item := range decisions {
-			if hasOutcome && string(item.Outcome) != outcomeFilter {
-				continue
-			}
-			count++
+		var count int
+		if hasOutcome {
+			count, err = runtime.DecisionRepo.CountByObjectOutcome(ctx, runtime.TenantID, runtime.ObjectType, runtime.ObjectID, outcomeFilter)
+		} else {
+			count, err = runtime.DecisionRepo.CountByObject(ctx, runtime.TenantID, runtime.ObjectType, runtime.ObjectID)
+		}
+		if err != nil {
+			return nil, err
 		}
 		return float64(count), nil
 	case "related_count":
@@ -1328,7 +1332,7 @@ func evaluateMarbleAggregator(ctx context.Context, node domainast.Node, runtime 
 	queryShape := aggregateQueryShapeKey(compileResult.Query)
 	recordAggregateDemand(ctx, queryShape, compileResult.Query.Aggregate, compileResult.Query.Field)
 	cacheOutcome, err := runtime.AggregateResultCache.evaluate(ctx, runtime.TenantID, compileResult.Query, func() (any, error) {
-		release, acquireErr := acquireAggregateRemoteSlot(ctx, runtime.AggregateRemoteConcurrency)
+		release, acquireErr := acquireAggregateRemoteSlot(ctx, runtime.AggregateRemoteConcurrency, runtime.AggregateRemoteMaxWait)
 		if acquireErr != nil {
 			return nil, acquireErr
 		}

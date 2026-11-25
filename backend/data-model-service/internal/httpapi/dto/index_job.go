@@ -12,6 +12,7 @@ type CreateIndexJobRequest struct {
 	TableID              uuid.UUID  `json:"table_id" binding:"required"`
 	IndexType            string     `json:"index_type" binding:"required"`
 	Columns              []string   `json:"columns" binding:"required"`
+	IncludeColumns       []string   `json:"include_columns"`
 	RequestedByOperation string     `json:"requested_by_operation"`
 	ScheduledAt          *time.Time `json:"scheduled_at"`
 }
@@ -23,6 +24,7 @@ type IndexJobResponse struct {
 	TableName            string     `json:"table_name"`
 	IndexType            string     `json:"index_type"`
 	Columns              []string   `json:"columns"`
+	IncludeColumns       []string   `json:"include_columns"`
 	Status               string     `json:"status"`
 	RequestedByOperation string     `json:"requested_by_operation"`
 	ErrorMessage         *string    `json:"error_message,omitempty"`
@@ -42,6 +44,7 @@ func AdaptIndexJob(job datamodel.IndexJob) IndexJobResponse {
 		TableName:            job.TableName,
 		IndexType:            string(job.IndexType),
 		Columns:              job.Columns,
+		IncludeColumns:       job.IncludeColumns,
 		Status:               string(job.Status),
 		RequestedByOperation: job.RequestedByOperation,
 		ErrorMessage:         job.ErrorMessage,

@@ -21,4 +21,5 @@ COPY --from=builder /bin/outbox /app/outbox
 COPY --from=builder /app/case-manager-service/internal/migrations /app/internal/migrations
 
 EXPOSE 8086
+USER nonroot
 ENTRYPOINT ["/app/server"]

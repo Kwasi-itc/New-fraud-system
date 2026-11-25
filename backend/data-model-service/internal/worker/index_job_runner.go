@@ -83,20 +83,22 @@ func (r Runner) executeJob(ctx context.Context, job datamodel.IndexJob) (bool, e
 		r.failJob(ctx, job, err.Error())
 		return true, nil
 	}
-	if state.Exists {
-		return r.markApplied(ctx, job, table, state.Name)
+	if state.Exists && state.Valid {
+		return r.markApplied(ctx, job, table, state.Name, 0)
 	}
 
+	buildStarted := r.clock.Now()
 	if err := r.schemaManager.CreateManagedIndex(ctx, tenantRecord, table, job); err != nil {
 		r.retryOrFail(ctx, job, err.Error())
 		r.logger.Error("index job failed", "job_id", job.ID, "error", err)
 		return true, err
 	}
+	durationMS := r.clock.Now().Sub(buildStarted).Milliseconds()
 
-	return r.markApplied(ctx, job, table, state.Name)
+	return r.markApplied(ctx, job, table, state.Name, durationMS)
 }
 
-func (r Runner) markApplied(ctx context.Context, job datamodel.IndexJob, table datamodel.Table, indexName string) (bool, error) {
+func (r Runner) markApplied(ctx context.Context, job datamodel.IndexJob, table datamodel.Table, indexName string, durationMS int64) (bool, error) {
 	completedAt := r.clock.Now()
 	if err := r.indexJobs.MarkApplied(ctx, job.ID, completedAt); err != nil {
 		return true, err
@@ -107,6 +109,8 @@ func (r Runner) markApplied(ctx context.Context, job datamodel.IndexJob, table d
 		"index_name":             indexName,
 		"index_type":             job.IndexType,
 		"columns":                job.Columns,
+		"include_columns":        job.IncludeColumns,
+		"duration_ms":            durationMS,
 		"requested_by_operation": job.RequestedByOperation,
 		"attempt_count":          job.AttemptCount,
 	})

@@ -1,41 +1,48 @@
-"""Collect the visible GhanaDistricts MMDCE table, not a national roster.
+"""Collect live MMDA leaders across all 261 districts from GhanaDistricts.
 
-Writes observations only. Compile and explicitly publish a reviewed snapshot
-separately. Partial tables must never withdraw absent office holders.
+1. Fetches https://www.ghanadistricts.com/Home/DistrictLeaders/1 to discover
+   all 16 regions and all 261 district IDs/names from the #Region_Districts menu.
+2. Fetches https://www.ghanadistricts.com/Home/DistrictLeaders/<id> concurrently
+   for every district and parses the DevExpress grid rows (Name, Position,
+   Gender, Start Date), rejecting office placeholders like 'Adansi North DCE'.
+3. Writes observations atomically to crawled_mmdces.json.
+
 Uses only the Python standard library (3.10+).
 """
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
-from hashlib import sha256
 from html.parser import HTMLParser
 import json
 import os
 from pathlib import Path
 import re
 import tempfile
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCE_URL = "https://www.ghanadistricts.com/home/AllDistricts"
+SEED_URL = "https://www.ghanadistricts.com/Home/DistrictLeaders/1"
 MAX_BYTES = 8 * 1024 * 1024
-REGIONS = {
-    "ASHANTI": "Ashanti", "G. ACCRA": "Greater Accra", "GREATER ACCRA": "Greater Accra",
-    "CENTRAL": "Central", "EASTERN": "Eastern", "WESTERN": "Western",
-    "WESTERN NORTH": "Western North", "VOLTA": "Volta", "OTI": "Oti",
-    "BONO": "Bono", "BONO EAST": "Bono East", "AHAFO": "Ahafo",
-    "NORTHERN": "Northern", "SAVANNAH": "Savannah", "NORTH EAST": "North East",
-    "UPPER EAST": "Upper East", "UPPER E": "Upper East", "UPPER E.": "Upper East",
-    "UPPER WEST": "Upper West", "UPPER W": "Upper West", "UPPER W.": "Upper West",
-}
+ALLOWED_HOSTS = {"ghanadistricts.com", "www.ghanadistricts.com"}
+
+PLACEHOLDER_RE = re.compile(
+    r"\b(?:DCE|MCE|MMDCE|MCD|DCD|Chief Executive|Coordinating Director|Presiding Member|Vacant|Not appointed)\b",
+    re.I,
+)
 
 
-def approved_url(value):
+def approved_url(value: str) -> str:
     url = urlparse(value)
-    if (url.scheme != "https" or url.hostname not in {"ghanadistricts.com", "www.ghanadistricts.com"}
-            or url.username or url.password or url.port not in (None, 443)):
-        raise ValueError("Unapproved GhanaDistricts source URL")
+    if (
+        url.scheme != "https"
+        or url.hostname not in ALLOWED_HOSTS
+        or url.username
+        or url.password
+        or url.port not in (None, 443)
+    ):
+        raise ValueError(f"Unapproved GhanaDistricts URL: {value}")
     return value
 
 
@@ -51,24 +58,15 @@ class DistrictTable(HTMLParser):
         self.rows = []
         self.row = None
         self.cell = None
-        self.text = []
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
-        if tag == "tr" and re.fullmatch(r"grid_DXDataRow\d+", attrs.get("id", ""), re.I):
-            if self.row is not None:
-                raise ValueError("Unclosed source row")
-            self.row = {"row_id": attrs["id"], "cells": [], "links": []}
-        if self.row is not None:
-            if tag == "td":
-                if self.cell is not None:
-                    raise ValueError("Nested source cell")
-                self.cell = []
-            if tag == "a" and attrs.get("href"):
-                self.row["links"].append(attrs["href"])
+        if tag == "tr" and re.search(r"DXDataRow\d+$", attrs.get("id", ""), re.I):
+            self.row = {"row_id": attrs["id"], "cells": []}
+        elif self.row is not None and tag == "td":
+            self.cell = []
 
     def handle_data(self, value):
-        self.text.append(value)
         if self.cell is not None:
             self.cell.append(value)
 
@@ -76,64 +74,109 @@ class DistrictTable(HTMLParser):
         if tag == "td" and self.cell is not None:
             self.row["cells"].append(" ".join("".join(self.cell).split()))
             self.cell = None
-        if tag == "tr" and self.row is not None:
-            if self.cell is not None:
-                raise ValueError("Unclosed source cell")
+        elif tag == "tr" and self.row is not None:
             self.rows.append(self.row)
             self.row = None
 
 
-def parse_table(html):
+def fetch_html(url: str, opener) -> str:
+    approved_url(url)
+    req = Request(url, headers={"User-Agent": "ITC-Screening-SourceCollector/1.0", "Accept": "text/html"})
+    with opener.open(req, timeout=30) as resp:
+        approved_url(resp.url)
+        if resp.status != 200:
+            raise ValueError(f"HTTP {resp.status} for {url}")
+        body = resp.read(MAX_BYTES + 1)
+    if len(body) > MAX_BYTES:
+        raise ValueError(f"HTML exceeds {MAX_BYTES} bytes for {url}")
+    return body.decode("utf-8-sig", errors="replace")
+
+
+def discover_districts(html: str):
+    """Extract (district_id, district_name, region_name) from #Region_Districts."""
+    region_names = {}
+    for m in re.finditer(
+        r'href=["\']/Home/Region/(\d+)["\'][^>]*>.*?<span[^>]*class=["\'][^"\']*dxm-contentText[^"\']*["\'][^>]*>(.*?)</span>',
+        html,
+        re.S | re.I,
+    ):
+        rid = int(m.group(1))
+        rname = " ".join(re.sub(r"<[^>]+>", "", m.group(2)).replace("&nbsp;", " ").split()).title()
+        region_names[rid] = rname
+
+    # Top-level region order in Region_Districts_DXM<idx>_ matches the menu tabs
+    tab_regions = [
+        " ".join(re.sub(r"<[^>]+>", "", m.group(1)).replace("&nbsp;", " ").split()).title()
+        for m in re.finditer(
+            r'href=["\']/Home/Region/\d+["\'][^>]*>.*?<span[^>]*class=["\'][^"\']*dxm-contentText[^"\']*["\'][^>]*>(.*?)</span>',
+            html,
+            re.S | re.I,
+        )
+    ]
+
+    districts = {}
+    for menu_m in re.finditer(
+        r'id=["\']Region_Districts_DXM(\d+)_["\']([\s\S]*?)</div>\s*<div class=["\']dxm-scrollDownBtn',
+        html,
+        re.I,
+    ):
+        idx = int(menu_m.group(1))
+        region = tab_regions[idx] if idx < len(tab_regions) else "Ghana"
+        block = menu_m.group(2)
+        for dm in re.finditer(
+            r'href=["\']/Home/District/(\d+)["\'][^>]*>.*?<span[^>]*class=["\'][^"\']*dxm-contentText[^"\']*["\'][^>]*>(.*?)</span>',
+            block,
+            re.S | re.I,
+        ):
+            did = int(dm.group(1))
+            dname = " ".join(re.sub(r"<[^>]+>", "", dm.group(2)).replace("&nbsp;", " ").split())
+            if did not in districts:
+                districts[did] = (did, dname, region)
+
+    return sorted(districts.values(), key=lambda x: x[0])
+
+
+def parse_district_leaders(html: str, did: int, district: str, region: str):
+    url = f"https://www.ghanadistricts.com/Home/DistrictLeaders/{did}"
     table = DistrictTable()
     table.feed(html)
     table.close()
-    if table.row is not None or table.cell is not None:
-        raise ValueError("Truncated source table")
-    summaries = set(re.findall(r"Page\s+(\d+)\s+of\s+(\d+)\s+\((\d+)\s+items?\)",
-                               " ".join(table.text), re.I))
-    # Fail rather than silently accepting page one if the source adds pagination.
-    if len(summaries) != 1:
-        raise ValueError("Missing or inconsistent source pagination summary")
-    page, pages, count = map(int, summaries.pop())
-    if page != 1 or pages != 1 or count != len(table.rows) or not 1 <= count <= 1000:
-        raise ValueError("Incomplete source page; pagination/count needs review")
-    records, rejected, identities, row_ids = [], [], set(), set()
+
+    records = []
+    rejected = []
     for row in table.rows:
-        if row["row_id"] in row_ids:
-            raise ValueError("Duplicate source row")
-        row_ids.add(row["row_id"])
-        if len(row["cells"]) != 5 or not all(row["cells"][:4]):
-            raise ValueError("Unexpected MMDCE source columns")
-        name, gender, region, district = row["cells"][:4]
-        if gender.upper() not in {"MALE", "FEMALE"} or region.upper() not in REGIONS:
-            raise ValueError("Unrecognized gender/region; source requires review")
-        assembly = re.search(r"\b(Metropolitan|Municipal|District)\b", district, re.I)
-        if not assembly:
-            raise ValueError("Unrecognized assembly type")
-        if re.search(r"\b(?:DCE|MCE|MMDCE|MCD|DCD|Chief Executive|Coordinating Director|Vacant|Not appointed)\b", name, re.I):
-            rejected.append({"row_id": row["row_id"], "name": name,
-                             "district": district, "reason": "office_placeholder_not_person"})
+        cells = row["cells"]
+        if len(cells) < 3:
             continue
-        if len(name) > 1000 or len(name.split()) < 2 or not all(part.isalpha() or part in " .'-’" for part in name):
-            raise ValueError("Invalid person name; source requires review")
-        links = [urljoin(SOURCE_URL, link) for link in row["links"]]
-        links = [approved_url(link) for link in links
-                 if re.fullmatch(r"/home/(?:AllDLeaders|DistrictLeaders)/\d+", urlparse(link).path, re.I)]
-        if len(links) != 1:
-            raise ValueError("Expected one district leader evidence link")
-        identity = (name.casefold(), district.casefold())
-        if identity in identities:
-            raise ValueError("Duplicate person/assembly observation")
-        identities.add(identity)
-        records.append({"name": name, "region": REGIONS[region.upper()], "district": district,
-                        "role": f"{assembly[1].title()} Chief Executive, {district}",
-                        "source_reference": links[0]})
-    if not records:
-        raise ValueError("Source contains no named office holders")
-    return records, rejected, count
+        name = cells[0].strip()
+        position = cells[1].strip()
+        gender = cells[2].strip() if len(cells) > 2 else ""
+        start_date = cells[3].strip() if len(cells) > 3 else ""
+
+        if not name or not position:
+            continue
+        if PLACEHOLDER_RE.search(name):
+            rejected.append({"district_id": did, "district": district, "name": name, "reason": "office_placeholder"})
+            continue
+        if len(name.split()) < 2:
+            rejected.append({"district_id": did, "district": district, "name": name, "reason": "invalid_name"})
+            continue
+
+        records.append({
+            "district_id": did,
+            "name": name,
+            "region": region,
+            "district": district,
+            "position": position,
+            "gender": gender,
+            "start_date": start_date,
+            "role": f"{position}, {district} ({region} Region)",
+            "source_reference": url,
+        })
+    return records, rejected
 
 
-def atomic_json(path, value):
+def atomic_json(path: Path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, delete=False) as target:
         temp = Path(target.name)
@@ -147,40 +190,63 @@ def atomic_json(path, value):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input-html", type=Path, help="Replay retained HTML without network access")
-    parser.add_argument("--output", type=Path, help="Manifest path (default also updates the legacy root copy)")
+    parser.add_argument("--workers", type=int, default=12, help="Concurrent HTTP workers (default 12)")
+    parser.add_argument("--output", type=Path, help="Output JSON path (default crawled_mmdces.json in CWD)")
     args = parser.parse_args()
-    if args.input_html:
-        with args.input_html.open("rb") as source:
-            body = source.read(MAX_BYTES + 1)
-        acquisition = "retained_html_replay"
-    else:
-        request = Request(SOURCE_URL, headers={"User-Agent": "ITC-Screening-SourceCollector/1.0", "Accept": "text/html"})
-        with build_opener(SourceRedirects()).open(request, timeout=40) as response:
-            approved_url(response.url)
-            if response.status != 200 or response.headers.get_content_type() != "text/html":
-                raise ValueError("Expected a successful HTML response")
-            body = response.read(MAX_BYTES + 1)
-        acquisition = "live_html_observation"
-    if len(body) > MAX_BYTES:
-        raise ValueError("Source HTML exceeds bounded capture size")
-    records, rejected, count = parse_table(body.decode("utf-8-sig"))
-    digest = sha256(body).hexdigest()
-    artifact = ROOT / ".local" / "mmdce-source" / f"{digest}.html"
-    artifact.parent.mkdir(parents=True, exist_ok=True)
-    artifact.write_bytes(body)
+
+    opener = build_opener(SourceRedirects())
+    seed_html = fetch_html(SEED_URL, opener)
+    districts = discover_districts(seed_html)
+    if not districts:
+        raise ValueError("Failed to discover districts from GhanaDistricts")
+
+    all_records = []
+    all_rejected = []
+    failed_districts = []
+    seen = set()
+
+    def worker(item):
+        did, dname, region = item
+        url = f"https://www.ghanadistricts.com/Home/DistrictLeaders/{did}"
+        html = seed_html if did == 1 else fetch_html(url, opener)
+        return parse_district_leaders(html, did, dname, region)
+
+    with ThreadPoolExecutor(max_workers=max(1, min(24, args.workers))) as pool:
+        futures = {pool.submit(worker, d): d for d in districts}
+        for fut in as_completed(futures):
+            d = futures[fut]
+            try:
+                recs, rej = fut.result()
+                all_rejected.extend(rej)
+                for r in recs:
+                    key = (r["name"].casefold(), r["district"].casefold(), r["position"].casefold())
+                    if key not in seen:
+                        seen.add(key)
+                        all_records.append(r)
+            except Exception as exc:
+                failed_districts.append({"district_id": d[0], "district": d[1], "error": str(exc)})
+
+    if not all_records:
+        raise ValueError("Zero MMDA leader records collected across all districts")
+
+    all_records.sort(key=lambda r: (r["district_id"], r["position"], r["name"]))
     manifest = {
-        "schema_version": 2, "acquisition": acquisition,
-        "observed_at": datetime.now(timezone.utc).isoformat(), "source_url": SOURCE_URL,
-        "artifact_sha256": digest, "artifact_path": artifact.relative_to(ROOT).as_posix(),
-        "complete_national_roster": False, "pages_fetched": 1, "source_rows": count,
-        "records": records, "rejected_rows": rejected,
+        "schema_version": 3,
+        "acquisition": "live_html_all_districts",
+        "observed_at": datetime.now(timezone.utc).isoformat(),
+        "source_url": SEED_URL,
+        "districts_discovered": len(districts),
+        "districts_failed": len(failed_districts),
+        "records": all_records,
+        "rejected_rows": all_rejected,
     }
-    atomic_json(args.output or ROOT / "scripts" / "crawled_mmdces.json", manifest)
-    if not args.output:
-        atomic_json(ROOT / "crawled_mmdces.json", manifest)
-    print(f"Collected {len(records)} named people from {count} visible rows; rejected {len(rejected)} office placeholders.")
-    print(f"Partial national coverage; no database publication performed. HTML SHA256: {digest}")
+
+    out_path = args.output or (Path.cwd() / "crawled_mmdces.json")
+    atomic_json(out_path, manifest)
+    print(
+        f"Collected {len(all_records)} named MMDA leaders across {len(districts) - len(failed_districts)}/{len(districts)} districts "
+        f"(rejected {len(all_rejected)} placeholders, failed {len(failed_districts)} districts)."
+    )
 
 
 if __name__ == "__main__":

@@ -294,6 +294,9 @@ func (s *pagingDecisionRepoSpy) ListByObjectPage(_ context.Context, tenantID, ob
 func (s *pagingDecisionRepoSpy) CountByObject(context.Context, string, string, string) (int, error) {
 	return s.totalCount, nil
 }
+func (s *pagingDecisionRepoSpy) CountByObjectOutcome(context.Context, string, string, string, string) (int, error) {
+	return s.totalCount, nil
+}
 
 func (s *pagingDecisionRepoSpy) ListFiltered(context.Context, string, ports.DecisionListFilter) ([]decision.Decision, error) {
 	return s.items, nil

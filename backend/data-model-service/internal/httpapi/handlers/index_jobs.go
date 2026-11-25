@@ -38,6 +38,7 @@ func (h IndexJobHandler) Create(c *gin.Context) {
 		TableID:              request.TableID,
 		IndexType:            indexType,
 		Columns:              request.Columns,
+		IncludeColumns:       request.IncludeColumns,
 		RequestedByOperation: request.RequestedByOperation,
 		ScheduledAt:          request.ScheduledAt,
 	})

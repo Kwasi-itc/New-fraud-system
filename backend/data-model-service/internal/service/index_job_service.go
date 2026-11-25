@@ -31,6 +31,7 @@ type CreateIndexJobInput struct {
 	TableID              uuid.UUID
 	IndexType            datamodel.IndexJobType
 	Columns              []string
+	IncludeColumns       []string
 	RequestedByOperation string
 	ScheduledAt          *time.Time
 }
@@ -63,7 +64,7 @@ func NewIndexJobService(
 }
 
 func (s IndexJobService) Create(ctx context.Context, input CreateIndexJobInput) (datamodel.IndexJob, error) {
-	if err := datamodel.ValidateIndexJobCreate(input.IndexType, input.Columns); err != nil {
+	if err := datamodel.ValidateIndexJobCreateWithIncludes(input.IndexType, input.Columns, input.IncludeColumns); err != nil {
 		return datamodel.IndexJob{}, err
 	}
 
@@ -100,6 +101,14 @@ func (s IndexJobService) Create(ctx context.Context, input CreateIndexJobInput) 
 		}
 		normalizedColumns[i] = normalized
 	}
+	normalizedIncludes := make([]string, len(input.IncludeColumns))
+	for i, column := range input.IncludeColumns {
+		normalized := datamodel.NormalizeName(column)
+		if _, ok := fieldNames[normalized]; !ok {
+			return datamodel.IndexJob{}, fmt.Errorf("include field does not exist on table: %s", column)
+		}
+		normalizedIncludes[i] = normalized
+	}
 
 	now := s.clock.Now()
 	job := datamodel.IndexJob{
@@ -109,12 +118,13 @@ func (s IndexJobService) Create(ctx context.Context, input CreateIndexJobInput) 
 		TableName:            table.Name,
 		IndexType:            input.IndexType,
 		Columns:              normalizedColumns,
+		IncludeColumns:       normalizedIncludes,
 		Status:               datamodel.IndexJobStatusPending,
 		RequestedByOperation: strings.TrimSpace(input.RequestedByOperation),
 		AttemptCount:         0,
 		RequestedAt:          now,
 		ScheduledAt:          input.ScheduledAt,
-		DedupeKey:            datamodel.BuildIndexJobDedupeKey(input.TenantID, table.ID, input.IndexType, normalizedColumns),
+		DedupeKey:            datamodel.BuildIndexJobDedupeKeyWithIncludes(input.TenantID, table.ID, input.IndexType, normalizedColumns, normalizedIncludes),
 	}
 
 	if err := s.txManager.Run(ctx, func(store ports.MutationStore) error {
@@ -133,6 +143,7 @@ func (s IndexJobService) Create(ctx context.Context, input CreateIndexJobInput) 
 				"table_name":             table.Name,
 				"index_type":             job.IndexType,
 				"columns":                job.Columns,
+				"include_columns":        job.IncludeColumns,
 				"requested_by_operation": job.RequestedByOperation,
 			},
 		))

@@ -182,12 +182,20 @@ func (c *HTTPClient) fetchTenantModel(ctx context.Context, tenantID string) (por
 }
 
 func (c *HTTPClient) CreateIndexJob(ctx context.Context, tenantID, tableID, indexType string, columns []string, requestedByOperation string) (ports.ManagedIndexJob, error) {
-	body, err := json.Marshal(map[string]any{
+	return c.CreateCoveringIndexJob(ctx, tenantID, tableID, indexType, columns, nil, requestedByOperation)
+}
+
+func (c *HTTPClient) CreateCoveringIndexJob(ctx context.Context, tenantID, tableID, indexType string, columns, includeColumns []string, requestedByOperation string) (ports.ManagedIndexJob, error) {
+	reqBody := map[string]any{
 		"table_id":               tableID,
 		"index_type":             indexType,
 		"columns":                columns,
 		"requested_by_operation": requestedByOperation,
-	})
+	}
+	if len(includeColumns) > 0 {
+		reqBody["include_columns"] = includeColumns
+	}
+	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return ports.ManagedIndexJob{}, fmt.Errorf("encode index job request: %w", err)
 	}
@@ -221,11 +229,13 @@ func (c *HTTPClient) CreateIndexJob(ctx context.Context, tenantID, tableID, inde
 		return ports.ManagedIndexJob{}, fmt.Errorf("decode response: %w", err)
 	}
 	return ports.ManagedIndexJob{
-		ID:        payload.IndexJob.ID,
-		TableName: payload.IndexJob.TableName,
-		IndexType: payload.IndexJob.IndexType,
-		Status:    payload.IndexJob.Status,
-		Columns:   payload.IndexJob.Columns,
+		ID:             payload.IndexJob.ID,
+		TableName:      payload.IndexJob.TableName,
+		IndexType:      payload.IndexJob.IndexType,
+		Status:         payload.IndexJob.Status,
+		Columns:        payload.IndexJob.Columns,
+		IncludeColumns: payload.IndexJob.IncludeColumns,
+		CompletedAt:    payload.IndexJob.CompletedAt,
 	}, nil
 }
 
@@ -254,11 +264,13 @@ func (c *HTTPClient) ListIndexJobs(ctx context.Context, tenantID string) ([]port
 	items := make([]ports.ManagedIndexJob, len(payload.IndexJobs))
 	for i, item := range payload.IndexJobs {
 		items[i] = ports.ManagedIndexJob{
-			ID:        item.ID,
-			TableName: item.TableName,
-			IndexType: item.IndexType,
-			Status:    item.Status,
-			Columns:   item.Columns,
+			ID:             item.ID,
+			TableName:      item.TableName,
+			IndexType:      item.IndexType,
+			Status:         item.Status,
+			Columns:        item.Columns,
+			IncludeColumns: item.IncludeColumns,
+			CompletedAt:    item.CompletedAt,
 		}
 	}
 	return items, nil
@@ -337,11 +349,13 @@ type listIndexJobsResponse struct {
 }
 
 type indexJobResponse struct {
-	ID        string   `json:"id"`
-	TableName string   `json:"table_name"`
-	IndexType string   `json:"index_type"`
-	Status    string   `json:"status"`
-	Columns   []string `json:"columns"`
+	ID             string     `json:"id"`
+	TableName      string     `json:"table_name"`
+	IndexType      string     `json:"index_type"`
+	Status         string     `json:"status"`
+	Columns        []string   `json:"columns"`
+	IncludeColumns []string   `json:"include_columns"`
+	CompletedAt    *time.Time `json:"completed_at,omitempty"`
 }
 
 func attachRequestID(req *http.Request) {

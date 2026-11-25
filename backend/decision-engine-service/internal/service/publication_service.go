@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	domainast "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/domain/ast"
@@ -12,16 +13,37 @@ import (
 	asteval "github.com/Kwasi-itc/New-fraud-system/backend/decision-engine-service/internal/runtime/ast_eval"
 )
 
+const (
+	defaultMaxSearchIndexesPerTable = 6
+	defaultMaxRollupsPerTable        = 4
+)
+
+type RollupDefinitionRequest struct {
+	TableName  string `json:"table_name"`
+	GroupField string `json:"group_field"`
+	TimeField  string `json:"time_field"`
+	ValueField string `json:"value_field"`
+}
+
+type RollupDefinitionClient interface {
+	EnsureRollupDefinition(ctx context.Context, tenantID string, req RollupDefinitionRequest) error
+}
+
 type PublicationService struct {
-	txManager        ports.TransactionManager
-	idGen            ports.IDGenerator
-	clock            ports.Clock
-	publicationRepo  ports.ScenarioPublicationRepository
-	scenarioRepo     ports.ScenarioRepository
-	iterationRepo    ports.ScenarioIterationRepository
-	ruleRepo         ports.RuleRepository
-	dataModelReader  ports.DataModelReader
-	cacheInvalidator DecisionMetadataCacheInvalidator
+	txManager                   ports.TransactionManager
+	idGen                       ports.IDGenerator
+	clock                       ports.Clock
+	publicationRepo             ports.ScenarioPublicationRepository
+	scenarioRepo                ports.ScenarioRepository
+	iterationRepo               ports.ScenarioIterationRepository
+	ruleRepo                    ports.RuleRepository
+	dataModelReader             ports.DataModelReader
+	rollupClient                RollupDefinitionClient
+	cacheInvalidator            DecisionMetadataCacheInvalidator
+	aggregatePushdownMode       string
+	aggregatePushdownAggregates []string
+	maxSearchIndexesPerTable    int
+	maxRollupsPerTable          int
 }
 
 func NewPublicationService(
@@ -48,6 +70,20 @@ func NewPublicationService(
 
 func (s *PublicationService) SetCacheInvalidator(invalidator DecisionMetadataCacheInvalidator) {
 	s.cacheInvalidator = invalidator
+}
+
+func (s *PublicationService) SetAggregatePushdownPolicy(mode string, aggregates []string) {
+	s.aggregatePushdownMode = mode
+	s.aggregatePushdownAggregates = append([]string(nil), aggregates...)
+}
+
+func (s *PublicationService) SetMaxSearchIndexesPerTable(limit int) {
+	s.maxSearchIndexesPerTable = limit
+}
+
+func (s *PublicationService) SetRollupClient(client RollupDefinitionClient, maxPerTable int) {
+	s.rollupClient = client
+	s.maxRollupsPerTable = maxPerTable
 }
 
 func (s PublicationService) Publish(ctx context.Context, tenantID, scenarioID, iterationID string) ([]scenario.Publication, error) {
@@ -172,10 +208,10 @@ func (s PublicationService) GetPreparationStatus(ctx context.Context, tenantID, 
 		IterationID:         iterationID,
 		PreparationFinished: true,
 	}
-	applied := map[string]struct{}{}
+	applied := make([]ports.ManagedIndexJob, 0, len(relatedJobs))
 	for _, job := range relatedJobs {
-		if job.Status == "applied" || job.Status == "cancelled" {
-			applied[indexRequirementKey(job.TableName, job.Columns)] = struct{}{}
+		if job.Status == "applied" {
+			applied = append(applied, job)
 		}
 		switch job.Status {
 		case "applied", "cancelled":
@@ -196,7 +232,7 @@ func (s PublicationService) GetPreparationStatus(ctx context.Context, tenantID, 
 		}
 	}
 	for _, requirement := range required {
-		if _, ok := applied[requirement.key()]; ok {
+		if requirementSatisfiedByJobs(applied, requirement) {
 			continue
 		}
 		if !hasIndexJobForRequirement(relatedJobs, requirement) {
@@ -213,15 +249,40 @@ func (s PublicationService) StartPreparation(ctx context.Context, tenantID, scen
 	if err != nil {
 		return scenario.PublicationPreparationStatus{}, err
 	}
+	maxPerTable := s.maxSearchIndexesPerTable
+	if maxPerTable <= 0 {
+		maxPerTable = defaultMaxSearchIndexesPerTable
+	}
+	activeCountByTable := map[string]int{}
+	applied := make([]ports.ManagedIndexJob, 0, len(jobs))
+	for _, job := range jobs {
+		if job.Status == "applied" {
+			applied = append(applied, job)
+		}
+		if job.IndexType == "search" && job.Status != "cancelled" && job.Status != "failed" {
+			activeCountByTable[job.TableName]++
+		}
+	}
 	for _, requirement := range required {
-		if hasIndexJobForRequirement(jobs, requirement) {
+		if requirementSatisfiedByJobs(applied, requirement) || hasIndexJobForRequirement(jobs, requirement) {
 			continue
 		}
-		job, err := s.dataModelReader.CreateIndexJob(ctx, tenantID, requirement.TableID, "search", requirement.Columns, "scenario_publication_preparation")
+		if activeCountByTable[requirement.TableName] >= maxPerTable {
+			return scenario.PublicationPreparationStatus{}, scenarioError(
+				fmt.Sprintf("table %q exceeds managed search index cap (%d)", requirement.TableName, maxPerTable),
+			)
+		}
+		var job ports.ManagedIndexJob
+		if creator, ok := s.dataModelReader.(ports.CoveringIndexCreator); ok && len(requirement.IncludeColumns) > 0 {
+			job, err = creator.CreateCoveringIndexJob(ctx, tenantID, requirement.TableID, "search", requirement.Columns, requirement.IncludeColumns, "scenario_publication_preparation")
+		} else {
+			job, err = s.dataModelReader.CreateIndexJob(ctx, tenantID, requirement.TableID, "search", requirement.Columns, "scenario_publication_preparation")
+		}
 		if err != nil {
 			return scenario.PublicationPreparationStatus{}, err
 		}
 		jobs = append(jobs, job)
+		activeCountByTable[requirement.TableName]++
 	}
 	for _, job := range jobs {
 		if job.Status == "failed" {
@@ -230,27 +291,186 @@ func (s PublicationService) StartPreparation(ctx context.Context, tenantID, scen
 			}
 		}
 	}
-	return s.GetPreparationStatus(ctx, tenantID, scenarioID, iterationID)
+	status, err := s.GetPreparationStatus(ctx, tenantID, scenarioID, iterationID)
+	if err != nil {
+		return scenario.PublicationPreparationStatus{}, err
+	}
+	if s.rollupClient != nil {
+		status.Warnings = append(status.Warnings, s.prepareRollupsNonBlocking(ctx, tenantID, scenarioID, iterationID)...)
+	}
+	return status, nil
+}
+
+func (s PublicationService) prepareRollupsNonBlocking(ctx context.Context, tenantID, scenarioID, iterationID string) []string {
+	model, err := s.dataModelReader.GetTenantModel(ctx, tenantID)
+	if err != nil {
+		return nil
+	}
+	rules, err := s.ruleRepo.ListByIteration(ctx, tenantID, scenarioID, iterationID)
+	if err != nil {
+		return nil
+	}
+	maxRollups := s.maxRollupsPerTable
+	if maxRollups <= 0 {
+		maxRollups = defaultMaxRollupsPerTable
+	}
+
+	var warnings []string
+	seen := map[string]struct{}{}
+	countByTable := map[string]int{}
+	for _, rule := range rules {
+		var node domainast.Node
+		if err := json.Unmarshal(rule.Formula, &node); err != nil {
+			continue
+		}
+		for _, req := range extractEligibleRollupRequests(node, model) {
+			key := req.TableName + "|" + req.GroupField + "|" + req.TimeField + "|" + req.ValueField
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+			if countByTable[req.TableName] >= maxRollups {
+				warnings = append(warnings, fmt.Sprintf("table %q exceeds per-table rollup cap (%d); falling back to covering index for %s", req.TableName, maxRollups, req.ValueField))
+				continue
+			}
+			countByTable[req.TableName]++
+			if err := s.rollupClient.EnsureRollupDefinition(ctx, tenantID, req); err != nil {
+				warnings = append(warnings, fmt.Sprintf("rollup preparation warning for %s.%s: %v", req.TableName, req.ValueField, err))
+			}
+		}
+	}
+	return warnings
+}
+
+func extractEligibleRollupRequests(node domainast.Node, model ports.TenantModel) []RollupDefinitionRequest {
+	var out []RollupDefinitionRequest
+	var walk func(domainast.Node)
+	walk = func(n domainast.Node) {
+		if strings.EqualFold(strings.TrimSpace(n.Function), "Aggregator") {
+			tableName, _ := n.NamedChildren["tableName"].Constant.(string)
+			fieldName, _ := n.NamedChildren["fieldName"].Constant.(string)
+			aggName, _ := n.NamedChildren["aggregator"].Constant.(string)
+			aggLower := strings.ToLower(strings.TrimSpace(aggName))
+			if aggLower == "count" || aggLower == "sum" || aggLower == "avg" {
+				if table, ok := model.Tables[tableName]; ok {
+					var eqField, timeField string
+					var extractFilter func(domainast.Node) bool
+					extractFilter = func(fn domainast.Node) bool {
+						switch strings.ToLower(strings.TrimSpace(fn.Function)) {
+						case "list", "and":
+							for _, ch := range fn.Children {
+								if !extractFilter(ch) {
+									return false
+								}
+							}
+							return true
+						case "filter":
+							fName, _ := fn.NamedChildren["fieldName"].Constant.(string)
+							op, _ := fn.NamedChildren["operator"].Constant.(string)
+							op = strings.ToLower(strings.TrimSpace(op))
+							switch op {
+							case "eq", "=":
+								if eqField != "" {
+									return false
+								}
+								eqField = fName
+								return true
+							case "gt", ">", "gte", ">=", "lt", "<", "lte", "<=":
+								if timeField != "" && timeField != fName {
+									return false
+								}
+								if tf, ok := table.Fields[fName]; ok && strings.Contains(strings.ToLower(tf.Type), "time") {
+									timeField = fName
+									return true
+								}
+								return false
+							default:
+								return false
+							}
+						default:
+							return false
+						}
+					}
+					if filterNode, ok := n.NamedChildren["filters"]; ok && extractFilter(filterNode) && eqField != "" && timeField != "" {
+						out = append(out, RollupDefinitionRequest{
+							TableName:  tableName,
+							GroupField: eqField,
+							TimeField:  timeField,
+							ValueField: fieldName,
+						})
+					}
+				}
+			}
+		}
+		for _, ch := range n.Children {
+			walk(ch)
+		}
+		for _, ch := range n.NamedChildren {
+			walk(ch)
+		}
+	}
+	walk(node)
+	return out
 }
 
 type indexRequirement struct {
-	TableID   string
-	TableName string
-	Columns   []string
+	TableID        string
+	TableName      string
+	Columns        []string
+	IncludeColumns []string
 }
 
 func (r indexRequirement) key() string {
-	return indexRequirementKey(r.TableName, r.Columns)
+	return indexRequirementKey(r.TableName, r.Columns, r.IncludeColumns)
 }
 
-func indexRequirementKey(tableName string, columns []string) string {
-	return strings.TrimSpace(tableName) + ":" + strings.Join(columns, ",")
+func indexRequirementKey(tableName string, columns, includeColumns []string) string {
+	return strings.TrimSpace(tableName) + ":" + strings.Join(columns, ",") + "|inc:" + strings.Join(includeColumns, ",")
+}
+
+func requirementSatisfiedByJobs(applied []ports.ManagedIndexJob, req indexRequirement) bool {
+	for _, job := range applied {
+		if strings.TrimSpace(job.TableName) != strings.TrimSpace(req.TableName) || len(job.Columns) < len(req.Columns) {
+			continue
+		}
+		prefixMatch := true
+		for i, col := range req.Columns {
+			if job.Columns[i] != col {
+				prefixMatch = false
+				break
+			}
+		}
+		if !prefixMatch {
+			continue
+		}
+		if len(req.IncludeColumns) == 0 {
+			return true
+		}
+		covered := make(map[string]struct{}, len(job.Columns)+len(job.IncludeColumns))
+		for _, c := range job.Columns {
+			covered[c] = struct{}{}
+		}
+		for _, c := range job.IncludeColumns {
+			covered[c] = struct{}{}
+		}
+		allIncluded := true
+		for _, inc := range req.IncludeColumns {
+			if _, ok := covered[inc]; !ok {
+				allIncluded = false
+				break
+			}
+		}
+		if allIncluded {
+			return true
+		}
+	}
+	return false
 }
 
 func hasIndexJobForRequirement(jobs []ports.ManagedIndexJob, requirement indexRequirement) bool {
 	requirementKey := requirement.key()
 	for _, job := range jobs {
-		if indexRequirementKey(job.TableName, job.Columns) == requirementKey {
+		if indexRequirementKey(job.TableName, job.Columns, job.IncludeColumns) == requirementKey {
 			return true
 		}
 	}
@@ -269,6 +489,11 @@ func (s PublicationService) indexPreparationState(ctx context.Context, tenantID,
 	rules, err := s.ruleRepo.ListByIteration(ctx, tenantID, scenarioID, iterationID)
 	if err != nil {
 		return nil, nil, err
+	}
+	if len(s.aggregatePushdownMode) > 0 || len(s.aggregatePushdownAggregates) > 0 {
+		if err := validateIterationAggregatorPolicy(iteration.TriggerFormula, rules, s.aggregatePushdownMode, s.aggregatePushdownAggregates); err != nil {
+			return nil, nil, err
+		}
 	}
 	model, err := s.dataModelReader.GetTenantModel(ctx, tenantID)
 	if err != nil {
@@ -373,6 +598,31 @@ func visitNodeIndexRequirements(model ports.TenantModel, currentTable string, no
 	}
 }
 
+func validateIterationAggregatorPolicy(triggerFormula json.RawMessage, rules []scenario.Rule, mode string, allowed []string) error {
+	checkFormula := func(raw json.RawMessage) error {
+		if len(raw) == 0 {
+			return nil
+		}
+		var node domainast.Node
+		if err := json.Unmarshal(raw, &node); err != nil {
+			return nil
+		}
+		if errs := asteval.ValidateAggregatorPolicy(node, mode, allowed); len(errs) > 0 {
+			return scenarioError(strings.Join(errs, "; "))
+		}
+		return nil
+	}
+	if err := checkFormula(triggerFormula); err != nil {
+		return err
+	}
+	for _, rule := range rules {
+		if err := checkFormula(rule.Formula); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func aggregatorIndexRequirement(model ports.TenantModel, currentTable string, node domainast.Node) (indexRequirement, bool) {
 	tableName, ok := constantString(node.NamedChildren["tableName"])
 	if !ok || strings.TrimSpace(tableName) == "" {
@@ -386,12 +636,14 @@ func aggregatorIndexRequirement(model ports.TenantModel, currentTable string, no
 	if !ok {
 		return indexRequirement{}, false
 	}
-	columns := make([]string, 0, len(filtersNode.Children))
-	seen := map[string]struct{}{}
-	for _, filterNode := range filtersNode.Children {
-		if filterNode.Function != "Filter" {
-			continue
-		}
+	topFilters := extractTopLevelAndFilters(filtersNode)
+	equalitySet := map[string]struct{}{}
+	var unspecifiedCols []string
+	unspecifiedSet := map[string]struct{}{}
+	rangeSet := map[string]struct{}{}
+	extraFilterSet := map[string]struct{}{}
+
+	for _, filterNode := range topFilters {
 		filterTableName, ok := constantString(filterNode.NamedChildren["tableName"])
 		if ok && strings.TrimSpace(filterTableName) != "" && filterTableName != tableName {
 			continue
@@ -400,19 +652,118 @@ func aggregatorIndexRequirement(model ports.TenantModel, currentTable string, no
 		if !ok || strings.TrimSpace(fieldName) == "" {
 			continue
 		}
-		if _, exists := table.Fields[fieldName]; !exists {
+		if _, exists := table.Fields[fieldName]; !exists && fieldName != model.RecordLookupField {
 			continue
 		}
-		if _, exists := seen[fieldName]; exists {
-			continue
+		opRaw, _ := constantString(filterNode.NamedChildren["operator"])
+		switch strings.ToLower(strings.TrimSpace(opRaw)) {
+		case "":
+			if _, seen := unspecifiedSet[fieldName]; !seen {
+				unspecifiedSet[fieldName] = struct{}{}
+				unspecifiedCols = append(unspecifiedCols, fieldName)
+			}
+		case "=", "eq", "isinlist", "in":
+			equalitySet[fieldName] = struct{}{}
+		case ">", "gt", ">=", "gte", "<", "lt", "<=", "lte":
+			rangeSet[fieldName] = struct{}{}
+		default:
+			extraFilterSet[fieldName] = struct{}{}
 		}
-		seen[fieldName] = struct{}{}
-		columns = append(columns, fieldName)
 	}
-	if len(columns) == 0 {
+
+	equalityCols := make([]string, 0, len(equalitySet))
+	for col := range equalitySet {
+		equalityCols = append(equalityCols, col)
+	}
+	sort.Strings(equalityCols)
+	for _, col := range unspecifiedCols {
+		if _, inEq := equalitySet[col]; !inEq {
+			equalityCols = append(equalityCols, col)
+		}
+	}
+
+	// Select at most one range key, preferring TIMESTAMPTZ fields; remaining range fields go to INCLUDE.
+	rangeCols := make([]string, 0, len(rangeSet))
+	for col := range rangeSet {
+		if _, inEq := equalitySet[col]; !inEq {
+			rangeCols = append(rangeCols, col)
+		}
+	}
+	sort.Strings(rangeCols)
+	var chosenRange string
+	for _, col := range rangeCols {
+		if field, ok := table.Fields[col]; ok && strings.EqualFold(field.Type, "timestamp") {
+			chosenRange = col
+			break
+		}
+	}
+	if chosenRange == "" && len(rangeCols) > 0 {
+		chosenRange = rangeCols[0]
+	}
+
+	keyCols := make([]string, 0, len(equalityCols)+1)
+	keyCols = append(keyCols, equalityCols...)
+	if chosenRange != "" {
+		keyCols = append(keyCols, chosenRange)
+	}
+	if len(keyCols) == 0 {
 		return indexRequirement{}, false
 	}
-	return indexRequirement{TableID: table.ID, TableName: table.Name, Columns: columns}, true
+
+	keySet := make(map[string]struct{}, len(keyCols))
+	for _, col := range keyCols {
+		keySet[col] = struct{}{}
+	}
+	includeSet := map[string]struct{}{}
+	for _, col := range rangeCols {
+		if _, inKey := keySet[col]; !inKey {
+			includeSet[col] = struct{}{}
+		}
+	}
+	for col := range extraFilterSet {
+		if _, inKey := keySet[col]; !inKey {
+			includeSet[col] = struct{}{}
+		}
+	}
+	if targetField, ok := constantString(node.NamedChildren["fieldName"]); ok {
+		targetField = strings.TrimSpace(targetField)
+		if targetField != "" {
+			if _, exists := table.Fields[targetField]; exists {
+				if _, inKey := keySet[targetField]; !inKey {
+					includeSet[targetField] = struct{}{}
+				}
+			}
+		}
+	}
+	includeCols := make([]string, 0, len(includeSet))
+	for col := range includeSet {
+		includeCols = append(includeCols, col)
+	}
+	sort.Strings(includeCols)
+
+	return indexRequirement{
+		TableID:        table.ID,
+		TableName:      table.Name,
+		Columns:        keyCols,
+		IncludeColumns: includeCols,
+	}, true
+}
+
+// extractTopLevelAndFilters flattens top-level List/and conjuncts and intentionally
+// skips or/not subtrees so composite B-tree keys are never built from disjunctive branches.
+func extractTopLevelAndFilters(node domainast.Node) []domainast.Node {
+	switch strings.ToLower(strings.TrimSpace(node.Function)) {
+	case "filter":
+		return []domainast.Node{node}
+	case "list", "and":
+		var out []domainast.Node
+		for _, child := range node.Children {
+			out = append(out, extractTopLevelAndFilters(child)...)
+		}
+		return out
+	default:
+		return nil
+	}
 }
 
 func visitNodeTables(model ports.TenantModel, currentTable string, node domainast.Node, out map[string]struct{}) {

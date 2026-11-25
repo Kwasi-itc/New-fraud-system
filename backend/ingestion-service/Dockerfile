@@ -17,4 +17,5 @@ COPY --from=builder /bin/worker /app/worker
 COPY --from=builder /bin/migrate /app/migrate
 COPY --from=builder /app/ingestion-service/internal/migrations /app/internal/migrations
 EXPOSE 8081
+USER nonroot
 ENTRYPOINT ["/app/server"]

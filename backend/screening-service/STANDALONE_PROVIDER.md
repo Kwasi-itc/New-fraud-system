@@ -137,7 +137,7 @@ node backend/screening-service/scripts/pep/refresh-standalone-provider.mjs --onc
 node backend/screening-service/scripts/pep/refresh-standalone-provider.mjs --control-port 8092
 ```
 
-Per-source refresh durations default to `scripts/pep/refresh-config.json` (`parliament`: 360m, `wikidata`/`siga`/`mmdce`: 720m, `judiciary`/`parties`: 1440m) and can be overridden via `PEP_REFRESH_<SOURCE>_MINUTES` (e.g. `PEP_REFRESH_PARLIAMENT_MINUTES=180`), `PEP_REFRESH_INTERVAL_MINUTES`, or at runtime via the private control API on port `8092` (requires `PEP_REFRESH_ADMIN_TOKEN` $\ge$ 32 chars):
+Per-source refresh durations default to `scripts/pep/refresh-config.json` (`un-consolidated`/`ofac-sdn`/`uksl`: 12h / `720`m, `wikidata`/`siga`: 7 days / `10080`m, `mmdce`: 14 days / `20160`m, `parliament`/`judiciary`/`parties`: 30 days / `43200`m) and can be overridden via `PEP_REFRESH_<SOURCE>_MINUTES` (e.g. `PEP_REFRESH_PARLIAMENT_MINUTES=43200`), `PEP_REFRESH_INTERVAL_MINUTES`, or at runtime via the private control API on port `8092` (requires `PEP_REFRESH_ADMIN_TOKEN` $\ge$ 32 chars):
 
 - `GET /v1/refresh/status` — view current per-source schedule, `last_run_at`, and `next_run_at`
 - `PUT /v1/refresh/config` — update `enabled` and `interval_minutes` per source (`{"sources":{"parliament":{"interval_minutes":120}}}`)

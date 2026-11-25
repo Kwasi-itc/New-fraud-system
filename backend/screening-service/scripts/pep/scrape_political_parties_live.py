@@ -198,7 +198,6 @@ def main():
         "version": 2,
         "source": "gh-pep-parties",
         "parser": "gh-pep-v1",
-        "last_crawled_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "records": pep_records,
     }
 

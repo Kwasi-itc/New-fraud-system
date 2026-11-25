@@ -79,6 +79,8 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		WritePathOverloadMode:          cfg.WritePathOverloadMode,
 		ReadQueryConcurrencyLimit:      cfg.ReadQueryConcurrencyLimit,
 		AggregateQueryConcurrencyLimit: cfg.AggregateQueryConcurrencyLimit,
+		EnableRollupAggregates:         cfg.EnableRollupAggregates,
+		RollupShadowMode:               cfg.RollupShadowMode,
 		OverloadThresholds: httpapi.OverloadThresholds{
 			DBPoolSaturationPct:    cfg.DBPoolSaturationThresholdPct,
 			RequestQueueDepth:      cfg.RequestQueueDepthThreshold,
