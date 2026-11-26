@@ -47,6 +47,8 @@ type Config struct {
 	AggregateRemoteConcurrencyLimit     int
 	AggregateRemoteMaxWait              time.Duration
 	AggregateSQLStatementTimeout        time.Duration
+	EnableRollupAggregates              bool
+	RollupShadowMode                    bool
 	WorkerMode                          string
 	WorkerTasks                         []string
 	WorkerTaskPriorities                map[string]int
@@ -232,6 +234,14 @@ func LoadConfig() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	enableRollupAggregates, err := getEnvBool("ENABLE_ROLLUP_AGGREGATES", false)
+	if err != nil {
+		return Config{}, err
+	}
+	rollupShadowMode, err := getEnvBool("ROLLUP_SHADOW_MODE", false)
+	if err != nil {
+		return Config{}, err
+	}
 
 	databaseMaxConns, err := getEnvInt("DATABASE_MAX_CONNS", 0)
 	if err != nil {
@@ -280,6 +290,8 @@ func LoadConfig() (Config, error) {
 		AggregateRemoteConcurrencyLimit:     aggregateRemoteConcurrencyLimit,
 		AggregateRemoteMaxWait:              aggregateRemoteMaxWait,
 		AggregateSQLStatementTimeout:        aggregateSQLStatementTimeout,
+		EnableRollupAggregates:              enableRollupAggregates,
+		RollupShadowMode:                    rollupShadowMode,
 		WorkerMode:                          strings.ToLower(getEnv("WORKER_MODE", "batch")),
 		WorkerTasks:                         workerTasks,
 		WorkerTaskPriorities:                workerTaskPriorities,

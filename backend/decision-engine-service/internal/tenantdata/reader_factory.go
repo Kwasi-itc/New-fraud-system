@@ -16,13 +16,31 @@ const (
 	ReadModeDirectDB      = "direct_db"
 )
 
+type ReaderOptions struct {
+	StatementTimeout       time.Duration
+	EnableRollupAggregates bool
+	RollupShadowMode       bool
+}
+
 func NewReader(readMode string, db *pgxpool.Pool, dataModelReader ports.DataModelReader, ingestionServiceURL string, timeout time.Duration, statementTimeout ...time.Duration) ports.TenantDataReader {
+	var opts ReaderOptions
+	if len(statementTimeout) > 0 {
+		opts.StatementTimeout = statementTimeout[0]
+	}
+	return NewReaderWithOptions(readMode, db, dataModelReader, ingestionServiceURL, timeout, opts)
+}
+
+func NewReaderWithOptions(readMode string, db *pgxpool.Pool, dataModelReader ports.DataModelReader, ingestionServiceURL string, timeout time.Duration, opts ReaderOptions) ports.TenantDataReader {
 	switch strings.ToLower(strings.TrimSpace(readMode)) {
 	case ReadModeDirectDB:
 		if db != nil {
 			reader := storepostgres.NewTenantDataReader(db, dataModelReader)
-			if len(statementTimeout) > 0 && statementTimeout[0] > 0 {
-				reader = reader.WithStatementTimeout(statementTimeout[0])
+			if opts.StatementTimeout > 0 {
+				reader = reader.WithStatementTimeout(opts.StatementTimeout)
+			}
+			if opts.EnableRollupAggregates || opts.RollupShadowMode {
+				cache := storepostgres.NewDirectDBRollupCache(db, 5*time.Second)
+				reader = reader.WithRollups(cache, opts.EnableRollupAggregates, opts.RollupShadowMode)
 			}
 			return reader
 		}

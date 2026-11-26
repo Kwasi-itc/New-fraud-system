@@ -30,6 +30,9 @@ type TenantDataReader struct {
 	snapshot         *ports.TenantModel
 	snapshotTenant   string
 	statementTimeout time.Duration
+	rollupCache      *DirectDBRollupCache
+	rollupsEnabled   bool
+	rollupShadowMode bool
 }
 
 func (r TenantDataReader) WithModel(tenantID string, model ports.TenantModel) ports.TenantDataReader {
@@ -39,6 +42,13 @@ func (r TenantDataReader) WithModel(tenantID string, model ports.TenantModel) po
 
 func (r TenantDataReader) WithStatementTimeout(timeout time.Duration) TenantDataReader {
 	r.statementTimeout = timeout
+	return r
+}
+
+func (r TenantDataReader) WithRollups(cache *DirectDBRollupCache, enabled, shadowMode bool) TenantDataReader {
+	r.rollupCache = cache
+	r.rollupsEnabled = enabled
+	r.rollupShadowMode = shadowMode
 	return r
 }
 
@@ -146,6 +156,24 @@ func (r TenantDataReader) AggregateRecords(ctx context.Context, tenantID string,
 		return nil, err
 	}
 
+	var rollupCand *directDBRollupCandidate
+	if (r.rollupsEnabled || r.rollupShadowMode) && r.rollupCache != nil {
+		if defs, defErr := r.rollupCache.GetReadyForTable(ctx, tenantID, table.Name); defErr == nil && len(defs) > 0 {
+			cand, fallbackReason := checkDirectDBRollupEligibility(model, table, query, defs, time.Now().UTC())
+			if fallbackReason == "" {
+				rollupCand = &cand
+				if r.rollupsEnabled && !r.rollupShadowMode {
+					rollupSQL, rollupArgs, buildErr := buildDirectDBRollupUnionSQL(tenantID, schemaName, table, cand)
+					if buildErr == nil {
+						if rollupVal, rollupErr := executeDirectDBQueryWithTimeout(ctx, r.db, r.statementTimeout, rollupSQL, rollupArgs); rollupErr == nil {
+							return rollupVal, nil
+						}
+					}
+				}
+			}
+		}
+	}
+
 	whereSQL := ""
 	args := []any{}
 	if query.Filter != nil {
@@ -158,28 +186,40 @@ func (r TenantDataReader) AggregateRecords(ctx context.Context, tenantID string,
 		}
 	}
 
-	sql := fmt.Sprintf(`SELECT %s FROM %s%s`, aggregateExpr, sanitizeIdentifier(schemaName, table.Name), whereSQL)
-	var value any
-	if r.statementTimeout > 0 {
-		if beginner, ok := r.db.(readOnlyTxBeginner); ok {
-			tx, txErr := beginner.BeginTx(ctx, pgx.TxOptions{AccessMode: pgx.ReadOnly})
-			if txErr != nil {
-				return nil, txErr
-			}
-			defer func() { _ = tx.Rollback(context.Background()) }()
-			if _, execErr := tx.Exec(ctx, fmt.Sprintf("SET LOCAL statement_timeout = '%dms'", max(1, int(r.statementTimeout.Milliseconds())))); execErr != nil {
-				return nil, execErr
-			}
-			if err := tx.QueryRow(ctx, sql, args...).Scan(&value); err != nil {
-				return nil, err
-			}
-			return value, tx.Commit(ctx)
-		}
-	}
-	if err := r.db.QueryRow(ctx, sql, args...).Scan(&value); err != nil {
+	castedExpr := castDirectDBRawAggregateExpr(strings.TrimSpace(query.Aggregate), aggregateExpr, table.Fields[fieldName].Type)
+	sql := fmt.Sprintf(`SELECT %s FROM %s%s`, castedExpr, sanitizeIdentifier(schemaName, table.Name), whereSQL)
+	value, err := executeDirectDBQueryWithTimeout(ctx, r.db, r.statementTimeout, sql, args)
+	if err != nil {
 		return nil, err
 	}
+	if r.rollupShadowMode && rollupCand != nil {
+		if rollupSQL, rollupArgs, buildErr := buildDirectDBRollupUnionSQL(tenantID, schemaName, table, *rollupCand); buildErr == nil {
+			if rollupVal, rollupErr := executeDirectDBQueryWithTimeout(ctx, r.db, r.statementTimeout, rollupSQL, rollupArgs); rollupErr == nil {
+				if !compareDirectDBRollupShadow(rollupCand.Aggregate, value, rollupVal) {
+					logDirectDBRollupShadowMismatch(tenantID, rollupCand.Definition.ID, rollupCand.Aggregate, value, rollupVal)
+				}
+			}
+		}
+	}
 	return value, nil
+}
+
+func castDirectDBRawAggregateExpr(aggName, expr, dataType string) string {
+	switch strings.ToLower(strings.TrimSpace(aggName)) {
+	case "sum":
+		dt := strings.ToLower(strings.TrimSpace(dataType))
+		if dt == "int" || dt == "integer" || dt == "int4" || dt == "int8" || dt == "bigint" {
+			return "(" + expr + ")::bigint"
+		}
+		if dt == "float" || dt == "float8" || dt == "double precision" || dt == "numeric" {
+			return "(" + expr + ")::double precision"
+		}
+		return expr
+	case "avg":
+		return "(" + expr + ")::double precision"
+	default:
+		return expr
+	}
 }
 
 func (r TenantDataReader) resolveTable(ctx context.Context, tenantID, objectType string) (ports.TenantModel, ports.TenantModelTable, string, error) {

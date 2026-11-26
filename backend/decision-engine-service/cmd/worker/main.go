@@ -146,7 +146,11 @@ func main() {
 	var scoringRequestRepo ports.ScoringRequestRepository = storepostgres.NewScoringRequestRepository(db)
 
 	dataModelReader := datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
-	tenantDataReader := tenantdata.NewReader(cfg.TenantDataReadMode, db, dataModelReader, cfg.IngestionServiceURL, cfg.HTTPClientTimeout)
+	tenantDataReader := tenantdata.NewReaderWithOptions(cfg.TenantDataReadMode, db, dataModelReader, cfg.IngestionServiceURL, cfg.HTTPClientTimeout, tenantdata.ReaderOptions{
+		StatementTimeout:       cfg.AggregateSQLStatementTimeout,
+		EnableRollupAggregates: cfg.EnableRollupAggregates,
+		RollupShadowMode:       cfg.RollupShadowMode,
+	})
 	_ = service.NewValidationService(dataModelReader, scenarioRepo, iterationRepo, ruleRepo)
 	workers := river.NewWorkers()
 	riverClient, err := river.NewClient(riverpgxv5.New(db), &river.Config{

@@ -52,6 +52,8 @@ type RouterConfig struct {
 	AggregateRemoteConcurrencyLimit     int
 	AggregateRemoteMaxWait              time.Duration
 	AggregateSQLStatementTimeout        time.Duration
+	EnableRollupAggregates              bool
+	RollupShadowMode                    bool
 	ScheduledExecutionMaxAttempts       int
 	ScheduledExecutionRetryBackoff      time.Duration
 	AsyncExecutionMaxAttempts           int
@@ -189,7 +191,11 @@ func NewRouter(logger *slog.Logger, db *pgxpool.Pool, cfg RouterConfig) *gin.Eng
 		outboxEnqueuer = riverjobs.NewRiverOutboxEventEnqueuer(riverClient, 1, cfg.OutboxQueueName)
 	}
 	dataModelReader = datamodel.NewHTTPClient(cfg.DataModelServiceURL, cfg.HTTPClientTimeout)
-	tenantDataReader = tenantdata.NewReader(cfg.TenantDataReadMode, db, dataModelReader, cfg.IngestionServiceURL, cfg.HTTPClientTimeout, cfg.AggregateSQLStatementTimeout)
+	tenantDataReader = tenantdata.NewReaderWithOptions(cfg.TenantDataReadMode, db, dataModelReader, cfg.IngestionServiceURL, cfg.HTTPClientTimeout, tenantdata.ReaderOptions{
+		StatementTimeout:       cfg.AggregateSQLStatementTimeout,
+		EnableRollupAggregates: cfg.EnableRollupAggregates,
+		RollupShadowMode:       cfg.RollupShadowMode,
+	})
 
 	scenarioService := service.NewScenarioService(txManager, uuidGenerator{}, systemClock{}, dataModelReader, scenarioRepo, iterationRepo, ruleRepo, workflowRuleRepo, workflowConditionRepo, workflowActionRepo)
 	accessorService := service.NewAccessorService(scenarioRepo, dataModelReader)

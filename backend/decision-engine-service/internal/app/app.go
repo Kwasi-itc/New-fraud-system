@@ -79,6 +79,8 @@ func New(cfg Config, logger *slog.Logger) (*App, error) {
 		AggregateRemoteConcurrencyLimit:     cfg.AggregateRemoteConcurrencyLimit,
 		AggregateRemoteMaxWait:              cfg.AggregateRemoteMaxWait,
 		AggregateSQLStatementTimeout:        cfg.AggregateSQLStatementTimeout,
+		EnableRollupAggregates:              cfg.EnableRollupAggregates,
+		RollupShadowMode:                    cfg.RollupShadowMode,
 		ScheduledExecutionMaxAttempts:       cfg.ScheduledExecutionMaxAttempts,
 		ScheduledExecutionRetryBackoff:      cfg.ScheduledExecutionRetryBackoff,
 		ScheduledExecutionQueueName:         cfg.ScheduledExecutionQueueName,
