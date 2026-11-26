@@ -31,6 +31,19 @@ For an EC2 host using RDS, prepare the required `.env` and project-scoped identi
 node docker/setup-postgres-ec2.mjs
 ```
 
+The setup user must own the project identity files and belong to host group ID `65532` (or be root). If necessary, an administrator must create or identify that group, add the setup user to it, and start a new login session before setup. Setup grants this group read access to private PEMs (mode `640`) and sets the public key ring to `644`. Only trusted host users should belong to that group: they can read all project private keys. Containers still mount only their own private keys. User-namespace remapping requires an appropriate host group mapping.
+
+For example, on Ubuntu:
+
+```sh
+getent group 65532 || sudo -A groupadd --gid 65532 fraud-containers
+sudo -A usermod -aG "$(getent group 65532 | cut -d: -f1)" "$USER"
+```
+
+Log in again and check `id -G` includes `65532` before running setup.
+
+The public key ring is replaced during setup. A full setup recreates the stack so existing containers receive the new file; this interrupts running services. `--prepare-only` does not recreate containers, so recreate them before using the updated trust ring. Preserve and back up the matching identity files rather than regenerating missing credentials for an existing deployment.
+
 After service migrations, this setup detects whether RDS already has an active tenant. If it does not, it starts data-model-service and runs the separate [`setup-root-tenant-ec2.mjs`](./setup-root-tenant-ec2.mjs) script in a temporary Node container on the private Compose network. This lets the script call `data-model-service:8080` without publishing the service port on the EC2 host. It creates the `Root` tenant (`external_key: root`) through the authenticated data-model API and provisions its tenant schema. It safely reuses and provisions an existing pending root tenant on retries, then EC2 setup stores its UUID for the application.
 
 The root tenant is a data-model tenant only; this does not create an application user, grant membership, or replace platform identity setup. Keep the data-model service credential in `.local/<project>/data-model.env` private.

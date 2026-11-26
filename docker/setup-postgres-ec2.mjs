@@ -1,4 +1,4 @@
-import { provisionPlatformKeys } from '../backend/auth-service/scripts/platform-keys.mjs';
+import { applyContainerKeyPermissions, provisionPlatformKeys, requireContainerKeyGroup } from '../backend/auth-service/scripts/platform-keys.mjs';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
@@ -60,6 +60,7 @@ if (!/^[a-z0-9][a-z0-9_-]*$/.test(project)) {
   throw new Error('Project name must start with a lowercase letter or number and contain only lowercase letters, numbers, hyphens, or underscores.');
 }
 
+requireContainerKeyGroup();
 const directory = path.join(root, '.local', project);
 const envFile = path.join(directory, 'compose.env');
 const existingComposeEnv = parse(envFile);
@@ -127,7 +128,8 @@ config.RDS_USER ||= decodeURIComponent(parsedDb.username);
 config.RDS_PASSWORD ||= decodeURIComponent(parsedDb.password);
 config.RDS_SSLMODE ||= parsedDb.searchParams.get('sslmode') || 'require';
 
-provisionPlatformKeys(directory,{tokenEndpointURL:`${config.GATEWAY_PUBLIC_ORIGIN || `http://localhost:${port}`}/oauth/token`});
+const { identities } = provisionPlatformKeys(directory,{tokenEndpointURL:`${config.GATEWAY_PUBLIC_ORIGIN || `http://localhost:${port}`}/oauth/token`});
+applyContainerKeyPermissions(directory, identities);
 for (const key of ['SERVICE_AUTH_TOKEN','CASE_SERVICE_AUTH_TOKEN','CASE_SERVICE_TENANT_IDS','WORKFLOW_AUTHORING_TOKEN','SCREENING_AUTHORING_TOKEN','SCREENING_INTAKE_TOKEN','SCREENING_CALLBACK_TOKEN','SCREENING_OPERATOR_TOKEN']) delete config[key];
 const profiles = new Set((config.COMPOSE_PROFILES ?? '').split(',').filter(Boolean));
 profiles.add('local-idp');
@@ -181,7 +183,10 @@ function queryRds(sql) {
 }
 
 docker(['config', '--quiet']);
-if (parsedArgs['--prepare-only']) process.exit(0);
+if (parsedArgs['--prepare-only']) {
+  console.log('Existing containers must be recreated to use the updated public key ring.');
+  process.exit(0);
+}
 
 if (!parsedArgs['--skip-build']) {
   docker(['build', '--parallel'], { env: { ...process.env, COMPOSE_PARALLEL_LIMIT: '2' } });
@@ -224,7 +229,7 @@ if (!config.NEXT_PUBLIC_DATA_MODEL_TENANT_ID || config.NEXT_PUBLIC_DATA_MODEL_TE
   let tenantId = queryRds("SELECT id FROM core.tenants WHERE status = 'active' ORDER BY created_at ASC LIMIT 1;");
   if (!tenantId || tenantId === NIL_UUID) {
     console.log('No active tenant found on RDS; creating and provisioning the root tenant.');
-    docker(['up', '-d', '--wait', 'data-model-service']);
+    docker(['up', '-d', '--wait', '--force-recreate', 'data-model-service']);
     docker(['run', '--rm', '--no-deps', '-T', 'root-tenant-setup']);
     tenantId = queryRds("SELECT id FROM core.tenants WHERE external_key = 'root' AND status = 'active' ORDER BY created_at ASC LIMIT 1;");
   }
@@ -249,7 +254,7 @@ if (!config.NEXT_PUBLIC_DATA_MODEL_TENANT_ID || config.NEXT_PUBLIC_DATA_MODEL_TE
 }
 
 // 3. Bring up the full application stack.
-docker(['up', '-d', '--wait', '--wait-timeout', '300']);
+docker(['up', '-d', '--wait', '--wait-timeout', '300', '--force-recreate']);
 
 const publicOrigin = (config.GATEWAY_PUBLIC_ORIGIN || `http://localhost:${port}`).replace(/\/+$/, '');
 const sslRequired = publicOrigin.startsWith('http://') ? 'NONE' : 'EXTERNAL';

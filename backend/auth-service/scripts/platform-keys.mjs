@@ -1,10 +1,43 @@
 import { createPrivateKey, createPublicKey, generateKeyPairSync, randomBytes } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { chmodSync, chownSync, existsSync, lstatSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const profiles = JSON.parse(readFileSync(fileURLToPath(new URL('../../platform-auth/services.json', import.meta.url)), 'utf8'));
 const catalog = JSON.parse(readFileSync(fileURLToPath(new URL('../../platform-auth/capabilities.json', import.meta.url)), 'utf8'));
 const apiAudiences = ['urn:fraud:platform-api', 'urn:fraud:system'];
+export const EC2_CONTAINER_GROUP = 65532;
+
+export function requireContainerKeyGroup(gid = EC2_CONTAINER_GROUP) {
+  if (typeof process.getuid !== 'function' || typeof process.getgroups !== 'function') {
+    throw new Error('EC2 key permissions require a Unix host with container group membership.');
+  }
+  if (process.getuid() !== 0 && !process.getgroups().includes(gid)) {
+    throw new Error(`The setup user must belong to host group ${gid} to grant containers access to private keys; add the user to that group and start a new login session.`);
+  }
+}
+
+export function applyContainerKeyPermissions(directory, identities, gid = EC2_CONTAINER_GROUP) {
+  requireContainerKeyGroup(gid);
+  const privateFiles = ['platform-private.pem', ...Object.keys(identities).map(id => `${id}-private.pem`)];
+  for (const name of privateFiles) {
+    const file = path.join(directory, name);
+    try {
+      const stat = lstatSync(file);
+      if (!stat.isFile()) throw new Error('not a regular file');
+      if (stat.gid !== gid) chownSync(file, stat.uid, gid);
+      chmodSync(file, 0o640);
+    } catch (error) {
+      throw new Error(`Unable to set container permissions on ${file}; ensure the setup user owns the file and belongs to group ${gid}.`, { cause: error });
+    }
+  }
+  const publicFile = path.join(directory, 'public-keys.json');
+  try {
+    if (!lstatSync(publicFile).isFile()) throw new Error('not a regular file');
+    chmodSync(publicFile, 0o644);
+  } catch (error) {
+    throw new Error(`Unable to set public-key ring permissions on ${publicFile}.`, { cause: error });
+  }
+}
 function parseEnv(file) {
   return Object.fromEntries(readFileSync(file, 'utf8').split(/\r?\n/).filter(line => line && !line.startsWith('#')).map(line => { const i = line.indexOf('='); let value=line.slice(i+1);if ((value.startsWith("'") && value.endsWith("'")) || (value.startsWith('"') && value.endsWith('"'))) value=value.slice(1,-1);return [line.slice(0,i),value]; }));
 }
