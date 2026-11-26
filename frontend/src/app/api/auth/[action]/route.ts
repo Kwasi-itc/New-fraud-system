@@ -50,7 +50,7 @@ export async function GET(request: Request, context: Context) {
       }
       const result = await response.json();
       console.info("Auth service completed OIDC login", { status: response.status, requestId });
-      jar.set(sessionCookie(), result.session, { ...cookieOptions, maxAge: 8 * 60 * 60 }); return redirect("/my-account");
+      jar.set(sessionCookie(), result.session, { ...cookieOptions, maxAge: 8 * 60 * 60 }); return redirect("/dashboard");
     }
     if (["members", "sessions", "invitations", "audit"].includes(action)) {
       const current = await platformSession(); if (!current) return fail("Sign in required.", 401);

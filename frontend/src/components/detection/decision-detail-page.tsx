@@ -1,241 +1,95 @@
 "use client";
 
 import Link from "next/link";
-import { DecisionScreening } from "@/components/detection/decision-screening";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronLeft, ChevronUp, Copy } from "lucide-react";
-
-import { Badge } from "@/components/ui/badge";
+import { GitBranch, Scale, Sigma } from "lucide-react";
 import { DecisionCaseLink } from "@/components/cases/decision-case-link";
-import { Card, CardContent } from "@/components/ui/card";
-import { summarizeRuleFormula } from "@/lib/rule-builder";
-import { cn } from "@/lib/utils";
-import { type RuleEvaluationNode, decisionEngineApi } from "@/lib/decision-engine-api";
+import { aggregateNodes, nodeName } from "@/components/detection/rule-execution-evidence";
+import { RuleExecutionFullPage, RuleExecutionInspector } from "@/components/detection/rule-execution-inspector";
 import { formatExecutionRequestBody } from "@/components/detection/scheduled-execution-shared";
+import { Card, CardContent } from "@/components/ui/card";
+import { decisionEngineApi, type Iteration } from "@/lib/decision-engine-api";
+import { cn } from "@/lib/utils";
 
-function formatDecisionField(value: unknown) {
-  if (value === null || value === undefined) {
-    return "-";
-  }
-  if (typeof value === "string") {
-    return value;
-  }
-  return JSON.stringify(value);
+function formatValue(value: unknown) {
+  if (value === null || value === undefined) return "-";
+  return typeof value === "string" ? value : JSON.stringify(value);
 }
 
-type EvaluationEvidenceRow = {
-  key: string;
-  expression: string;
-  result: boolean;
-};
-
-const comparisonOperatorLabels: Record<string, string> = {
-  eq: "=",
-  neq: "!=",
-  gt: ">",
-  gte: ">=",
-  lt: "<",
-  lte: "<=",
-  contains: "contains",
-  in: "in",
-  starts_with: "starts with",
-  ends_with: "ends with",
-};
-
-function normalizeFunctionName(value: string | undefined) {
-  return value?.trim().toLowerCase() ?? "";
-}
-
-function ruleOutcomeBadgeClass(outcome: string) {
-  switch (normalizeFunctionName(outcome)) {
-    case "hit":
-      return "border-rose-200 bg-rose-50 text-rose-600";
-    case "snoozed":
-      return "border-amber-200 bg-amber-50 text-amber-700";
-    case "skipped":
-      return "border-orange-200 bg-orange-50 text-orange-700";
-    case "error":
-      return "border-slate-300 bg-slate-100 text-slate-700";
-    case "no_hit":
-      return "border-emerald-200 bg-emerald-50 text-emerald-600";
-    default:
-      return "border-slate-200 bg-white text-slate-700";
-  }
-}
-
-function formatEvaluationExpression(node: RuleEvaluationNode) {
-  const functionName = normalizeFunctionName(node.function);
-  if (
-    !(functionName in comparisonOperatorLabels) ||
-    !node.children ||
-    node.children.length !== 2
-  ) {
-    return null;
-  }
-  const [left, right] = node.children;
-  return `${formatDecisionField(left.return_value)} ${comparisonOperatorLabels[functionName]} ${formatDecisionField(right.return_value)}`;
-}
-
-function collectEvaluationEvidence(
-  node: RuleEvaluationNode | null | undefined,
-  path: string[] = []
-): EvaluationEvidenceRow[] {
-  if (!node || node.skipped) {
-    return [];
-  }
-
-  const rows: EvaluationEvidenceRow[] = [];
-  const expression = formatEvaluationExpression(node);
-  if (expression && typeof node.return_value === "boolean") {
-    rows.push({
-      key: [...path, normalizeFunctionName(node.function) || "node"].join("."),
-      expression,
-      result: node.return_value,
-    });
-  }
-
-  node.children?.forEach((child, index) => {
-    rows.push(...collectEvaluationEvidence(child, [...path, `children.${index}`]));
-  });
-
-  Object.entries(node.named_children ?? {}).forEach(([name, child]) => {
-    rows.push(...collectEvaluationEvidence(child, [...path, `named.${name}`]));
-  });
-
-  return rows;
-}
-
-function renderDecisionRequestValue(key: string, value: unknown) {
-  if (
-    key === "fields" &&
-    value &&
-    typeof value === "object" &&
-    !Array.isArray(value)
-  ) {
-    const entries = Object.entries(value).sort(([left], [right]) => left.localeCompare(right));
-    return (
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        {entries.map(([fieldName, fieldValue]) => (
-          <div
-            key={fieldName}
-            className="grid gap-1 border-b border-slate-200 px-4 py-3 last:border-b-0 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-4"
-          >
-            <div className="text-[11px] uppercase tracking-[0.08em] text-slate-500">
-              {fieldName.replace(/_/g, " ")}
-            </div>
-            <div className="whitespace-pre-wrap break-words text-[13px] text-slate-900">
-              {formatDecisionField(fieldValue)}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  return formatDecisionField(value);
-}
-
-function formatDecisionDate(value: string) {
+function formatDate(value: string) {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
-function formatDecisionOutcome(value: string) {
-  switch (value) {
-    case "approve":
-      return "Approve";
-    case "block_and_review":
-      return "Block and Review";
-    case "decline":
-      return "Decline";
-    case "review":
-      return "Review";
-    default:
-      return value;
+function formatLabel(value: string) {
+  return value.split("_").filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
+}
+
+function matchedClass(outcome: string) {
+  switch (outcome.toLowerCase()) {
+    case "decline": return "bg-[#fff7f6] text-[#b42318] shadow-[inset_3px_0_#d96a60]";
+    case "block_and_review": return "bg-[#fff8f1] text-[#9a480b] shadow-[inset_3px_0_#d98542]";
+    case "review": return "bg-[#fffbf3] text-[#92520b] shadow-[inset_3px_0_#d59a3d]";
+    case "approve": return "bg-[#f3fbf6] text-[#167050] shadow-[inset_3px_0_#65ad85]";
+    default: return "bg-slate-50 text-slate-700 shadow-[inset_3px_0_#94a3b8]";
   }
 }
 
-function scoreCardClass(value: string) {
-  switch (value) {
-    case "decline":
-      return "bg-[linear-gradient(180deg,#f6d4cc_0%,#f2c9bf_100%)] text-[#dd3719]";
-    case "block_and_review":
-      return "bg-[linear-gradient(180deg,#ffedd5_0%,#fed7aa_100%)] text-[#ea580c]";
-    case "review":
-      return "bg-[linear-gradient(180deg,#fef3c7_0%,#fde68a_100%)] text-[#b45309]";
-    default:
-      return "bg-[linear-gradient(180deg,#2d63b8_0%,#1f4f96_100%)] text-white";
-  }
-}
-
-function formatExecutionLabel(value: string) {
-  return value
-    .split("_")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function executionStatusClass(value: string) {
+function outcomeClass(value: string) {
   switch (value.toLowerCase()) {
-    case "completed":
-    case "success":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700";
-    case "failed":
-    case "dispatch_failed":
-      return "border-rose-200 bg-rose-50 text-rose-700";
-    case "pending":
-    case "queued":
-      return "border-amber-200 bg-amber-50 text-amber-700";
-    case "sent":
-    case "processing":
-      return "border-sky-200 bg-sky-50 text-sky-700";
-    default:
-      return "border-slate-200 bg-slate-50 text-slate-700";
+    case "approve": return "border-[#cbe9d8] bg-[#effaf4] text-[#167050]";
+    case "review": return "border-[#f1dbb9] bg-[#fff8eb] text-[#92520b]";
+    case "block_and_review": return "border-[#f2d3b6] bg-[#fff2e5] text-[#9a480b]";
+    case "decline": return "border-[#f2c5c1] bg-[#fff1f0] text-[#b42318]";
+    default: return "border-slate-200 bg-slate-50 text-slate-700";
   }
 }
 
-function formatRuleSummaryForDisplay(summary: string) {
-  return summary
-    .replace(/\)\s+and\s+\(/g, ")\nAND\n(")
-    .replace(/\)\s+or\s+\(/g, ")\nOR\n(")
-    .replace(/\s+and\s+/g, "\nAND\n")
-    .replace(/\s+or\s+/g, "\nOR\n");
+function outcomeTitle(value: string) {
+  switch (value.toLowerCase()) {
+    case "approve": return "Approved";
+    case "review": return "Review required";
+    case "block_and_review": return "Blocked for review";
+    case "decline": return "Declined";
+    default: return formatLabel(value);
+  }
+}
+
+function ScoreVisualization({ score, iteration, loading }: { score: number; iteration?: Iteration; loading: boolean }) {
+  const review = iteration?.score_review_threshold;
+  const block = iteration?.score_block_and_review_threshold;
+  const decline = iteration?.score_decline_threshold;
+  if (review == null || block == null || decline == null || review > block || block > decline) return <p className="mt-3 text-xs text-slate-500">{loading ? "Loading score thresholds…" : "Score thresholds are unavailable for this iteration."}</p>;
+  const min = Math.min(0, score, review);
+  const maximum = Math.max(0, score, decline);
+  const max = maximum + Math.max(1, (maximum - min) * 0.1);
+  const percent = (value: number) => ((value - min) / (max - min)) * 100;
+  const segments = [percent(review), percent(block) - percent(review), percent(decline) - percent(block), 100 - percent(decline)];
+  return <div className="mt-[22px]">
+    <div role="img" className="relative flex h-2 gap-[3px]" aria-label={`Score ${score}. Review threshold ${review}, block and review ${block}, decline ${decline}.`}>
+      {segments.map((width, index) => <span key={index} style={{ width: `${width}%` }} className={cn("rounded-sm", ["bg-[#b9dfcb]", "bg-[#f0d39d]", "bg-orange-300", "bg-[#eeb6ad]"][index])} />)}
+      <span className="absolute -top-[5px] h-[18px] w-[3px] rounded-sm bg-slate-900" style={{ left: `${percent(score)}%` }} />
+    </div>
+    <div className="mt-2 flex justify-between text-[11px] text-slate-500"><span>{min}</span><span>{Number(max.toFixed(2))}</span></div>
+    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500"><span>Review ≥ {review}</span><span>Block and review ≥ {block}</span><span>Decline ≥ {decline}</span></div>
+    <p className="mt-4 text-[11px] text-slate-500">Points are not a fraud probability.</p>
+  </div>;
 }
 
 export function DecisionDetailPage({ decisionId, tenantId, session }: { decisionId: string; tenantId: string; session: string }) {
   const searchParams = useSearchParams();
-  const [detailOpen, setDetailOpen] = useState(true);
-  const [responseOpen, setResponseOpen] = useState(true);
-  const [triggerObjectOpen, setTriggerObjectOpen] = useState(true);
-  const [rulesOpen, setRulesOpen] = useState(true);
-  const [workflowExecutionsOpen, setWorkflowExecutionsOpen] = useState(true);
-  const [openRuleIds, setOpenRuleIds] = useState<Record<string, boolean>>({});
+  const pathname = usePathname();
+  const router = useRouter();
+  const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
+  const [ruleFilter, setRuleFilter] = useState<"all" | "matched" | "not-matched">("all");
 
   const decisionQuery = useQuery({
     queryKey: ["decision-engine", "decision", tenantId, decisionId],
     queryFn: () => decisionEngineApi.getDecision(tenantId, decisionId),
     enabled: Boolean(tenantId && decisionId),
   });
-  const workflowExecutionsQuery = useQuery({
-    queryKey: ["decision-engine", "workflow-executions", tenantId, decisionId],
-    queryFn: () => decisionEngineApi.listWorkflowExecutions(tenantId, decisionId),
-    enabled: Boolean(tenantId && decisionId),
-  });
-  const scoringRequestsQuery = useQuery({
-    queryKey: ["decision-engine", "scoring-requests", tenantId, decisionId],
-    queryFn: () => decisionEngineApi.listScoringRequests(tenantId, decisionId),
-    enabled: Boolean(tenantId && decisionId),
-  });
-
   const decision = decisionQuery.data?.decision;
   const scenarioQuery = useQuery({
     queryKey: ["decision-engine", "scenario", tenantId, decision?.scenario_id],
@@ -248,606 +102,87 @@ export function DecisionDetailPage({ decisionId, tenantId, session }: { decision
     enabled: Boolean(tenantId && decision?.scenario_id),
   });
   const rulesQuery = useQuery({
-    queryKey: [
-      "decision-engine",
-      "rules",
-      tenantId,
-      decision?.scenario_id,
-      decision?.scenario_iteration_id,
-    ],
-    queryFn: () =>
-      decisionEngineApi.listRules(
-        tenantId,
-        decision!.scenario_id,
-        decision!.scenario_iteration_id
-      ),
+    queryKey: ["decision-engine", "rules", tenantId, decision?.scenario_id, decision?.scenario_iteration_id],
+    queryFn: () => decisionEngineApi.listRules(tenantId, decision!.scenario_id, decision!.scenario_iteration_id),
     enabled: Boolean(tenantId && decision?.scenario_id && decision?.scenario_iteration_id),
   });
-
-  const isLoading =
-    decisionQuery.isLoading ||
-    workflowExecutionsQuery.isLoading ||
-    scoringRequestsQuery.isLoading ||
-    rulesQuery.isLoading;
-  const error =
-    decisionQuery.error ??
-    workflowExecutionsQuery.error ??
-    scoringRequestsQuery.error ??
-    rulesQuery.error;
-
-  const scenario = scenarioQuery.data?.scenario;
-  const iterationVersion = useMemo(() => {
-    if (!decision) {
-      return null;
-    }
-
-    const iteration = (iterationsQuery.data?.iterations ?? []).find(
-      (item) => item.id === decision.scenario_iteration_id
-    );
-    return iteration?.version ?? null;
-  }, [decision, iterationsQuery.data?.iterations]);
-
-  const ruleExecutions = useMemo(
-    () => decisionQuery.data?.rule_executions ?? [],
-    [decisionQuery.data?.rule_executions]
-  );
-  const requestBodyEntries =
-    decision?.request_body &&
-    typeof decision.request_body === "object" &&
-    !Array.isArray(decision.request_body)
-      ? Object.entries(decision.request_body)
-      : [];
-  const requestBodyFields =
-    decision?.request_body &&
-    typeof decision.request_body === "object" &&
-    !Array.isArray(decision.request_body) &&
-    decision.request_body.fields &&
-    typeof decision.request_body.fields === "object" &&
-    !Array.isArray(decision.request_body.fields)
-      ? Object.entries(decision.request_body.fields).sort(([left], [right]) =>
-          left.localeCompare(right)
-        )
-      : [];
-  const requestBodyMetaEntries = requestBodyEntries.filter(
-    ([key]) => key !== "fields" && key !== "object_id" && key !== "object_type"
-  );
+  const iteration = useMemo(() => (iterationsQuery.data?.iterations ?? []).find((item) => item.id === decision?.scenario_iteration_id), [decision?.scenario_iteration_id, iterationsQuery.data?.iterations]);
+  const rulesById = useMemo(() => new Map((rulesQuery.data?.rules ?? []).map((rule) => [rule.id, rule])), [rulesQuery.data?.rules]);
+  const executions = decisionQuery.data?.rule_executions ?? [];
+  const selectedExecution = executions.find((item) => item.id === selectedRuleId);
+  const fullPageId = searchParams.get("view") === "rule" ? searchParams.get("ruleExecution") : null;
+  const fullPageExecution = executions.find((item) => item.id === fullPageId);
+  const isLoading = decisionQuery.isLoading || rulesQuery.isLoading;
+  const error = decisionQuery.error ?? rulesQuery.error;
   const fromTab = searchParams.get("fromTab");
-  const backHref =
-    fromTab === "Decisions" || fromTab === "Lists" || fromTab === "Scenarios"
-      ? `/detection?tab=${encodeURIComponent(fromTab)}`
-      : "/detection";
-  const rulesById = useMemo(
-    () =>
-      new Map((rulesQuery.data?.rules ?? []).map((rule) => [rule.id, rule])),
-    [rulesQuery.data?.rules]
-  );
-  const workflowExecutions = workflowExecutionsQuery.data?.workflow_executions ?? [];
-  void scoringRequestsQuery.data?.scoring_requests;
-
-  if (!tenantId) {
-    return (
-      <Card className="rounded-2xl border border-amber-200 bg-amber-50 shadow-none">
-        <CardContent className="p-5 text-sm text-amber-800">
-          Your workspace is unavailable. Sign in again to continue.
-        </CardContent>
-      </Card>
-    );
+  const backHref = fromTab === "Decisions" || fromTab === "Lists" || fromTab === "Scenarios" ? `/detection?tab=${encodeURIComponent(fromTab)}` : "/detection";
+  function ruleViewHref(id?: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (id) {
+      params.set("view", "rule");
+      params.set("ruleExecution", id);
+    } else {
+      params.delete("view");
+      params.delete("ruleExecution");
+    }
+    return `${pathname}?${params.toString()}`;
   }
 
-  if (isLoading) {
-    return (
-      <Card className="rounded-2xl border border-slate-200 shadow-none">
-        <CardContent className="p-5 text-sm text-slate-600">
-          Loading decision details...
-        </CardContent>
-      </Card>
-    );
+  if (!tenantId) return <Card className="rounded-2xl border border-amber-200 bg-amber-50 shadow-none"><CardContent className="p-5 text-sm text-amber-800">Your workspace is unavailable. Sign in again to continue.</CardContent></Card>;
+  if (isLoading) return <Card className="rounded-2xl border border-slate-200 shadow-none"><CardContent className="p-5 text-sm text-slate-600">Loading decision details...</CardContent></Card>;
+  if (error || !decision) return <Card className="rounded-2xl border border-red-200 bg-red-50 shadow-none"><CardContent className="p-5 text-sm text-red-700">{error instanceof Error ? error.message : "Failed to load decision details."}</CardContent></Card>;
+  if (searchParams.get("view") === "rule") {
+    if (!fullPageExecution) return <div className="space-y-4 p-5"><Link href={ruleViewHref()} className="text-sm font-semibold text-blue-700">← Back to decision</Link><p role="alert" className="text-sm text-red-700">Rule execution not found for this decision.</p></div>;
+    return <RuleExecutionFullPage execution={fullPageExecution} executions={executions} rule={rulesById.get(fullPageExecution.rule_id)} onSelect={(id) => router.replace(ruleViewHref(id))} backHref={ruleViewHref()} />;
   }
 
-  if (error || !decision) {
-    return (
-      <Card className="rounded-2xl border border-red-200 bg-red-50 shadow-none">
-        <CardContent className="p-5 text-sm text-red-700">
-          {error instanceof Error ? error.message : "Failed to load decision details."}
-        </CardContent>
-      </Card>
-    );
-  }
+  const request = decision.request_body && typeof decision.request_body === "object" && !Array.isArray(decision.request_body) ? Object.entries(decision.request_body) : [];
+  const fields = decision.request_body && typeof decision.request_body === "object" && !Array.isArray(decision.request_body) && decision.request_body.fields && typeof decision.request_body.fields === "object" && !Array.isArray(decision.request_body.fields) ? Object.entries(decision.request_body.fields).sort(([a], [b]) => a.localeCompare(b)) : [];
+  const metadata = request.filter(([key]) => key !== "fields" && key !== "object_id" && key !== "object_type");
+  const matched = executions.filter((item) => item.outcome.toLowerCase() === "hit").length;
+  const visible = executions.filter((item) => ruleFilter === "all" || (ruleFilter === "matched" ? item.outcome.toLowerCase() === "hit" : item.outcome.toLowerCase() !== "hit"));
 
-  return (
-    <div className="mx-auto w-full max-w-[1380px] space-y-6 px-4 sm:px-6 xl:px-8">
-      <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            href={backHref}
-            className="inline-flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-900"
-          >
-            <ChevronLeft className="size-4" />
-          </Link>
-          <div className="flex flex-wrap items-center gap-3 text-[15px] text-slate-500">
-            <span>Detection</span>
-            <span>/</span>
-            <span>Decisions</span>
-            <span>/</span>
-            <span className="font-semibold text-slate-950">Decision</span>
-            <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[14px] text-slate-950">
-              <span>ID {decision.id}</span>
-              <Copy className="size-4 text-slate-500" />
-            </div>
-            <Link className="text-sm font-semibold text-blue-700 underline" href={`/cases/decisions/${encodeURIComponent(decision.id)}?${new URLSearchParams({ tenant: tenantId })}`}>Case investigation</Link>
-          </div>
+  return <div className="mx-auto w-full max-w-[1280px] space-y-[22px]">
+    <nav aria-label="Breadcrumb" className="text-[13px] text-slate-500"><Link href={backHref} className="text-[#1f4f96] hover:underline">Detection</Link><span className="px-2 text-slate-400">/</span><Link href="/detection?tab=Decisions" className="text-[#1f4f96] hover:underline">Decisions</Link><span className="px-2 text-slate-400">/</span><strong className="font-semibold text-slate-700">Decision details</strong></nav>
+    <header className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end sm:gap-5">
+      <div><h1 className="text-[30px] font-semibold leading-tight tracking-[-0.045em] text-slate-900">Decision details</h1><p className="mt-1 text-[13px] text-slate-500">{scenarioQuery.data?.scenario.name ?? decision.scenario_id} · {iteration?.version != null ? `Scenario version ${iteration.version}` : decision.scenario_iteration_id} · {formatDate(decision.created_at)}</p></div>
+      <span className="break-all font-mono text-xs text-slate-500">{decision.id}</span>
+    </header>
+    <Card className="overflow-hidden rounded-[14px] border border-slate-200 shadow-none"><CardContent className="grid p-0 lg:grid-cols-[minmax(0,1fr)_350px]">
+      <div className="p-[25px]"><div className="text-[11px] font-bold uppercase tracking-[0.09em] text-slate-500">Decision outcome</div>
+        <div className="mt-2 flex flex-wrap items-center gap-3"><h2 className="text-2xl font-semibold tracking-[-0.035em] text-slate-900">{outcomeTitle(decision.outcome)}</h2><span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-[3px] text-[11px] font-semibold", outcomeClass(decision.outcome))}><span className="size-1.5 rounded-full bg-current" />{formatLabel(decision.outcome)}</span></div>
+        <div className="mt-[27px] grid grid-cols-2 gap-4 xl:grid-cols-3">
+          <div><div className="mb-1 text-xs text-slate-500">Evaluated object</div><div className="break-all text-[13px] font-semibold">{decision.object_type} · {decision.object_id}</div></div>
+          <div><div className="mb-1 text-xs text-slate-500">Triggered</div><div className="text-[13px] font-semibold">{decision.triggered ? "Yes" : "No"}</div></div>
+          <div><div className="mb-1 text-xs text-slate-500">Case</div><DecisionCaseLink tenant={tenantId} session={session} decisionId={decision.id} /></div>
         </div>
       </div>
-
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_420px]">
-        <div className="space-y-5">
-          <Card className="rounded-2xl border border-slate-200 shadow-none">
-            <CardContent className="p-0">
-              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
-                <h2 className="text-[18px] font-semibold text-slate-950">Decision Detail</h2>
-                <button
-                  type="button"
-                  onClick={() => setDetailOpen((current) => !current)}
-                  className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200"
-                >
-                  {detailOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-                </button>
-              </div>
-              {detailOpen ? (
-                <div className="grid gap-4 px-6 py-5 md:grid-cols-[160px_1fr]">
-                  {[
-                    ["Date", formatDecisionDate(decision.created_at)],
-                    ["Scenario", scenario?.name ?? decision.scenario_id],
-                    ["Version", iterationVersion ? `V${iterationVersion}` : decision.scenario_iteration_id],
-                    ["Object Type", decision.object_type],
-                  ].map(([label, value]) => (
-                    <div key={label} className="contents">
-                      <div className="text-[14px] font-semibold text-slate-950">{label}</div>
-                      <div
-                        className={cn(
-                          "text-[14px]",
-                          label === "Scenario" ? "font-medium text-[#2d63b8]" : "text-slate-800"
-                        )}
-                      >
-                        {value}
-                      </div>
-                    </div>
-                  ))}
-                  <div className="text-[14px] font-semibold text-slate-950">Case</div>
-                  <div className="text-[14px] text-slate-800">
-                    <DecisionCaseLink tenant={tenantId} session={session} decisionId={decision.id} />
-                  </div>
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl border border-slate-200 shadow-none">
-            <CardContent className="p-0">
-              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
-                <h2 className="text-[18px] font-semibold text-slate-950">
-                  Evaluated request body
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setTriggerObjectOpen((current) => !current)}
-                  className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200"
-                >
-                  {triggerObjectOpen ? (
-                    <ChevronUp className="size-4" />
-                  ) : (
-                    <ChevronDown className="size-4" />
-                  )}
-                </button>
-              </div>
-              {triggerObjectOpen ? (
-                <div className="space-y-4 px-6 py-5">
-                  {requestBodyEntries.length > 0 ? (
-                    <div className="space-y-3">
-                      {requestBodyFields.length > 0 ? (
-                        <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50/70">
-                          {requestBodyFields.map(([fieldName, fieldValue]) => (
-                            <div
-                              key={fieldName}
-                              className="grid gap-1 border-b border-slate-200 px-4 py-3 last:border-b-0 sm:grid-cols-[220px_minmax(0,1fr)] sm:gap-4"
-                            >
-                              <div className="text-[11px] uppercase tracking-[0.08em] text-slate-500">
-                                {fieldName.replace(/_/g, " ")}
-                              </div>
-                              <div className="whitespace-pre-wrap break-words text-[13px] text-slate-900">
-                                {formatDecisionField(fieldValue)}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
-                      {requestBodyMetaEntries.length > 0 ? (
-                        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                          {requestBodyMetaEntries.map(([key, value]) => (
-                            <div
-                              key={key}
-                              className="grid gap-1 border-b border-slate-200 px-4 py-3 last:border-b-0 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-4"
-                            >
-                              <div className="text-[11px] uppercase tracking-[0.08em] text-slate-500">
-                                {key.replace(/_/g, " ")}
-                              </div>
-                              <div className="whitespace-pre-wrap break-words text-[13px] text-slate-900">
-                                {renderDecisionRequestValue(key, value)}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
-                      <details className="rounded-xl border border-slate-200 bg-slate-50">
-                        <summary className="cursor-pointer px-3 py-2 text-[13px] font-medium text-slate-800">
-                          View raw JSON
-                        </summary>
-                        <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap break-words border-t border-slate-200 px-3 py-3 font-mono text-[12px] text-slate-800">
-                          {formatExecutionRequestBody(decision.request_body ?? null)}
-                        </pre>
-                      </details>
-                    </div>
-                  ) : (
-                    <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap break-words rounded-xl bg-slate-50 px-3 py-3 font-mono text-[12px] text-slate-800">
-                      {formatExecutionRequestBody(decision.request_body ?? null)}
-                    </pre>
-                  )}
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl border border-slate-200 shadow-none">
-            <CardContent className="p-0">
-              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
-                <h2 className="text-[18px] font-semibold text-slate-950">Rules</h2>
-                <button
-                  type="button"
-                  onClick={() => setRulesOpen((current) => !current)}
-                  className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200"
-                >
-                  {rulesOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-                </button>
-              </div>
-              {rulesOpen ? (
-                <div className="space-y-3 px-6 py-5">
-                  {ruleExecutions.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-slate-200 px-4 py-5 text-[13px] text-slate-500">
-                      No rule executions were recorded for this decision.
-                    </div>
-                  ) : (
-                    ruleExecutions.map((item) => {
-                      const scoreContribution = item.outcome === "hit" ? item.score_modifier : 0;
-                      const isOpen = openRuleIds[item.id] ?? false;
-                      const ruleDefinition = rulesById.get(item.rule_id);
-                      const ruleSummary = ruleDefinition
-                        ? summarizeRuleFormula(ruleDefinition.formula)
-                        : null;
-                      const formattedRuleSummary = ruleSummary
-                        ? formatRuleSummaryForDisplay(ruleSummary)
-                        : null;
-                      const evidenceRows = collectEvaluationEvidence(item.evaluation);
-                      return (
-                        <div key={item.id} className="rounded-xl border border-slate-200 bg-white">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setOpenRuleIds((current) => ({
-                                ...current,
-                                [item.id]: !isOpen,
-                              }))
-                            }
-                            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-                          >
-                            <div className="flex items-center gap-3">
-                              {isOpen ? (
-                                <ChevronDown className="size-4 text-slate-500" />
-                              ) : (
-                                <ChevronLeft className="size-4 rotate-[-90deg] text-slate-500" />
-                              )}
-                              <span className="text-[15px] font-medium text-slate-950">
-                                {item.rule_name}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="rounded-full border border-[#b7d1f3] bg-[#edf5ff] px-3 py-1 text-[13px] font-medium text-[#2d63b8]">
-                                {scoreContribution >= 0
-                                  ? `+${scoreContribution}`
-                                  : scoreContribution}
-                              </span>
-                              <span
-                                className={cn(
-                                  "rounded-full border px-3 py-1 text-[13px] font-medium",
-                                  ruleOutcomeBadgeClass(item.outcome)
-                                )}
-                              >
-                                {item.outcome}
-                              </span>
-                            </div>
-                          </button>
-                          {isOpen ? (
-                            <div className="border-t border-slate-200 px-4 py-4">
-                              <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-[14px] text-slate-700">
-                                <div className="flex flex-wrap gap-6">
-                                  <div>
-                                    <div className="text-[12px] font-medium text-slate-500">
-                                      Rule ID
-                                    </div>
-                                    <div className="mt-1">{item.rule_id}</div>
-                                  </div>
-                                  <div>
-                                    <div className="text-[12px] font-medium text-slate-500">
-                                      Created
-                                    </div>
-                                    <div className="mt-1">{formatDecisionDate(item.created_at)}</div>
-                                  </div>
-                                  <div>
-                                    <div className="text-[12px] font-medium text-slate-500">
-                                      Score contribution
-                                    </div>
-                                    <div className="mt-1">
-                                      {scoreContribution >= 0
-                                        ? `+${scoreContribution}`
-                                        : scoreContribution}
-                                    </div>
-                                  </div>
-                                </div>
-                                {item.skip_reason ? (
-                                  <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2">
-                                    <div className="text-[12px] font-medium text-orange-800">
-                                      Evaluation skipped
-                                    </div>
-                                    <div className="mt-1 text-[13px] text-orange-900">
-                                      {item.skip_reason}
-                                    </div>
-                                  </div>
-                                ) : null}
-                                {ruleDefinition ? (
-                                  <div className="grid gap-4 md:grid-cols-2">
-                                    <div>
-                                      <div className="text-[12px] font-medium text-slate-500">
-                                        Description
-                                      </div>
-                                      <div className="mt-1 text-[14px] text-slate-800">
-                                        {ruleDefinition.description || "No description"}
-                                      </div>
-                                    </div>
-                                    <div>
-                                      <div className="text-[12px] font-medium text-slate-500">
-                                        Rule group
-                                      </div>
-                                      <div className="mt-1 text-[14px] text-slate-800">
-                                        {ruleDefinition.rule_group || "No rule group"}
-                                      </div>
-                                    </div>
-                                  </div>
-                                ) : null}
-                                <div>
-                                  <div className="text-[12px] font-medium text-slate-500">
-                                    Rule logic
-                                  </div>
-                                  <div className="mt-2 overflow-hidden rounded-xl border border-[#d7e7fb] bg-[#f7fbff]">
-                                    <div className="border-b border-[#d7e7fb] px-3 py-2 text-[12px] font-medium text-[#2d63b8]">
-                                      Readable summary
-                                    </div>
-                                    <pre className="whitespace-pre-wrap break-words px-3 py-3 font-mono text-[13px] leading-6 text-slate-800">
-                                      {formattedRuleSummary ??
-                                        "Rule definition is not available for this iteration."}
-                                    </pre>
-                                  </div>
-                                </div>
-                                {item.evaluation ? (
-                                  <div className="space-y-3">
-                                    <div className="text-[12px] font-medium text-slate-500">
-                                      Evaluation evidence
-                                    </div>
-                                    {evidenceRows.length > 0 ? (
-                                      <div className="space-y-2">
-                                        {evidenceRows.map((row) => (
-                                          <div
-                                            key={row.key}
-                                            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3"
-                                          >
-                                            <div className="font-mono text-[13px] text-slate-800">
-                                              {row.expression}
-                                            </div>
-                                            <span
-                                              className={cn(
-                                                "rounded-full border px-2.5 py-0.5 text-[12px] font-medium",
-                                                row.result
-                                                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                                  : "border-rose-200 bg-rose-50 text-rose-700"
-                                              )}
-                                            >
-                                              {String(row.result)}
-                                            </span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-4 text-[13px] text-slate-500">
-                                        Structured evidence is recorded for this rule, but there is no simple comparison summary to display.
-                                      </div>
-                                    )}
-                                    <details className="rounded-xl border border-slate-200 bg-white">
-                                      <summary className="cursor-pointer px-3 py-2 text-[13px] font-medium text-slate-800">
-                                        View raw evaluation trace
-                                      </summary>
-                                      <pre className="max-h-[280px] overflow-auto whitespace-pre-wrap break-words border-t border-slate-200 px-3 py-3 font-mono text-[12px] text-slate-800">
-                                        {JSON.stringify(item.evaluation, null, 2)}
-                                      </pre>
-                                    </details>
-                                  </div>
-                                ) : item.outcome.toLowerCase() === "no_hit" ? (
-                                  <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-4 text-[13px] text-slate-500">
-                                    No evaluation snapshot is available for this rule execution. Older non-hit executions were stored without evidence.
-                                  </div>
-                                ) : item.outcome.toLowerCase() === "snoozed" ? (
-                                  <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-4 text-[13px] text-slate-500">
-                                    This rule was snoozed, so it did not contribute to the decision score and no evidence snapshot was stored.
-                                  </div>
-                                ) : item.outcome.toLowerCase() === "error" ? (
-                                  <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-4 text-[13px] text-slate-500">
-                                    This rule execution ended in an error state. No structured evidence snapshot is currently available for that case.
-                                  </div>
-                                ) : null}
-                              </div>
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
-
-          <div className="space-y-5">
-            <Card className="rounded-2xl border border-slate-200 shadow-none">
-              <CardContent className="p-0">
-                <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-5">
-                  <div>
-                    <div className="text-[15px] font-semibold text-slate-950">Workflow Executions</div>
-                    <div className="text-[13px] text-slate-500">
-                      Actions dispatched from this decision
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge className="rounded-full border-slate-200 bg-white px-2.5 py-0.5 text-[12px] font-medium tracking-normal normal-case text-slate-700">
-                      {workflowExecutions.length}
-                    </Badge>
-                    <button
-                      type="button"
-                      onClick={() => setWorkflowExecutionsOpen((current) => !current)}
-                      className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200"
-                    >
-                      {workflowExecutionsOpen ? (
-                        <ChevronUp className="size-4" />
-                      ) : (
-                        <ChevronDown className="size-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-                {workflowExecutionsOpen ? (
-                  <div className="space-y-3 p-5">
-                    {workflowExecutions.length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-[13px] text-slate-500">
-                        No workflow actions were dispatched for this decision.
-                      </div>
-                    ) : (
-                      workflowExecutions.map((item) => (
-                        <div
-                          key={item.id}
-                          className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="text-[14px] font-semibold text-slate-950">
-                                {formatExecutionLabel(item.action_type)}
-                              </div>
-                              <div className="mt-1 text-[12px] text-slate-500">
-                                Workflow {item.workflow_id}
-                              </div>
-                            </div>
-                            <Badge
-                              className={cn(
-                                "rounded-full border px-2.5 py-0.5 text-[12px] font-medium tracking-normal normal-case",
-                                executionStatusClass(item.status)
-                              )}
-                            >
-                              {formatExecutionLabel(item.status)}
-                            </Badge>
-                          </div>
-                          <div className="mt-3 grid gap-2 text-[12px] text-slate-500">
-                            <div>Created {formatDecisionDate(item.created_at)}</div>
-                            <div className="truncate">Execution ID {item.id}</div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                ) : null}
-              </CardContent>
-            </Card>
-
-            <DecisionScreening tenantId={tenantId} decisionId={decisionId} />
-
-          </div>
-
-        </div>
-
-        <div className="space-y-5">
-          <div className="grid gap-5 md:grid-cols-2">
-            <div
-              className={cn(
-                "rounded-2xl px-6 py-4 text-center shadow-none",
-                "bg-[linear-gradient(180deg,#2d63b8_0%,#1f4f96_100%)] text-white"
-              )}
-            >
-              <div className="text-[16px] opacity-90">Score</div>
-              <div className="mt-2 text-[44px] font-semibold leading-none">{decision.score}</div>
-            </div>
-            <div
-              className={cn(
-                "rounded-2xl px-6 py-4 text-center shadow-none",
-                scoreCardClass(decision.outcome)
-              )}
-            >
-              <div className="text-[16px] opacity-90">Outcome</div>
-              <div className="mt-2 text-[28px] font-semibold">
-                {formatDecisionOutcome(decision.outcome)}
-              </div>
-            </div>
-          </div>
-
-          <Card className="rounded-2xl border border-slate-200 shadow-none">
-            <CardContent className="p-0">
-              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
-                <h2 className="text-[18px] font-semibold text-slate-950">
-                  Detection response
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setResponseOpen((current) => !current)}
-                  className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-200"
-                >
-                  {responseOpen ? (
-                    <ChevronUp className="size-4" />
-                  ) : (
-                    <ChevronDown className="size-4" />
-                  )}
-                </button>
-              </div>
-              {responseOpen ? (
-                <div className="space-y-4 px-6 py-5">
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-xl border border-slate-200 px-3 py-3">
-                      <p className="text-[12px] text-slate-500">Outcome</p>
-                      <p className="mt-1 text-[16px] font-semibold text-slate-950">
-                        {formatDecisionOutcome(decision.outcome)}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-slate-200 px-3 py-3">
-                      <p className="text-[12px] text-slate-500">Score</p>
-                      <p className="mt-1 text-[16px] font-semibold text-slate-950">
-                        {decision.score}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-slate-200 px-3 py-3">
-                      <p className="text-[12px] text-slate-500">Triggered</p>
-                      <p className="mt-1 text-[16px] font-semibold text-slate-950">
-                        {decision.triggered ? "Yes" : "No"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
-        </div>
+      <div className="border-t border-slate-200 bg-[#fafcff] p-[25px] lg:border-l lg:border-t-0"><div className="text-xs text-slate-500">Decision score</div><div className="mt-1 text-[38px] font-semibold leading-none tracking-[-0.04em]">{decision.score} <span className="text-[13px] font-normal tracking-normal text-slate-500">points</span></div><ScoreVisualization score={decision.score} iteration={iteration} loading={iterationsQuery.isLoading} /></div>
+    </CardContent></Card>
+    {scenarioQuery.isError || iterationsQuery.isError ? <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Some scenario details could not be loaded. <button type="button" className="font-semibold underline" onClick={() => { if (scenarioQuery.isError) void scenarioQuery.refetch(); if (iterationsQuery.isError) void iterationsQuery.refetch(); }}>Retry</button></p> : null}
+    <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white" aria-labelledby="rule-breakdown-heading">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-[22px] py-[19px]"><div><h2 id="rule-breakdown-heading" className="text-[17px] font-semibold tracking-tight">Rule execution breakdown</h2><p className="mt-1 text-xs text-slate-500">Rule contributions and the evidence behind them</p></div><span className="text-[13px] font-semibold">{decision.score} points total</span></div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-[#fcfdff] px-[22px] py-3.5"><div className="text-xs text-slate-500"><strong className="text-slate-900">{matched} matched</strong> · {executions.length - matched} other</div>
+        <div className="flex gap-1 rounded-[9px] border border-slate-200 bg-slate-50 p-[3px]" role="group" aria-label="Filter rule executions">{(["all", "matched", "not-matched"] as const).map((filter) => <button key={filter} type="button" aria-pressed={ruleFilter === filter} onClick={() => setRuleFilter(filter)} className={cn("rounded-md border border-transparent px-2 py-1 text-xs", ruleFilter === filter ? "border-slate-200 bg-white font-semibold text-slate-900" : "text-slate-500")}>{filter === "all" ? "All" : filter === "matched" ? "Matched" : "Other"}</button>)}</div>
       </div>
-    </div>
-  );
+      {visible.length ? visible.map((item) => {
+        const hit = item.outcome.toLowerCase() === "hit";
+        const contribution = hit ? item.score_modifier : 0;
+        const aggregate = item.evaluation && aggregateNodes(item.evaluation).length > 0;
+        const combined = ["and", "or"].includes(nodeName(item.evaluation));
+        const Icon = aggregate ? Sigma : combined ? GitBranch : Scale;
+        return <button key={item.id} type="button" onClick={() => setSelectedRuleId(item.id)} className={cn("grid w-full grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-3 border-b border-slate-100 px-[22px] py-[18px] text-left last:border-b-0 hover:brightness-[0.98] max-sm:grid-cols-[28px_minmax(0,1fr)_auto] max-sm:gap-2 max-sm:px-[17px]", hit && matchedClass(decision.outcome))}>
+          <span className="grid size-8 place-items-center rounded-[9px] border max-sm:size-7" style={{ borderColor: "currentColor" }}><Icon className="size-[18px]" /></span>
+          <span className="flex min-w-0 flex-wrap items-center gap-2"><strong className="break-words text-base">{item.rule_name}</strong><span style={hit ? { borderColor: "currentColor" } : undefined} className={cn("rounded-md border px-2 py-[3px] text-[11px] font-semibold", !hit && "bg-slate-50 text-slate-600")}>{hit ? "Matched" : item.outcome.toLowerCase() === "no_hit" ? "Not matched" : formatLabel(item.outcome)}</span>{aggregate ? <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-[3px] text-[11px] font-semibold text-slate-600">Aggregate</span> : combined ? <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-[3px] text-[11px] font-semibold text-slate-600">Combined logic</span> : null}</span>
+          <span className="shrink-0 text-right"><strong className="block text-[15px]">{contribution > 0 ? "+" : ""}{contribution}</strong><span className="text-[11px]">View execution →</span></span>
+        </button>;
+      }) : <p className="px-6 py-5 text-sm text-slate-500">{executions.length ? "No rule executions match this filter." : "No rule executions were recorded for this decision."}</p>}
+    </section>
+    <Card className="overflow-hidden rounded-[14px] border border-slate-200 shadow-none"><CardContent className="p-0">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-[22px] py-[19px]"><div><h2 className="text-[17px] font-semibold tracking-tight">Evaluated request</h2><p className="mt-1 text-xs text-slate-500">Values captured at decision time</p></div><span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-[3px] text-[11px] font-semibold text-slate-600">Snapshot</span></div>
+      {fields.length || metadata.length ? <dl className="grid gap-3.5 px-[22px] py-5">{[...fields, ...metadata].map(([name, value], index) => <div key={`${name}-${index}`} className="flex justify-between gap-4 text-xs"><dt className="text-slate-500">{name.replace(/_/g, " ")}</dt><dd className="whitespace-pre-wrap break-all text-right font-semibold">{formatValue(value)}</dd></div>)}</dl> : <p className="px-[22px] py-5 text-sm text-slate-500">No request fields were recorded.</p>}
+      <details className="border-t border-slate-200"><summary className="cursor-pointer px-[22px] py-3.5 text-xs font-semibold text-[#1f4f96]">View raw request JSON</summary><pre className="mx-[22px] mb-5 max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">{formatExecutionRequestBody(decision.request_body ?? null)}</pre></details>
+    </CardContent></Card>
+    {selectedExecution ? <RuleExecutionInspector execution={selectedExecution} executions={executions} rule={rulesById.get(selectedExecution.rule_id)} onSelect={setSelectedRuleId} onClose={() => setSelectedRuleId(null)} fullPageHref={ruleViewHref(selectedExecution.id)} /> : null}
+  </div>;
 }

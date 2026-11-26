@@ -14,6 +14,8 @@ The script exits non-zero if the time limit is reached before the transaction ta
 
 The script requires an existing tenant whose data model exactly matches `fraud-data-model.json` and all five matching scenarios are published. It verifies those prerequisites before writing any fixtures. If provisioning used non-default late-callback or D7 settings, pass the same values to this script.
 
+To proceed despite a model mismatch, add `--allow-model-mismatch` alongside `--confirm-write`. The script still loads the local model, fetches the tenant model and checks the published scenarios; it warns about the mismatch instead of stopping. Fixture writes can fail or have unintended meaning, so use this only after reviewing the differences and only with a disposable test tenant.
+
 In deterministic mode, transaction fixtures set the nullable `user_median_amount_90d` field to `null` by default. The baseline-deviation cases set it to `10`.
 
 ## Dry run

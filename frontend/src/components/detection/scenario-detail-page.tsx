@@ -225,15 +225,15 @@ export function ScenarioDetailPage({ scenarioId }: { scenarioId: string }) {
         <div className="grid gap-3 xl:grid-cols-3">
           <ResourceCard
             title="Scenario guide"
-            accent="bg-[linear-gradient(180deg,#eef2ff_0%,#e0e7ff_100%)]"
+            accent="bg-[#f1f6ff]"
           />
           <ResourceCard
             title="API"
-            accent="bg-[linear-gradient(180deg,#eef4ff_0%,#dbeafe_100%)]"
+            accent="bg-[#f1f6ff]"
           />
           <ResourceCard
             title="Workflow"
-            accent="bg-[linear-gradient(180deg,#f3f0ff_0%,#ede9fe_100%)]"
+            accent="bg-[#f1f6ff]"
           />
         </div>
       </section>

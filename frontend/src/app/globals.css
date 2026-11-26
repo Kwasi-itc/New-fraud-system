@@ -76,6 +76,23 @@ body {
   font-family: var(--font-inter);
 }
 
+.product-workspace {
+  --background: #f7f9fc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --muted: #f8fafc;
+  --muted-foreground: #64748b;
+  --border: #e2e8f0;
+  --input: #cbd5e1;
+  --primary: #1f4f96;
+  --primary-foreground: #ffffff;
+  --accent: #1f4f96;
+  --workspace-card-radius: 14px;
+  --workspace-card-shadow: none;
+  --workspace-control-radius: 9px;
+}
+
 a,
 button,
 input {

@@ -9,13 +9,13 @@ import {
   ArrowRight,
   Check,
   Circle,
-  ClipboardCheck,
   Database,
   FileWarning,
-  ListChecks,
+  List,
   Radio,
+  Route,
+  Scale,
   ShieldCheck,
-  Workflow,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -133,7 +133,7 @@ function GettingStartedChecklist({
       complete: scenarios.length > 0,
       href: "/detection?action=new-scenario",
       action: scenarios.length > 0 ? "View scenarios" : "Create scenario",
-      icon: Workflow,
+      icon: Route,
     },
     {
       title: "Add your first rule",
@@ -156,30 +156,30 @@ function GettingStartedChecklist({
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-3xl bg-[#102f5c] text-white shadow-[0_24px_60px_rgba(15,47,92,0.18)]">
+      <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white text-slate-900">
         <div className="grid gap-8 px-6 py-8 lg:grid-cols-[1fr_340px] lg:px-10 lg:py-10">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-200">
+            <p className="text-xs font-semibold uppercase tracking-[0.09em] text-slate-500">
               Fraud manager setup
             </p>
             <h1 className="mt-3 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
               Build and publish your first fraud protection
             </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-blue-100 sm:text-base">
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
               Complete the configuration steps below. No transactions or decision requests are
               required to finish setup.
             </p>
           </div>
-          <div className="self-end rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur">
+          <div className="self-end rounded-xl border border-slate-200 bg-slate-50 p-5">
             <div className="flex items-end justify-between gap-4">
               <div>
-                <p className="text-sm text-blue-100">Setup progress</p>
+                <p className="text-sm text-slate-500">Setup progress</p>
                 <p className="mt-1 text-2xl font-semibold">{completedCount} of 4 complete</p>
               </div>
-              <span className="text-2xl font-semibold text-blue-100">{progress}%</span>
+              <span className="text-2xl font-semibold text-[#1f4f96]">{progress}%</span>
             </div>
             <div
-              className="mt-4 h-2 overflow-hidden rounded-full bg-white/15"
+              className="mt-4 h-2 overflow-hidden rounded-full bg-slate-200"
               role="progressbar"
               aria-label="Fraud manager setup progress"
               aria-valuemin={0}
@@ -187,7 +187,7 @@ function GettingStartedChecklist({
               aria-valuenow={completedCount}
             >
               <div
-                className="h-full rounded-full bg-[#63a4ff] transition-[width] duration-500"
+                className="h-full rounded-full bg-[#1f4f96] transition-[width] duration-500"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -339,7 +339,7 @@ function OperationsDashboard({ scenarios }: { scenarios: Scenario[] }) {
             label: "Total scenarios",
             value: scenarios.length,
             description: "All draft and published scenarios",
-            icon: Workflow,
+            icon: Route,
             href: "/detection",
           },
           {
@@ -353,7 +353,7 @@ function OperationsDashboard({ scenarios }: { scenarios: Scenario[] }) {
             label: "Total decisions",
             value: totalDecisions,
             description: "All outcomes recorded by the decision engine",
-            icon: ClipboardCheck,
+            icon: Scale,
             href: "/detection?tab=Decisions",
           },
         ].map((item) => {
@@ -441,19 +441,19 @@ function OperationsDashboard({ scenarios }: { scenarios: Scenario[] }) {
             title: "Manage scenarios",
             description: "Create drafts, edit rules, and publish new versions.",
             href: "/detection",
-            icon: ShieldCheck,
+            icon: Route,
           },
           {
             title: "Manage lists",
             description: "Maintain reusable watchlists, allowlists, and IP lists.",
             href: "/detection?tab=Lists",
-            icon: ListChecks,
+            icon: List,
           },
           {
             title: "Review decisions",
             description: "Inspect outcomes, scores, and the rules that were triggered.",
             href: "/detection?tab=Decisions",
-            icon: ClipboardCheck,
+            icon: Scale,
           },
         ].map((item) => {
           const Icon = item.icon;

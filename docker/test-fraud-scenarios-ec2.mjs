@@ -65,6 +65,7 @@ function parseArgs(args) {
     nearLimitPercent: 10,
     confirmWrite: false,
     dryRun: false,
+    allowModelMismatch: false,
     deterministic: false,
     totalTransactions: DEFAULT_TOTAL_TRANSACTIONS,
     durationHours: DEFAULT_DURATION_HOURS,
@@ -103,6 +104,10 @@ function parseArgs(args) {
     }
     if (option === '--dry-run') {
       parsed.dryRun = true;
+      continue;
+    }
+    if (option === '--allow-model-mismatch') {
+      parsed.allowModelMismatch = true;
       continue;
     }
     if (option === '--deterministic') {
@@ -208,6 +213,7 @@ Core Options:
   --duration-minutes N           Override duration in minutes (useful for testing)
   --batch-size N                 Transaction batch size per HTTP request (default: 10)
   --model-file PATH              Portable model JSON (default: ../fraud-data-model.json)
+  --allow-model-mismatch         Continue despite a differing tenant model (unsafe; see warning)
   --run-id ID                    Fixture prefix (generated when omitted)
   --confirm-write                Required; records and decisions persist in the tenant
   --dry-run                      Simulate traffic locally without making API requests
@@ -614,7 +620,7 @@ async function loadModel(modelFile) {
   return model;
 }
 
-async function checkExistingModel(options, tokenManager, model) {
+export async function checkExistingModel(options, tokenManager, model) {
   const response = await requestJson(
     options.origin,
     '/services/data-model',
@@ -623,8 +629,13 @@ async function checkExistingModel(options, tokenManager, model) {
   );
   const exported = portableModel(assertEnvelope(response.body, 'data_model', 'Model export'));
   if (canonicalJSON(exported) !== canonicalJSON(model)) {
-    throw new Error('Tenant data model differs from the local fraud-data-model.json; refusing to seed fixtures.');
+    if (!options.allowModelMismatch) {
+      throw new Error('Tenant data model differs from the local fraud-data-model.json; refusing to seed fixtures.');
+    }
+    console.warn('WARNING: Tenant data model differs from the local model; fixture writes may fail or have unintended meaning.');
+    return false;
   }
+  return true;
 }
 
 async function checkScenarios(options, tokenManager, definitions) {
@@ -1111,9 +1122,9 @@ export async function runContinuousSimulation(options, model, definitions) {
   }
 
   const tokenManager = new AuthTokenManager(options);
-  await checkExistingModel(options, tokenManager, model);
+  const modelMatches = await checkExistingModel(options, tokenManager, model);
   const liveScenarios = await checkScenarios(options, tokenManager, definitions);
-  console.log(`Verified data model and ${liveScenarios.size} live scenarios.`);
+  console.log(`${modelMatches ? 'Verified data model and' : 'Verified'} ${liveScenarios.size} live scenarios.`);
 
   // Ingest baseline entity cohort (customers and wallets)
   console.log(`Ingesting baseline entity cohort (${pool.customers.length} customers, ${pool.wallets.length} wallets)...`);

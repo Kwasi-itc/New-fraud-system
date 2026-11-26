@@ -9,6 +9,7 @@ import {
   buildTestCases,
   parseArgs,
   CLIENT_SCOPES,
+  checkExistingModel,
   getEvaluation,
   evaluateTransactionBatch,
   runContinuousSimulation,
@@ -37,6 +38,30 @@ test('requires tenant, gateway, and explicit write acknowledgement', () => {
   assert.throws(() => parseArgs(['--host', '10.0.0.2:8088', '--tenant-id', tenantId, '--client-id', clientId]), /--confirm-write/);
   assert.equal(parseArgs(['--host', '10.0.0.2:8088', '--tenant-id', tenantId, '--client-id', clientId, '--confirm-write']).origin, 'http://10.0.0.2:8088');
   assert.equal(parseArgs(['--dry-run']).dryRun, true);
+});
+
+test('model mismatch requires an explicit override and does not hide export errors', async (t) => {
+  const envelope = JSON.parse(await readFile(new URL('../fraud-data-model.json', import.meta.url), 'utf8'));
+  const model = portableModel(envelope.data_model);
+  const different = structuredClone(envelope);
+  different.data_model.tables[0].description = 'different';
+  let response = new Response(JSON.stringify(different), { status: 200 });
+  t.mock.method(globalThis, 'fetch', async () => response);
+  const warn = t.mock.method(console, 'warn', () => {});
+  const options = parseArgs(['--host', 'localhost:8088', '--tenant-id', tenantId, '--client-id', clientId, '--confirm-write']);
+  const tokenManager = { getToken: async () => 'token' };
+
+  await assert.rejects(checkExistingModel(options, tokenManager, model), /differs.*refusing to seed/);
+  response = new Response(JSON.stringify(different), { status: 200 });
+  assert.equal(await checkExistingModel({ ...options, allowModelMismatch: true }, tokenManager, model), false);
+  assert.match(warn.mock.calls[0].arguments[0], /WARNING.*may fail or have unintended meaning/);
+  response = new Response(JSON.stringify(envelope), { status: 200 });
+  assert.equal(await checkExistingModel({ ...options, allowModelMismatch: true }, tokenManager, model), true);
+  assert.equal(warn.mock.callCount(), 1);
+  response = new Response(JSON.stringify({ error: 'unavailable' }), { status: 503 });
+  await assert.rejects(checkExistingModel({ ...options, allowModelMismatch: true }, tokenManager, model), /HTTP 503/);
+  response = new Response(JSON.stringify({}), { status: 200 });
+  await assert.rejects(checkExistingModel({ ...options, allowModelMismatch: true }, tokenManager, model), /response did not contain/);
 });
 
 test('rejects invalid run IDs, host origins, and rule thresholds', () => {
@@ -226,13 +251,18 @@ test('stops with transaction IDs when evaluations fail or have unknown outcomes'
   assert.deepEqual(requested.sort(), ['tx-1', 'tx-2']);
 });
 
-test('continuous simulation ingests and evaluates every transaction', async (t) => {
+test('continuous simulation can explicitly allow a mismatch and still evaluate every transaction', async (t) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'fraud-simulation-test-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const keyDir = path.join(directory, 'keys');
   generateClientKeyPair(keyDir, 'simulation-test');
   const envelope = JSON.parse(await readFile(new URL('../fraud-data-model.json', import.meta.url), 'utf8'));
   const model = portableModel(envelope.data_model);
+  const different = structuredClone(envelope);
+  different.data_model.tables[0].description = 'different';
+  const warning = t.mock.method(console, 'warn', () => {});
+  const logs = [];
+  t.mock.method(console, 'log', (...args) => logs.push(args.join(' ')));
   const definitions = buildScenarioDefinitions();
   const scenarios = definitions.map((definition, index) => ({
     id: `scenario-${index}`, name: definition.name,
@@ -245,7 +275,7 @@ test('continuous simulation ingests and evaluates every transaction', async (t) 
     if (url.endsWith('/oauth/token')) {
       response = { access_token: 'test-token', token_type: 'Bearer', expires_in: 900 };
     } else if (url.endsWith('/data-model/export')) {
-      response = envelope;
+      response = different;
     } else if (url.endsWith('/scenarios')) {
       response = { scenarios };
     } else if (url.endsWith('/rules')) {
@@ -269,9 +299,13 @@ test('continuous simulation ingests and evaluates every transaction', async (t) 
   const options = parseArgs([
     '--host', 'localhost:8088', '--tenant-id', tenantId, '--client-id', clientId,
     '--key-dir', keyDir, '--confirm-write', '--total-transactions', '3', '--batch-size', '3',
+    '--allow-model-mismatch',
     '--duration-minutes', '1', '--checkpoint-file', path.join(directory, 'checkpoint.json'),
   ]);
   await runContinuousSimulation(options, model, definitions);
+  assert.equal(warning.mock.callCount(), 1);
+  assert.ok(logs.includes('Verified 5 live scenarios.'));
+  assert.ok(!logs.some(line => line.includes('Verified data model')));
   assert.equal(ingested.length, 3);
   assert.deepEqual(evaluated.sort(), ingested.sort());
   const checkpoint = JSON.parse(await readFile(options.checkpointFile, 'utf8'));

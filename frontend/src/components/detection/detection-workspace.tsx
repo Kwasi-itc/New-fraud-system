@@ -10,7 +10,6 @@ import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/rea
 import {
   Archive,
   ArrowRight,
-  ClipboardCheck,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -19,7 +18,8 @@ import {
   Filter,
   Info,
   Lightbulb,
-  ListChecks,
+  List,
+  Scale,
   Loader2,
   Pencil,
   Plus,
@@ -344,7 +344,7 @@ function NavigationGuideBanner({
   onSkip: () => void;
 }) {
   const isListsStep = step === "lists";
-  const Icon = isListsStep ? ListChecks : ClipboardCheck;
+  const Icon = isListsStep ? List : Scale;
 
   return (
     <Card className="rounded-2xl border border-blue-200 bg-blue-50/70 shadow-none">

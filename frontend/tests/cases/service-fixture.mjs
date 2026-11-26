@@ -49,7 +49,7 @@ createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
   const evidence=url.pathname.match(/^\/v1\/tenants\/([^/]+)\/cases\/[^/]+\/evidence\/(decisions|screenings)\/([^/]+)$/);
   if(evidence) url.pathname=`/v1/tenants/${evidence[1]}/${evidence[2]}/${evidence[3]}`;
-  const send = (status, data) => { if(data?.session) data.session.capabilities=fixtureCapabilities(data.session.roles); res.writeHead(status, { "Content-Type": "application/json" }); res.end(status === 204 ? undefined : JSON.stringify(data)); };
+  const send = (status, data) => { if(data?.session && typeof data.session === "object") data.session.capabilities=fixtureCapabilities(data.session.roles); res.writeHead(status, { "Content-Type": "application/json" }); res.end(status === 204 ? undefined : JSON.stringify(data)); };
   if (url.pathname === "/health") return send(200, {});
   if (await handleControlledProvider(req, url, send)) return;
   if (await handlePrivateLists(req, url, send)) return;
@@ -94,7 +94,9 @@ createServer(async (req, res) => {
     if (!validBootstrap(req.headers.authorization ?? "")) return send(401, {});
     let raw = ""; for await (const chunk of req) raw += chunk;
     const body = JSON.parse(raw || "{}");
+    if (url.pathname === "/internal/login/start") return send(200, { url: "http://127.0.0.1:3199/provider-login", binding: "fixture-login-binding" });
     if (url.pathname === "/internal/invitations/start") return body.token === "a".repeat(43) ? send(200, { url: "http://127.0.0.1:3199/provider-login", binding: "fixture-login-binding" }) : send(403, {});
+    if (url.pathname === "/internal/login/complete") return body.binding === "fixture-login-binding" && body.state === "fixture-state" && body.code === "fixture-code" ? send(200, { session: "fixture-analyst" }) : send(403, { error: "Invalid login" });
     if (url.pathname !== "/internal/session") return send(404, {});
     if (!["fixture-analyst", "fixture-admin", "fixture-platform", "fixture-workflow", "fixture-private-importer", "fixture-private-reviewer"].includes(body.session) || revokedSessions.has(body.session)) return send(401, { error: "Session expired" });
     if (["fixture-private-importer","fixture-private-reviewer"].includes(body.session)) return send(200,{access_token:body.session,session:{id:body.session,user_id:body.session,tenant_id:tenant,name:"Fictional tenant administrator",roles:["tenant_admin"],version:1,expires_at:"2099-01-01T00:00:00Z"}});

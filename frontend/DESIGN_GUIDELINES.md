@@ -75,12 +75,13 @@ The sidebar should follow these rules:
 
 Current preferred navigation language:
 
-- `Detection`
-- `Case Manager`
-- `Customer hub`
+- `Dashboard`
 - `Your Data Model`
-- `Settings`
+- `Scenarios`, `Lists`, and `Decisions` under `Detection`
 - `My Account`
+
+Screening, Case Manager, Customer hub, and Settings remain available as routes but are not listed in the product sidebar.
+The concept theme applies to the product workspace; account and administration pages, screening, cases, customer hub, and settings retain their existing page styling.
 
 ## Page Design Pattern
 

@@ -3,6 +3,62 @@ import { expect, test } from "@playwright/test";
 test.beforeEach(async ({ request }) => { await request.get("http://127.0.0.1:3199/reset"); });
 const login = async (context: import("@playwright/test").BrowserContext, value = "fixture-analyst") => context.addCookies([{ name: "case_test_session", value, domain: "127.0.0.1", path: "/", httpOnly: true, sameSite: "Lax" }]);
 
+test("successful sign-in and invitation completion redirect to the dashboard", async ({ page, context }) => {
+  for (const action of ["start", "invite-start"]) {
+    await context.clearCookies();
+    const start = await page.request.post(`/api/auth/${action}`, {
+      headers: { Origin: "http://127.0.0.1:3100" },
+      ...(action === "invite-start" ? { form: { token: "a".repeat(43) } } : {}),
+      maxRedirects: 0,
+    });
+    expect(start.status()).toBe(303);
+    expect((await context.cookies()).some(cookie => cookie.name === "fraud_login")).toBe(true);
+    const callback = await page.request.get("/api/auth/callback?state=fixture-state&code=fixture-code", { maxRedirects: 0 });
+    expect(callback.status()).toBe(303);
+    expect(callback.headers().location).toBe("http://127.0.0.1:3100/dashboard");
+    expect(callback.headers()["cache-control"]).toContain("no-store");
+    const cookies = await context.cookies();
+    expect(cookies.find(cookie => cookie.name === "case_test_session")?.value).toBe("fixture-analyst");
+    expect(cookies.some(cookie => cookie.name === "fraud_login")).toBe(false);
+  }
+  await context.clearCookies();
+  const denied = await page.request.get("/api/auth/callback?state=fixture-state&code=fixture-code", { maxRedirects: 0 });
+  expect(denied.headers().location).toBe("http://127.0.0.1:3100/login?error=denied");
+  expect((await context.cookies()).some(cookie => cookie.name === "case_test_session")).toBe(false);
+  await page.request.post("/api/auth/start", { headers: { Origin: "http://127.0.0.1:3100" }, maxRedirects: 0 });
+  const invalid = await page.request.get("/api/auth/callback?state=wrong&code=fixture-code", { maxRedirects: 0 });
+  expect(invalid.headers().location).toBe("http://127.0.0.1:3100/login?error=denied");
+  expect((await context.cookies()).some(cookie => cookie.name === "case_test_session" || cookie.name === "fraud_login")).toBe(false);
+});
+
+test("product navigation hides excluded areas without removing their routes", async ({ page, context }) => {
+  await login(context);
+  await page.goto("/dashboard");
+  const sidebar = page.locator("aside").first();
+  for (const label of ["Dashboard", "Your Data Model", "Scenarios", "Lists", "Decisions", "My Account"]) {
+    await expect(sidebar.getByRole("link", { name: label, exact: true })).toBeVisible();
+  }
+  for (const label of ["Screening", "Case Manager", "Customer hub", "Settings"]) {
+    await expect(sidebar.getByRole("link", { name: label, exact: true })).toHaveCount(0);
+  }
+  await expect(page.locator("main")).toHaveClass(/product-workspace/);
+  await expect(page.getByRole("button", { name: "Expand sidebar" })).toBeHidden();
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  await expect(page.getByRole("button", { name: "Collapse sidebar" })).toBeHidden();
+  await expect(sidebar.getByRole("link", { name: "Decisions", exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(sidebar.getByText("Scenarios", { exact: true })).toBeVisible();
+  await expect(sidebar.getByText("My Account", { exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 1280, height: 844 });
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  await page.getByRole("button", { name: "Expand sidebar" }).click();
+  for (const path of ["/my-account", "/administration/users", "/screening-search", "/cases", "/investigator", "/settings"]) {
+    const response = await page.goto(path);
+    expect(response?.status()).toBe(200);
+    await expect(page.locator("main")).not.toHaveClass(/product-workspace/);
+  }
+});
+
 test("signed-out pages require login and account writes reject foreign origins", async ({ page }) => {
   await page.goto("/my-account"); await expect(page).toHaveURL(/\/login$/);
   for (const action of ["logout", "profile", "manage-sign-in"]) expect((await page.request.post(`/api/auth/${action}`, { headers: { Origin: "https://untrusted.example" }, data: { name: "Forged", version: 1 } })).status()).toBe(403);
