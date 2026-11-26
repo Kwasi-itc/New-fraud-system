@@ -297,6 +297,7 @@ services:
       RULE_EVALUATION_CONCURRENCY: ${RULE_EVALUATION_CONCURRENCY:-0}
       SCENARIO_EVALUATION_CONCURRENCY: ${SCENARIO_EVALUATION_CONCURRENCY:-0}
       AGGREGATE_REMOTE_CONCURRENCY_LIMIT: ${AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-0}
+      AGGREGATE_SQL_STATEMENT_TIMEOUT: ${AGGREGATE_SQL_STATEMENT_TIMEOUT:-500ms}
     volumes:
       - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
       - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/decision-engine-service-private.pem:/run/secrets/decision-engine-service-private.pem:ro
@@ -468,6 +469,7 @@ services:
       RULE_EVALUATION_CONCURRENCY: ${RULE_EVALUATION_CONCURRENCY:-0}
       SCENARIO_EVALUATION_CONCURRENCY: ${SCENARIO_EVALUATION_CONCURRENCY:-0}
       AGGREGATE_REMOTE_CONCURRENCY_LIMIT: ${AGGREGATE_REMOTE_CONCURRENCY_LIMIT:-0}
+      AGGREGATE_SQL_STATEMENT_TIMEOUT: ${AGGREGATE_SQL_STATEMENT_TIMEOUT:-500ms}
     volumes:
       - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/public-keys.json:/run/secrets/public-keys.json:ro
       - ${PLATFORM_AUTH_DIRECTORY:-./.local/auth-provider}/decision-engine-worker-private.pem:/run/secrets/decision-engine-worker-private.pem:ro

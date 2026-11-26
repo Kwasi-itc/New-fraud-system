@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	defaultMaxSearchIndexesPerTable = 6
-	defaultMaxRollupsPerTable        = 4
+	defaultMaxSearchIndexesPerTable = 15
+	defaultMaxRollupsPerTable       = 4
 )
 
 type RollupDefinitionRequest struct {

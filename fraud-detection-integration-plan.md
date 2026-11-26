@@ -134,7 +134,7 @@ omission.
 | `src/controllers/FraudController.ts` + route | `POST /callback/fraud-decision` — logs one structured line per scenario | ~65 |
 | `tests/fraudEvents*.test.ts` | Tier-1 contract and safety tests (§8) | ~250 |
 
-No changes to any existing worker other than the emit calls listed in §6.
+   No changes to any existing worker other than the emit calls listed in §6.
 
 ### Infrastructure
 

@@ -60,7 +60,7 @@ Plan: [HIGH_LOAD_AGGREGATES_PLAN.md](HIGH_LOAD_AGGREGATES_PLAN.md). Section refe
 
 ### 1.6 Subsumption, Per-Table Index Cap & Reference-Counted GC (§4.2–4.3)
 - [x] Treat an index requirement as satisfied when an existing valid managed index has a matching key prefix and covers all required `includeColumns`.
-- [x] Enforce a configurable per-table managed search index cap (default `6`), failing `StartPreparation` with an explicit error listing existing indexes when exceeded.
+- [x] Enforce a per-table managed search index cap (default `15`), failing `StartPreparation` with an explicit error naming the table and limit when exceeded.
 - [x] Add a reference-counted index GC worker that drops unreferenced managed indexes (`DROP INDEX CONCURRENTLY`) only when zero live or committed iterations reference them and a 24h grace period has elapsed.
 - [x] Add unit/integration test confirming GC retains an older non-covering index while another live iteration still references it.
 

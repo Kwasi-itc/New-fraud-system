@@ -7,7 +7,7 @@
         "description": "One record per transaction LEG. A transfer produces two: a debit from the customer and a credit to the destination. Both carry the same trans_id.",
         "alias": "Transactions",
         "semantic_type": "entity",
-        "caption_field": "object_id",
+        "caption_field": "channel",
         "fields": [
           {
             "name": "trans_id",
@@ -568,6 +568,10 @@
             "classification_evidence": {}
           }
         ],
+        "options": {
+          "displayed_fields": ["currency", "amount", "state", "source_msisdn"],
+          "field_order": ["currency", "amount", "state", "source_msisdn"]
+        },
         "navigation_options": []
       },
       {

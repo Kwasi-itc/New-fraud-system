@@ -388,3 +388,65 @@ func TestStartPreparationEnforcesPerTableIndexCapAndAggregatePolicy(t *testing.T
 		t.Fatal("expected disabled aggregate policy error for SUM when only count is enabled")
 	}
 }
+
+func TestStartPreparationDefaultIndexCap(t *testing.T) {
+	t.Parallel()
+
+	formula, err := json.Marshal(domainast.Node{
+		Function: "Aggregator",
+		NamedChildren: map[string]domainast.Node{
+			"tableName": {Constant: "transactions"},
+			"filters": {
+				Function: "Filter",
+				NamedChildren: map[string]domainast.Node{
+					"fieldName": {Constant: "customer_id"},
+					"operator":  {Constant: "="},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range []struct {
+		name        string
+		activeJobs  int
+		wantBlocked bool
+	}{
+		{name: "existing eight indexes", activeJobs: 8},
+		{name: "one slot left", activeJobs: 14},
+		{name: "at limit", activeJobs: 15, wantBlocked: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dataModel := &publicationDataModelReader{model: ports.TenantModel{
+				Tables: map[string]ports.TenantModelTable{
+					"transactions": {
+						ID: "table-1", Name: "transactions",
+						Fields: map[string]ports.TenantModelField{"customer_id": {Name: "customer_id"}},
+					},
+				},
+			}}
+			for i := 0; i < tc.activeJobs; i++ {
+				dataModel.jobs = append(dataModel.jobs, ports.ManagedIndexJob{
+					TableName: "transactions", IndexType: "search", Status: "applied", Columns: []string{"other"},
+				})
+			}
+			svc := PublicationService{
+				scenarioRepo: scenarioRepoStub{item: scenario.Scenario{ID: "s1", TenantID: "t1", TriggerObjectType: "transactions"}},
+				iterationRepo: scenarioIterationRepoStub{iteration: scenario.Iteration{
+					ID: "i1", ScenarioID: "s1", TenantID: "t1", TriggerFormula: formula,
+				}},
+				ruleRepo: ruleRepoStub{}, dataModelReader: dataModel,
+			}
+			_, err := svc.StartPreparation(context.Background(), "t1", "s1", "i1")
+			if tc.wantBlocked {
+				if err == nil || len(dataModel.created) != 0 {
+					t.Fatalf("at limit: error = %v, created jobs = %d; want error and no jobs", err, len(dataModel.created))
+				}
+			} else if err != nil || len(dataModel.created) != 1 {
+				t.Fatalf("below limit: error = %v, created jobs = %d; want one job", err, len(dataModel.created))
+			}
+		})
+	}
+}

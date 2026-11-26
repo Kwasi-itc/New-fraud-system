@@ -38,6 +38,8 @@ The model file defaults to `fraud-data-model.json` at the repository root. Overr
 
 Run `--dry-run` first to validate the local model and display the rules that remain unsupported without making network requests.
 
+To prepare existing published scenarios for republication, add `--draft-published`. The script clones their live iterations even when all supported rules already exist, or resumes a compatible existing draft. Review, commit, prepare and publish each draft in the frontend; the script never publishes.
+
 ## Safety and verification
 
 Before any scenario writes, the script verifies that the tenant is active and checks the existing exported model. An empty or different model stops the run; model import/update remains a separate human-authorized setup operation. Scenario definitions are matched by name and rules by stable rule ID. If supported rules are missing, the script resumes one compatible draft or creates one from the current live/committed version, adds only missing rules, validates the iteration, and verifies that it remains a draft. Conflicting/duplicate stable IDs, ambiguous scenario names, incompatible drafts, or multiple drafts stop provisioning rather than overwriting unknown configuration.

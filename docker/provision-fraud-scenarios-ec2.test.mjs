@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { buildScenarioDefinitions, CLIENT_SCOPES, findMissingRules, omittedRules, parseArgs, portableModel, validateDefinitionsAgainstModel } from './provision-fraud-scenarios-ec2.mjs';
+import { buildScenarioDefinitions, CLIENT_SCOPES, createOrUpdateScenarioDraft, findMissingRules, omittedRules, parseArgs, portableModel, validateDefinitionsAgainstModel } from './provision-fraud-scenarios-ec2.mjs';
 
 const tenantId = 'd7943f99-4402-428a-a539-0b2ecb6fcc17';
 const clientId = '552e8400-e29b-41d4-a716-446655440000';
@@ -97,4 +97,42 @@ test('supports explicit dry run and help without requiring target arguments', ()
 
 test('requires a registered client ID for live provisioning', () => {
   assert.throws(() => parseArgs(['--host', '10.0.0.2:8088', '--tenant-id', tenantId]), /--client-id/);
+});
+
+test('complete published scenarios are cloned only when requested, then safely resumed', async t => {
+  const definition = buildScenarioDefinitions()[0];
+  const scenario = { id: 'scenario-1', name: definition.name, trigger_object_type: definition.trigger_object_type, live_iteration_id: 'live-1' };
+  const live = {
+    id: 'live-1', status: 'committed', version: 1, trigger_formula: definition.trigger,
+    score_review_threshold: definition.thresholds[0], score_block_and_review_threshold: definition.thresholds[1],
+    score_decline_threshold: definition.thresholds[2], schedule: '',
+  };
+  const rules = definition.rules.map((rule, index) => ({ ...rule, display_order: index + 1 }));
+  let draft;
+  const writes = [];
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    const method = options.method;
+    let response;
+    if (method === 'GET' && url.endsWith('/scenarios/scenario-1')) response = { scenario };
+    else if (method === 'GET' && url.endsWith('/iterations')) response = { iterations: draft ? [live, draft] : [live] };
+    else if (method === 'GET' && url.endsWith('/rules')) response = { rules };
+    else if (method === 'POST' && url.endsWith('/iterations/live-1/draft')) {
+      writes.push('create draft');
+      draft = { ...live, id: 'draft-1', status: 'draft', version: 2 };
+      response = { iteration: draft };
+    } else if (method === 'POST' && url.endsWith('/iterations/draft-1/validate')) {
+      writes.push('validate');
+      response = { validation: { valid: true, rule_results: rules.map(() => ({ valid: true })) } };
+    } else if (method === 'GET' && url.endsWith('/iterations/draft-1')) response = { iteration: draft };
+    else throw new Error(`unexpected ${method} ${url}`);
+    return new Response(JSON.stringify(response), { status: 200 });
+  });
+  const args = ['http://localhost:8088', tenantId, 'token', definition, scenario];
+  await createOrUpdateScenarioDraft(...args);
+  assert.deepEqual(writes, []);
+  await createOrUpdateScenarioDraft(...args, { draftPublished: true });
+  assert.deepEqual(writes, ['create draft', 'validate']);
+  await createOrUpdateScenarioDraft(...args, { draftPublished: true });
+  assert.deepEqual(writes, ['create draft', 'validate', 'validate']);
+  assert.equal(parseArgs(['--dry-run', '--draft-published']).draftPublished, true);
 });

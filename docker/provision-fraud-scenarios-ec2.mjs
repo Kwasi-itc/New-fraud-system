@@ -353,6 +353,7 @@ export function parseArgs(args) {
     structuringLimit: 1000,
     nearLimitPercent: 10,
     dryRun: false,
+    draftPublished: false,
   };
   const valuedOptions = new Map([
     ['--host', 'host'],
@@ -369,6 +370,10 @@ export function parseArgs(args) {
     const option = args[index];
     if (option === '--dry-run') {
       parsed.dryRun = true;
+      continue;
+    }
+    if (option === '--draft-published') {
+      parsed.draftPublished = true;
       continue;
     }
     if (option === '--help' || option === '-h') {
@@ -453,6 +458,7 @@ Options:
   --late-callback-seconds N      Late-callback threshold (default: 300)
   --structuring-limit N          D7 amount limit (default: 1000)
   --structuring-band-percent N   D7 percent below limit included in band (default: 10)
+  --draft-published              Clone complete published scenarios into reviewable drafts
   --dry-run                      Validate local inputs and list planned rules only
   --help                         Show this help
 
@@ -695,7 +701,7 @@ async function validateDraftIteration(origin, token, scenarioPath, iteration, de
   console.log(`Validated draft remains unpublished: ${scenarioName} (iteration ${iteration.version}).`);
 }
 
-async function createOrUpdateScenarioDraft(origin, tenantId, token, definition, existingScenario) {
+export async function createOrUpdateScenarioDraft(origin, tenantId, token, definition, existingScenario, { draftPublished = false } = {}) {
   const tenantPath = `/tenants/${encodeURIComponent(tenantId)}`;
   let scenario = existingScenario;
   if (!scenario) {
@@ -737,7 +743,7 @@ async function createOrUpdateScenarioDraft(origin, tenantId, token, definition, 
       throw new Error(`Scenario "${definition.name}" live trigger differs from this script; refusing to change it.`);
     }
     const liveRules = await getRules(origin, token, scenarioPath, liveIteration.id);
-    if (findMissingRules(liveRules, definition.rules).length === 0) {
+    if (findMissingRules(liveRules, definition.rules).length === 0 && !draftPublished) {
       console.log(`Already complete; leaving live scenario unchanged: ${definition.name}`);
       return;
     }
@@ -884,6 +890,7 @@ async function main() {
       token,
       definition,
       byName.get(definition.name),
+      { draftPublished: options.draftPublished },
     );
   }
   console.log('Provisioning complete: existing model and live scenarios unchanged; supported rules reconciled in validated, unpublished drafts.');
