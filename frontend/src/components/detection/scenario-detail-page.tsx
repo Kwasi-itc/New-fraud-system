@@ -10,8 +10,8 @@ import {
   Eye,
   Info,
   Pencil,
-  Plus,
-  SquarePen,
+  // Plus,
+  // SquarePen,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -148,7 +148,7 @@ export function ScenarioDetailPage({ scenarioId }: { scenarioId: string }) {
         </div>
       </div>
 
-      <Link href={`/detection/${scenarioId}/screening`} className="inline-flex rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-blue-800">
+      {/* <Link href={`/detection/${scenarioId}/screening`} className="inline-flex rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-blue-800">
         Configure screening after decisions
       </Link>
       <section className="space-y-3">
@@ -218,7 +218,7 @@ export function ScenarioDetailPage({ scenarioId }: { scenarioId: string }) {
             </CardContent>
           </Card>
         </div>
-      </section>
+      </section> */}
 
       <section className="space-y-3">
         <h2 className="text-[1rem] font-semibold text-slate-950">Resources</h2>
