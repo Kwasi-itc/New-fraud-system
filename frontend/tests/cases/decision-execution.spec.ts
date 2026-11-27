@@ -85,6 +85,34 @@ test("decline highlights matched rules in red and does not invent score threshol
   await expect(page.getByRole("button", { name: /Many senders.*Matched/ })).toHaveCSS("box-shadow", /rgb\(217, 106, 96\)/);
   await expect(page.getByText("Score thresholds are unavailable for this iteration.")).toBeVisible();
   await expect(page.getByRole("img", { name: /threshold/ })).toHaveCount(0);
+  await expect(page.getByText("No request fields were recorded.")).toBeVisible();
+  await expect(page.getByRole("table", { name: "Evaluated request fields" })).toHaveCount(0);
+});
+
+test("evaluated request maps recorded fields and metadata to their values on desktop and mobile", async ({ page }) => {
+  const longValue = "long-identifier-".repeat(12);
+  await page.route(`**/api/decisions/tenants/${tenant}/decisions/${decision}`, route => route.fulfill({ json: {
+    decision: {
+      id: decision, tenant_id: tenant, scenario_id: scenario, scenario_iteration_id: "iteration-1",
+      object_id: "payment-1", object_type: "transactions", outcome: "review", score: 50, triggered: true,
+      created_at: "2026-11-26T13:42:18Z",
+      request_body: { source: "api", duplicate: "metadata", fields: { duplicate: "field", amount: 0, initiated_at: longValue, enabled: false, extra: { nested: [1, 2] }, median: null } },
+    },
+    rule_executions: [],
+  } }));
+  await page.goto(`/detection/decisions/${decision}?tenant=${tenant}`);
+  const table = page.getByRole("table", { name: "Evaluated request fields" });
+  await expect(table.getByRole("columnheader", { name: "Field" })).toBeVisible();
+  await expect(table.getByRole("columnheader", { name: "Value" })).toBeVisible();
+  for (const [field, value] of [["amount", "0"], ["enabled", "false"], ["median", "null"], ["extra", '{"nested":[1,2]}'], ["initiated_at", longValue], ["fields.duplicate", "field"], ["request.duplicate", "metadata"], ["source", "api"]]) {
+    const row = table.getByRole("row").filter({ has: page.getByRole("rowheader", { name: field, exact: true }) });
+    await expect(row.getByRole("cell")).toHaveText(value);
+  }
+  await page.getByText("View raw request JSON").click();
+  await expect(page.locator("pre").filter({ hasText: "\"duplicate\": \"metadata\"" })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(table).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
 test("decision overview retains the linked case", async ({ page }) => {

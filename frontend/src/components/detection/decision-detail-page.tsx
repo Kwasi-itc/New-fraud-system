@@ -14,7 +14,7 @@ import { decisionEngineApi, type Iteration } from "@/lib/decision-engine-api";
 import { cn } from "@/lib/utils";
 
 function formatValue(value: unknown) {
-  if (value === null || value === undefined) return "-";
+  if (value === undefined) return "-";
   return typeof value === "string" ? value : JSON.stringify(value);
 }
 
@@ -139,6 +139,11 @@ export function DecisionDetailPage({ decisionId, tenantId, session }: { decision
   const request = decision.request_body && typeof decision.request_body === "object" && !Array.isArray(decision.request_body) ? Object.entries(decision.request_body) : [];
   const fields = decision.request_body && typeof decision.request_body === "object" && !Array.isArray(decision.request_body) && decision.request_body.fields && typeof decision.request_body.fields === "object" && !Array.isArray(decision.request_body.fields) ? Object.entries(decision.request_body.fields).sort(([a], [b]) => a.localeCompare(b)) : [];
   const metadata = request.filter(([key]) => key !== "fields" && key !== "object_id" && key !== "object_type");
+  const duplicateNames = new Set(metadata.filter(([name]) => fields.some(([field]) => field === name)).map(([name]) => name));
+  const requestRows = [
+    ...fields.map(([name, value]) => ({ name: duplicateNames.has(name) ? `fields.${name}` : name, value })),
+    ...metadata.map(([name, value]) => ({ name: duplicateNames.has(name) ? `request.${name}` : name, value })),
+  ];
   const matched = executions.filter((item) => item.outcome.toLowerCase() === "hit").length;
   const visible = executions.filter((item) => ruleFilter === "all" || (ruleFilter === "matched" ? item.outcome.toLowerCase() === "hit" : item.outcome.toLowerCase() !== "hit"));
 
@@ -180,7 +185,19 @@ export function DecisionDetailPage({ decisionId, tenantId, session }: { decision
     </section>
     <Card className="overflow-hidden rounded-[14px] border border-slate-200 shadow-none"><CardContent className="p-0">
       <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-[22px] py-[19px]"><div><h2 className="text-[17px] font-semibold tracking-tight">Evaluated request</h2><p className="mt-1 text-xs text-slate-500">Values captured at decision time</p></div><span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-[3px] text-[11px] font-semibold text-slate-600">Snapshot</span></div>
-      {fields.length || metadata.length ? <dl className="grid gap-3.5 px-[22px] py-5">{[...fields, ...metadata].map(([name, value], index) => <div key={`${name}-${index}`} className="flex justify-between gap-4 text-xs"><dt className="text-slate-500">{name.replace(/_/g, " ")}</dt><dd className="whitespace-pre-wrap break-all text-right font-semibold">{formatValue(value)}</dd></div>)}</dl> : <p className="px-[22px] py-5 text-sm text-slate-500">No request fields were recorded.</p>}
+      {requestRows.length ? <div className="px-3 pb-5 pt-4 sm:px-[22px]">
+        <div className="overflow-hidden rounded-[9px] border border-slate-200">
+          <table aria-label="Evaluated request fields" className="w-full table-fixed border-collapse text-left text-[13px]">
+            <thead className="border-b border-slate-200 bg-slate-50 text-[11px] tracking-[0.03em] text-slate-500">
+              <tr><th scope="col" className="w-[42%] px-2.5 py-[11px] font-semibold sm:w-[32%] sm:px-3.5">Field</th><th scope="col" className="px-2.5 py-[11px] font-semibold sm:px-3.5">Value</th></tr>
+            </thead>
+            <tbody>{requestRows.map(({ name, value }, index) => <tr key={`${name}-${index}`} className="border-b border-slate-100 last:border-b-0">
+              <th scope="row" className="break-all px-2.5 py-[11px] align-top font-mono text-xs font-medium text-[#526174] sm:px-3.5">{name}</th>
+              <td className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] px-2.5 py-[11px] align-top font-semibold text-slate-900 sm:px-3.5">{formatValue(value)}</td>
+            </tr>)}</tbody>
+          </table>
+        </div>
+      </div> : <p className="px-[22px] py-5 text-sm text-slate-500">No request fields were recorded.</p>}
       <details className="border-t border-slate-200"><summary className="cursor-pointer px-[22px] py-3.5 text-xs font-semibold text-[#1f4f96]">View raw request JSON</summary><pre className="mx-[22px] mb-5 max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">{formatExecutionRequestBody(decision.request_body ?? null)}</pre></details>
     </CardContent></Card>
     {selectedExecution ? <RuleExecutionInspector execution={selectedExecution} executions={executions} rule={rulesById.get(selectedExecution.rule_id)} onSelect={setSelectedRuleId} onClose={() => setSelectedRuleId(null)} fullPageHref={ruleViewHref(selectedExecution.id)} /> : null}
