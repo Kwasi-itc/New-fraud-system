@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState, type ComponentType, type ReactNode } fro
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
-  BriefcaseBusiness,
+  // BriefcaseBusiness,
   ChevronLeft,
   ChevronRight,
   Database,
@@ -12,7 +12,7 @@ import {
   List,
   Route,
   Scale,
-  ScanSearch,
+  // ScanSearch,
   UserCircle2,
 } from "lucide-react";
 
@@ -32,7 +32,7 @@ const primaryLinks = [
   },
 ];
 
-const workspaceLinks = [
+/* const workspaceLinks = [
   {
     href: "/cases",
     label: "Case Management",
@@ -43,7 +43,7 @@ const workspaceLinks = [
     label: "Screening",
     icon: ScanSearch,
   },
-];
+]; */
 
 const secondaryLinks = [
   {
@@ -79,7 +79,7 @@ function NavLink({
       aria-current={isActive ? "page" : undefined}
       title={collapsed ? label : undefined}
       className={cn(
-        "flex items-center gap-3 rounded-[9px] px-3 py-2.5 text-sm font-medium transition-colors",
+        "flex items-center gap-3 rounded-[9px] px-3 py-2.5 text-sm font-semibold transition-colors",
         collapsed && "justify-center px-0",
         isActive
           ? "bg-[#eef4ff] text-[#1f4f96]"
@@ -145,7 +145,7 @@ function DetectionNavigation({ collapsed }: { collapsed: boolean }) {
             aria-current={active ? "page" : undefined}
             title={collapsed ? link.label : undefined}
             className={cn(
-              "flex items-center gap-3 rounded-[9px] px-3 py-2.5 text-sm font-medium transition-colors",
+              "flex items-center gap-3 rounded-[9px] px-3 py-2.5 text-sm font-semibold transition-colors",
               collapsed && "justify-center px-0",
               active
                 ? "bg-[#eef4ff] text-[#1f4f96]"
@@ -231,9 +231,9 @@ export function AuthenticatedShell({ children }: AuthenticatedShellProps) {
                 <Suspense fallback={null}>
                   <DetectionNavigation collapsed={collapsed} />
                 </Suspense>
-                {workspaceLinks.map((link) => (
+                {/* {workspaceLinks.map((link) => (
                   <NavLink key={link.href} collapsed={collapsed} {...link} />
-                ))}
+                ))} */}
               </div>
             </nav>
 
