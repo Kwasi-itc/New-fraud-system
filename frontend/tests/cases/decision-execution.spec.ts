@@ -5,6 +5,7 @@ import type { RuleEvaluationNode } from "../../src/lib/decision-engine-api";
 const tenant = "11111111-1111-4111-8111-111111111111";
 const decision = "44444444-4444-4444-8444-444444444444";
 const scenario = "88888888-8888-4888-8888-888888888888";
+const description = "Identifies payments receiving funds from many distinct senders.\nReview the activity before proceeding.";
 const constant = (value: string | number | boolean) => ({ constant: value, return_value: value });
 const reference = { function: "field_ref", return_value: "2026-11-26T13:42:18Z", named_children: { field: constant("initiated_at") } };
 const earlier = { function: "TimeAdd", return_value: "2026-11-25T13:42:18Z", named_children: { timestampField: reference, duration: constant("24h"), sign: constant("-") } };
@@ -35,7 +36,7 @@ test.beforeEach(async ({ page, context, request }) => {
     } });
     if (path.endsWith(`/scenarios/${scenario}`)) return route.fulfill({ json: { scenario: { id: scenario, name: "Payment checks" } } });
     if (path.endsWith("/iterations")) return route.fulfill({ json: { iterations: [{ id: "iteration-1", version: 3, score_review_threshold: 40, score_block_and_review_threshold: 70, score_decline_threshold: 90 }] } });
-    if (path.endsWith("/rules")) return route.fulfill({ json: { rules: [{ id: "rule-1", formula: { function: "gte", children: [{ constant: 3 }, { constant: 3 }] } }] } });
+    if (path.endsWith("/rules")) return route.fulfill({ json: { rules: [{ id: "rule-1", description, formula: { function: "gte", children: [{ constant: 3 }, { constant: 3 }] } }] } });
     return route.fulfill({ json: { workflow_executions: [], scoring_requests: [] } });
   });
 });
@@ -54,6 +55,9 @@ test("decision inspector displays recorded comparisons, independent filters, and
   await expect(rule).toContainText("Aggregate");
   await rule.click();
   const dialog = page.getByRole("dialog", { name: "Rule execution" });
+  const heading = dialog.getByRole("heading", { name: "Many senders" });
+  await expect(heading.locator("+ p")).toHaveText(description);
+  await expect(heading.locator("+ p")).toBeVisible();
   await expect(dialog).toContainText("Distinct count of user id (transactions) ≥ 3");
   await expect(dialog).toContainText("Observed: 3 ≥ 3");
   await expect(dialog).toContainText("Within the 1-day window before the evaluated record's initiated at");
@@ -63,6 +67,7 @@ test("decision inspector displays recorded comparisons, independent filters, and
   await expect(dialog).toContainText("initiated at > initiated at − 24h");
   await expect(dialog.getByText(/contributing transactions/i)).toHaveCount(0);
   await dialog.getByRole("combobox", { name: "Rule execution" }).selectOption("rule-2");
+  await expect(dialog.getByText(description, { exact: true })).toHaveCount(0);
   await expect(dialog).toContainText("Not evaluated");
   await expect(dialog).toContainText("Observed: failed = settled");
   await dialog.getByRole("combobox", { name: "Rule execution" }).selectOption("rule-3");
@@ -72,6 +77,7 @@ test("decision inspector displays recorded comparisons, independent filters, and
   await page.setViewportSize({ width: 390, height: 844 });
   await rule.click();
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByText(description, { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
@@ -135,6 +141,7 @@ test("full-page navigation preserves decision context and filters do not erase o
   await expect(page.getByRole("heading", { name: "Rule execution", exact: true })).toBeVisible();
   await page.getByRole("combobox", { name: "Rule execution" }).selectOption("rule-1");
   await expect(page).toHaveURL(/ruleExecution=rule-1/);
+  await expect(page.getByRole("heading", { name: "Many senders" }).locator("+ p")).toHaveText(description);
   await page.getByRole("link", { name: "Back to decision" }).click();
   await expect(page).toHaveURL(new RegExp(`tenant=${tenant}.*fromTab=Decisions`));
   await expect(page.getByRole("heading", { name: "Decision details" })).toBeVisible();

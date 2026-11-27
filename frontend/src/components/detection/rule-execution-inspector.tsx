@@ -83,6 +83,7 @@ function InspectorContent({ execution, executions, rule, onSelect }: Props) {
     <section className="rounded-xl border border-slate-200 bg-white p-5">
       <div className="text-xs text-slate-500">Execution result</div>
       <h2 className="mt-1 text-lg font-semibold text-slate-950">{execution.rule_name}</h2>
+      {rule?.description?.trim() ? <p className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-600">{rule.description}</p> : null}
       <div className="mt-2 flex flex-wrap gap-4 text-sm"><span className="font-medium">{execution.outcome.replace(/_/g, " ")}</span><span>{contribution > 0 ? "+" : ""}{contribution} points</span></div>
       {execution.skip_reason ? <p className="mt-3 text-sm text-amber-800">{execution.skip_reason}</p> : null}
     </section>
@@ -95,7 +96,6 @@ function InspectorContent({ execution, executions, rule, onSelect }: Props) {
           <div><dt className="text-slate-500">Rule ID</dt><dd className="break-all">{execution.rule_id}</dd></div>
           <div><dt className="text-slate-500">Execution ID</dt><dd className="break-all">{execution.id}</dd></div>
           <div><dt className="text-slate-500">Created</dt><dd>{execution.created_at}</dd></div>
-          {rule?.description ? <div><dt className="text-slate-500">Description</dt><dd>{rule.description}</dd></div> : null}
           {rule?.rule_group ? <div><dt className="text-slate-500">Rule group</dt><dd>{rule.rule_group}</dd></div> : null}
         </dl></details>
         {execution.evaluation ? <details className="rounded-lg border border-slate-200"><summary className="cursor-pointer px-3 py-2 text-sm font-medium text-[#1f4f96]">View raw evaluation trace</summary><pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words border-t border-slate-200 p-3 text-xs">{JSON.stringify(execution.evaluation, null, 2)}</pre></details> : null}
