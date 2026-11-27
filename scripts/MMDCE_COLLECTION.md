@@ -49,6 +49,37 @@ atomically with its receipt. This is local snapshot intake; collection is paused
 and fenced, and it does not constitute source-rights approval or scheduled live collection.
 The master seed command's `--crawl` option now refreshes observations before compiling.
 
+### Publish existing snapshots to RDS
+
+The master command can publish its eight existing root-level JSON snapshots to the
+running EC2 screening service's database:
+
+```sh
+node -- scripts/seed-all-screening-data.mjs \
+  --env-file .local/new-fraud-system/compose.env --confirm-write
+```
+
+The `--` prevents Node from consuming `--env-file` as its own option. Use the
+active Compose env file and, if necessary, add `--project <name>`. Its
+`DATABASE_URL` must exactly match the running screening service's configuration.
+The host needs Docker, the running screening service, and a locally available
+`postgres:16` image. The database role needs source publisher permissions. The
+command requires every listed dataset to be registered and approved with a
+compatible connector and parser; it creates no sources or grants. Existing
+tenant grants determine who can use the published datasets.
+
+RDS mode does not crawl or rebuild files: review the snapshots, including
+`worldbank_fixture.json`, before running it. It rejects `--crawl`. The separate
+local crawl/build workflow can change snapshots; specifically, use the canonical
+MMDCE compiler above instead of the master script's subnational builder when
+retaining the curated baseline matters.
+
+Each import publishes separately and pauses/fences collection for that source.
+A later failure can leave earlier datasets published; inspect the reported
+completed list and reconcile before retrying. The script does not change rights
+approvals, grants, or unrelated connections. Do not share the env file or database
+credentials. This workflow has not been validated against your EC2 deployment.
+
 ## Verification on 2026-11-20
 
 The captured [visible table](https://www.ghanadistricts.com/home/AllDistricts)

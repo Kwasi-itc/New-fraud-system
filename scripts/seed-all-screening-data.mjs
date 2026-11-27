@@ -11,13 +11,35 @@ import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { seedRds } from "./lib/screening-rds-seed.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, "..");
 
 const args = process.argv.slice(2);
-const shouldCrawl = args.includes("--crawl");
+const usage = "Usage: node scripts/seed-all-screening-data.mjs [--crawl] or node -- scripts/seed-all-screening-data.mjs --env-file PATH [--project NAME] --confirm-write";
+const options = {};
+for (let i = 0; i < args.length; i++) {
+  const flag = args[i];
+  if (Object.hasOwn(options, flag)) throw new Error(usage);
+  if (flag === "--env-file" || flag === "--project") {
+    const value = args[++i];
+    if (!value || value.startsWith("--")) throw new Error(usage);
+    options[flag] = value;
+  } else if (flag === "--crawl" || flag === "--confirm-write") {
+    options[flag] = true;
+  } else {
+    throw new Error(usage);
+  }
+}
+if (options["--env-file"]) {
+  if (!options["--confirm-write"] || options["--crawl"]) throw new Error(usage);
+  seedRds({ envFile: path.resolve(options["--env-file"]), project: options["--project"], root: ROOT_DIR });
+  process.exit(0);
+}
+if (options["--project"] || options["--confirm-write"]) throw new Error(usage);
+const shouldCrawl = options["--crawl"] === true;
 
 function run(cmd, desc) {
   console.log(`\n==> [${desc}] Running: ${cmd}`);
