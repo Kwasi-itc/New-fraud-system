@@ -6,6 +6,9 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { buildScenarioDefinitions, portableModel } from './provision-fraud-scenarios-ec2.mjs';
 import { exchangeClientProofDetails } from '../backend/auth-service/scripts/client-proof.mjs';
+import { SimulationMonitor, startDashboard } from './fraud-simulation-monitor.mjs';
+import { DeterministicLab, generateDeterministicPlan, LabError } from './fraud-deterministic-lab.mjs';
+import { enrichFixtureRecord, fixtureHash, fixturePerson } from './fraud-fixture-data.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_MODEL_FILE = path.resolve(SCRIPT_DIR, '../fraud-data-model.json');
@@ -76,6 +79,11 @@ function parseArgs(args) {
     tokenUrl: undefined,
     resume: false,
     checkpointFile: undefined,
+    ui: true,
+    uiPort: 8099,
+    demo: false,
+    uiHost: '0.0.0.0',
+    uiPublicUrl: undefined,
   };
 
   const valuedOptions = new Map([
@@ -94,10 +102,22 @@ function parseArgs(args) {
     ['--key-dir', 'keyDir'],
     ['--token-url', 'tokenUrl'],
     ['--checkpoint-file', 'checkpointFile'],
+    ['--ui-port', 'uiPort'],
+    ['--ui-host', 'uiHost'],
+    ['--ui-public-url', 'uiPublicUrl'],
   ]);
 
   for (let index = 0; index < args.length; index += 1) {
     const option = args[index];
+    if (option === '--no-ui') {
+      parsed.ui = false;
+      continue;
+    }
+    if (option === '--demo') {
+      parsed.demo = true;
+      parsed.dryRun = true;
+      continue;
+    }
     if (option === '--confirm-write') {
       parsed.confirmWrite = true;
       continue;
@@ -127,7 +147,7 @@ function parseArgs(args) {
     const value = args[index + 1];
     if (!value || value.startsWith('--')) throw new Error(`Missing value for ${option}`);
 
-    if (['lateCallbackSeconds', 'structuringLimit', 'nearLimitPercent', 'totalTransactions', 'durationHours', 'durationMinutes', 'batchSize'].includes(key)) {
+    if (['lateCallbackSeconds', 'structuringLimit', 'nearLimitPercent', 'totalTransactions', 'durationHours', 'durationMinutes', 'batchSize', 'uiPort'].includes(key)) {
       parsed[key] = Number(value);
     } else {
       parsed[key] = value;
@@ -136,6 +156,15 @@ function parseArgs(args) {
   }
 
   if (parsed.help) return parsed;
+
+  if (!Number.isInteger(parsed.uiPort) || parsed.uiPort < 1 || parsed.uiPort > 65535) {
+    throw new Error('--ui-port must be an integer between 1 and 65535');
+  }
+  if (parsed.demo && !parsed.ui) {
+    throw new Error('--demo uses the browser dashboard; do not combine it with --no-ui');
+  }
+  if (!/^[a-z\d.:-]+$/i.test(parsed.uiHost)) throw new Error('--ui-host must be a hostname or IP address');
+  if (parsed.uiPublicUrl) parsed.uiPublicUrl = parseOrigin(parsed.uiPublicUrl);
 
   if (!Number.isInteger(parsed.lateCallbackSeconds) || parsed.lateCallbackSeconds <= 0) {
     throw new Error('--late-callback-seconds must be a positive integer');
@@ -217,8 +246,13 @@ Core Options:
   --run-id ID                    Fixture prefix (generated when omitted)
   --confirm-write                Required; records and decisions persist in the tenant
   --dry-run                      Simulate traffic locally without making API requests
-  --deterministic                Run legacy 1-per-rule deterministic fire/no-fire test instead of 24h simulation
+  --deterministic                Interactive case builder (--no-ui: run the fire/no-fire suite)
   --checkpoint-file PATH         Custom path for run progress checkpoint (not resumable)
+  --ui-port N                    Local browser dashboard port (default: 8099)
+  --ui-host ADDRESS              Dashboard bind address (default: 0.0.0.0)
+  --ui-public-url ORIGIN         Browser-facing dashboard origin, e.g. http://ec2-host:8099
+  --no-ui                        Run with console logs only, suitable for automation
+  --demo                         Preview the dashboard with labelled simulated responses; no API calls
   --help                         Show this help
 
 Auth Options:
@@ -353,7 +387,7 @@ function defaultValue(field, recordId, now) {
   }
 }
 
-function completeRecord(tables, objectType, objectId, overrides = {}, now = new Date()) {
+export function completeRecord(tables, objectType, objectId, overrides = {}, now = new Date()) {
   const table = tables.get(objectType);
   if (!table) throw new Error(`Required model table "${objectType}" is missing.`);
   const record = { object_id: objectId };
@@ -363,7 +397,7 @@ function completeRecord(tables, objectType, objectId, overrides = {}, now = new 
     }
   }
   Object.assign(record, overrides, { object_id: objectId });
-  return record;
+  return enrichFixtureRecord(table, objectId, record, overrides);
 }
 
 export function createEntityPool(model, runId, { customerCount = 500, walletCount = 800, destinationCount = 100 } = {}) {
@@ -379,7 +413,7 @@ export function createEntityPool(model, runId, { customerCount = 500, walletCoun
       ref: `${runId}-dest-${i}`,
       isHub: i < 5,
       isNew: i >= 5 && i < 15,
-      network: 'MTN',
+      network: fixturePerson(`${runId}-dest-${i}`).network,
     });
   }
 
@@ -413,14 +447,12 @@ export function createEntityPool(model, runId, { customerCount = 500, walletCoun
     const isThirdParty = (i % 15 === 0);
     const isUnverified = (i % 25 === 0);
     const nameMismatch = (i % 35 === 0);
-    const sharedHash = (i < 4) ? `shared-hash-${runId}` : `hash-${walletId}`;
+    const sharedHash = fixtureHash(i < 4 ? `shared-wallet/${runId}` : `wallet/${walletId}`);
 
     const wallet = completeRecord(tables, 'wallets', walletId, {
       user_id: customer.object_id,
       wallet_type: 'mobile',
-      wallet_number_masked: `***${walletId.slice(-6)}`,
       wallet_number_hash: sharedHash,
-      financial_entity_id: 'GH-MOMO',
       is_third_party: isThirdParty,
       is_verified: !isUnverified,
       name_match: nameMismatch ? 'none' : isUnverified ? 'unknown' : 'exact',
@@ -532,13 +564,11 @@ export class RealisticTransactionGenerator {
       country_id: 'GH',
       user_id: customer.object_id,
       wallet_id: wallet.object_id,
-      source_msisdn: `+233${txId.slice(-9)}`,
       destination_ref: destination.ref,
       destination_network: destination.network,
       destination_first_seen_hours: destinationFirstSeenHours,
-      funding_network: 'GH-MOMO',
+      funding_network: wallet.financial_entity_id,
       merchant_product_id: 'p2p-transfer',
-      payment_ref: txId,
       is_recurring: false,
       expected_callback: state === 'callback_received',
       seconds_to_callback: secondsToCallback,
@@ -633,6 +663,7 @@ export async function checkExistingModel(options, tokenManager, model) {
       throw new Error('Tenant data model differs from the local fraud-data-model.json; refusing to seed fixtures.');
     }
     console.warn('WARNING: Tenant data model differs from the local model; fixture writes may fail or have unintended meaning.');
+    options.monitor?.note('Tenant model differs from the local model; the explicit mismatch override is enabled.', 'warning');
     return false;
   }
   return true;
@@ -670,7 +701,7 @@ async function checkScenarios(options, tokenManager, definitions) {
     );
     if (!Array.isArray(rulesResponse.body?.rules)) throw new Error(`Scenario "${definition.name}" rule list is malformed.`);
 
-    live.set(definition.name, { scenario, rules: rulesResponse.body.rules });
+    live.set(definition.name, { scenario, iteration, rules: rulesResponse.body.rules });
   }
   return live;
 }
@@ -686,6 +717,10 @@ async function ingestChunkWithRetry(options, tokenManager, objectType, records, 
         `/tenants/${encodeURIComponent(options.tenantId)}/ingest/${encodeURIComponent(objectType)}/batch`,
         { method: 'POST', body: records },
       );
+      for (const record of records) options.monitor?.capture(record.object_id, 'ingestionResponse', {
+        httpStatus: response.status,
+        result: response.body?.results?.find(item => item.object_id === record.object_id),
+      });
       if (response.status === 200 && Array.isArray(response.body?.results) && response.body.results.length === records.length) {
         return response.body.results.length;
       }
@@ -693,6 +728,7 @@ async function ingestChunkWithRetry(options, tokenManager, objectType, records, 
     } catch (error) {
       if (attempt === maxRetries || (error instanceof HttpRequestError && error.status >= 400 && error.status < 500 && error.status !== 408 && error.status !== 429)) throw error;
       const backoff = Math.min(5000, 500 * (2 ** attempt));
+      options.monitor?.note(`Retrying ${objectType} ingestion in ${backoff / 1000}s (attempt ${attempt + 1}/${maxRetries})`, 'warning');
       await new Promise((r) => setTimeout(r, backoff));
     }
   }
@@ -703,7 +739,20 @@ export async function ingestBatchWithRetry(options, tokenManager, objectType, re
   let ingested = 0;
   try {
     for (let offset = 0; offset < records.length; offset += MAX_INGEST_BATCH_SIZE) {
-      ingested += await ingestChunkWithRetry(options, tokenManager, objectType, records.slice(offset, offset + MAX_INGEST_BATCH_SIZE));
+      const chunk = records.slice(offset, offset + MAX_INGEST_BATCH_SIZE);
+      for (const record of chunk) options.monitor?.capture(record.object_id, 'ingestionRequest', {
+        method: 'POST', path: `/v1/tenants/${options.tenantId}/ingest/${objectType}/batch`, batchSize: chunk.length,
+        record,
+      });
+      if (objectType === 'transactions' && options.trackTransactions !== false) options.monitor?.event({ type: 'ingestion_started', transactions: chunk });
+      try {
+        ingested += await ingestChunkWithRetry(options, tokenManager, objectType, chunk);
+      } catch (error) {
+        if (objectType === 'transactions' && options.trackTransactions !== false) options.monitor?.event({ type: 'ingestion_error', transactions: chunk, message: error.message,
+          httpStatus: error.status, unknown: !(error instanceof HttpRequestError && error.status >= 400 && error.status < 500 && error.status !== 408) });
+        throw error;
+      }
+      if (objectType === 'transactions' && options.trackTransactions !== false) options.monitor?.event({ type: 'ingested', transactions: chunk });
     }
   } catch (error) {
     if (ingested > 0) console.error(`${ingested} ${objectType} records were already ingested before the failure.`);
@@ -738,9 +787,7 @@ export function buildTestCases(definitions, model, runId, { lateCallbackSeconds 
     wallets.push(completeRecord(tables, 'wallets', walletId, {
       user_id: userId,
       wallet_type: 'mobile',
-      wallet_number_masked: `***${walletId.slice(-6)}`,
-      wallet_number_hash: `hash-${walletId}`,
-      financial_entity_id: 'TEST',
+      wallet_number_hash: fixtureHash(`wallet/${walletId}`),
       is_third_party: false,
       is_verified: false,
       name_match: 'exact',
@@ -763,12 +810,7 @@ export function buildTestCases(definitions, model, runId, { lateCallbackSeconds 
       country_id: 'GH',
       user_id: testCase.userId,
       wallet_id: testCase.walletId,
-      source_msisdn: `+233${transactionId.slice(-9)}`,
       destination_ref: testCase.destinationRef,
-      destination_network: 'TEST',
-      funding_network: 'TEST',
-      merchant_product_id: 'test-fixture',
-      payment_ref: transactionId,
       is_recurring: false,
       expected_callback: false,
       initiated_at: initiatedAt.toISOString(),
@@ -788,9 +830,7 @@ export function buildTestCases(definitions, model, runId, { lateCallbackSeconds 
       testCase.payload = completeRecord(tables, 'wallets', objectId, {
         user_id: userId,
         wallet_type: 'mobile',
-        wallet_number_masked: `***${objectId.slice(-6)}`,
-        wallet_number_hash: `hash-${objectId}`,
-        financial_entity_id: 'TEST',
+        wallet_number_hash: fixtureHash(`wallet/${objectId}`),
         is_third_party: false,
         is_verified: false,
         name_match: 'exact',
@@ -944,25 +984,45 @@ export function buildTestCases(definitions, model, runId, { lateCallbackSeconds 
   return { cases, customers, wallets, transactions };
 }
 
-export async function getEvaluation(options, tokenManager, scenario, testCase) {
-  const tenantPath = `/tenants/${encodeURIComponent(options.tenantId)}`;
-  const scenarioPath = `${tenantPath}/scenarios/${encodeURIComponent(scenario.id)}`;
-  const response = await requestJson(options.origin, '/services/decisions', await tokenManager.getToken(), `${scenarioPath}/evaluate`, {
-    method: 'POST',
-    body: {
-      object_id: testCase.payload.object_id,
-      object_type: testCase.scenario.trigger_object_type,
-      fields: testCase.payload,
-    },
-  });
-  if (response.status === 200) return assertEnvelope(response.body, 'result', 'Scenario evaluation');
-  if (response.status !== 202 || !response.body?.async_decision_execution?.id) {
-    throw new Error(`Scenario evaluation for ${testCase.rule.stable_rule_id} was deferred without an execution ID.`);
+async function observeEvaluation(options, objectId, evaluate) {
+  options.monitor?.event({ type: 'evaluation_started', objectId });
+  try {
+    const result = await evaluate();
+    options.monitor?.event({ type: 'evaluated', objectId, result });
+    return result;
+  } catch (error) {
+    options.monitor?.event({ type: 'evaluation_error', objectId, message: error.message,
+      httpStatus: error.status, unknown: error.evaluationOutcomeUnknown || !(error instanceof HttpRequestError && error.status >= 400 && error.status < 500 && error.status !== 408) });
+    throw error;
   }
-  return pollAsyncEvaluation(options, tokenManager, response.body.async_decision_execution.id, testCase.rule.stable_rule_id);
 }
 
-async function pollAsyncEvaluation(options, tokenManager, executionId, label) {
+export async function getEvaluation(options, tokenManager, scenario, testCase) {
+  options.monitor?.capture(testCase.payload.object_id, 'evaluationRequest', {
+    method: 'POST', path: `/v1/tenants/${options.tenantId}/scenarios/${scenario.id}/evaluate`,
+    body: { object_id: testCase.payload.object_id, object_type: testCase.scenario.trigger_object_type, fields: testCase.payload },
+  });
+  return observeEvaluation(options, testCase.payload.object_id, async () => {
+    const tenantPath = `/tenants/${encodeURIComponent(options.tenantId)}`;
+    const scenarioPath = `${tenantPath}/scenarios/${encodeURIComponent(scenario.id)}`;
+    const response = await requestJson(options.origin, '/services/decisions', await tokenManager.getToken(), `${scenarioPath}/evaluate`, {
+      method: 'POST',
+      body: {
+        object_id: testCase.payload.object_id,
+        object_type: testCase.scenario.trigger_object_type,
+        fields: testCase.payload,
+      },
+    });
+    if (response.status === 200) return assertEnvelope(response.body, 'result', 'Scenario evaluation');
+    if (response.status !== 202 || !response.body?.async_decision_execution?.id) {
+      throw new Error(`Scenario evaluation for ${testCase.rule.stable_rule_id} was deferred without an execution ID.`);
+    }
+    return pollAsyncEvaluation(options, tokenManager, response.body.async_decision_execution.id, testCase.rule.stable_rule_id, testCase.payload.object_id);
+  });
+}
+
+async function pollAsyncEvaluation(options, tokenManager, executionId, label, objectId) {
+  options.monitor?.event({ type: 'deferred', objectId, executionId });
   const tenantPath = `/tenants/${encodeURIComponent(options.tenantId)}`;
   const deadline = Date.now() + ASYNC_POLL_TIMEOUT_MS;
   while (Date.now() < deadline) {
@@ -972,8 +1032,13 @@ async function pollAsyncEvaluation(options, tokenManager, executionId, label) {
       '/services/decisions',
       await tokenManager.getToken(),
       `${tenantPath}/client-async-decision-executions/${encodeURIComponent(executionId)}`,
-    );
+    ).catch(error => {
+      // A polling rejection says nothing about effects of the accepted job.
+      error.evaluationOutcomeUnknown = true;
+      throw error;
+    });
     const execution = assertEnvelope(statusResponse.body, 'async_decision_execution', 'Async evaluation status');
+    options.monitor?.event({ type: 'async_status', objectId, status: execution.status });
     if (execution.status === 'failed') {
       throw new Error(`Async evaluation failed for ${label} (execution ${executionId}).`);
     }
@@ -989,23 +1054,29 @@ async function pollAsyncEvaluation(options, tokenManager, executionId, label) {
 }
 
 export async function evaluateTransaction(options, tokenManager, transaction) {
-  const tenantPath = `/tenants/${encodeURIComponent(options.tenantId)}`;
-  const response = await requestJson(options.origin, '/services/decisions', await tokenManager.getToken(), `${tenantPath}/decisions/all`, {
-    method: 'POST',
+  options.monitor?.capture(transaction.object_id, 'evaluationRequest', {
+    method: 'POST', path: `/v1/tenants/${options.tenantId}/decisions/all`,
     body: { object_id: transaction.object_id, object_type: 'transactions', fields: transaction },
   });
-  let result;
-  if (response.status === 200) {
-    result = assertEnvelope(response.body, 'result', 'Transaction evaluation');
-  } else if (response.status === 202 && response.body?.async_decision_execution?.id) {
-    result = await pollAsyncEvaluation(options, tokenManager, response.body.async_decision_execution.id, transaction.object_id);
-  } else {
-    throw new Error(`Transaction evaluation for ${transaction.object_id} returned an unexpected response.`);
-  }
-  if (result.object_id !== transaction.object_id || !Array.isArray(result.results)) {
-    throw new Error(`Transaction evaluation for ${transaction.object_id} returned a malformed result.`);
-  }
-  return result;
+  return observeEvaluation(options, transaction.object_id, async () => {
+    const tenantPath = `/tenants/${encodeURIComponent(options.tenantId)}`;
+    const response = await requestJson(options.origin, '/services/decisions', await tokenManager.getToken(), `${tenantPath}/decisions/all`, {
+      method: 'POST',
+      body: { object_id: transaction.object_id, object_type: 'transactions', fields: transaction },
+    });
+    let result;
+    if (response.status === 200) {
+      result = assertEnvelope(response.body, 'result', 'Transaction evaluation');
+    } else if (response.status === 202 && response.body?.async_decision_execution?.id) {
+      result = await pollAsyncEvaluation(options, tokenManager, response.body.async_decision_execution.id, transaction.object_id, transaction.object_id);
+    } else {
+      throw new Error(`Transaction evaluation for ${transaction.object_id} returned an unexpected response.`);
+    }
+    if (result.object_id !== transaction.object_id || !Array.isArray(result.results)) {
+      throw new Error(`Transaction evaluation for ${transaction.object_id} returned a malformed result.`);
+    }
+    return result;
+  });
 }
 
 export async function evaluateTransactionBatch(options, tokenManager, transactions) {
@@ -1067,22 +1138,32 @@ async function runDeterministic(options, model, definitions) {
   const tokenManager = new AuthTokenManager(options);
   await checkExistingModel(options, tokenManager, model);
   const live = await checkScenarios(options, tokenManager, definitions);
+  options.monitor?.setScenarios(live);
+  if (options.monitor) options.monitor.target = fixtures.cases.length;
+  options.monitor?.phase('seeding', 'Seeding deterministic fixtures and supporting history');
 
   console.log('Seeding customers, wallets, and deterministic transaction fixtures...');
-  await ingestBatchWithRetry(options, tokenManager, 'customers', fixtures.customers);
-  await ingestBatchWithRetry(options, tokenManager, 'wallets', fixtures.wallets);
-  await ingestBatchWithRetry(options, tokenManager, 'transactions', fixtures.transactions);
+  const seedOptions = { ...options, monitor: undefined };
+  await ingestBatchWithRetry(seedOptions, tokenManager, 'customers', fixtures.customers);
+  await ingestBatchWithRetry(seedOptions, tokenManager, 'wallets', fixtures.wallets);
+  await ingestBatchWithRetry(seedOptions, tokenManager, 'transactions', fixtures.transactions);
+  if (options.monitor) options.monitor.counts.ingested = fixtures.customers.length + fixtures.wallets.length + fixtures.transactions.length;
+  options.monitor?.phase('running', 'Checking each rule against its fire and no-fire fixtures');
 
   const failures = [];
-  for (const testCase of fixtures.cases) {
+  for (const [index, testCase] of fixtures.cases.entries()) {
+    options.monitor?.queue(fixtures.cases.slice(index + 1, index + 13).map(item => item.payload));
+    options.monitor?.beginCase(testCase.payload);
     const scenarioLive = live.get(testCase.scenario.name);
     try {
       const result = await getEvaluation(options, tokenManager, scenarioLive.scenario, testCase);
       verifyEvaluation(result, scenarioLive, testCase);
+      options.monitor?.verdict(testCase.payload.object_id, true, `${testCase.rule.stable_rule_id}: ${testCase.shouldHit ? 'fires' : 'does not fire'}`);
       console.log(`PASS ${testCase.rule.stable_rule_id}: ${testCase.shouldHit ? 'fires' : 'does not fire'}`);
     } catch (error) {
       if (error instanceof TokenExchangeError) throw error;
       failures.push({ rule: testCase.rule.stable_rule_id, shouldHit: testCase.shouldHit, error: error.message });
+      options.monitor?.verdict(testCase.payload.object_id, false, `${testCase.rule.stable_rule_id}: ${error.message}`);
       console.error(`FAIL ${testCase.rule.stable_rule_id}: ${error.message}`);
     }
   }
@@ -1124,18 +1205,22 @@ export async function runContinuousSimulation(options, model, definitions) {
   const tokenManager = new AuthTokenManager(options);
   const modelMatches = await checkExistingModel(options, tokenManager, model);
   const liveScenarios = await checkScenarios(options, tokenManager, definitions);
+  options.monitor?.setScenarios(liveScenarios);
   console.log(`${modelMatches ? 'Verified data model and' : 'Verified'} ${liveScenarios.size} live scenarios.`);
 
   // Ingest baseline entity cohort (customers and wallets)
   console.log(`Ingesting baseline entity cohort (${pool.customers.length} customers, ${pool.wallets.length} wallets)...`);
+  options.monitor?.phase('seeding', `Preparing ${pool.customers.length} customers and ${pool.wallets.length} wallets`);
   await ingestSimulationEntities(options, tokenManager, pool);
   console.log('Baseline entities ingested successfully.');
+  options.monitor?.phase('running', 'Transactions are flowing through ingestion and evaluation');
 
   let completedTransactions = 0;
   let ingestedTransactions = 0;
   let triggeredScenarios = 0;
   let incompleteBatch = null;
   const startTime = Date.now();
+  let nextBatch;
 
   const saveCheckpoint = async () => {
     await mkdir(path.dirname(options.checkpointFile), { recursive: true });
@@ -1157,6 +1242,7 @@ export async function runContinuousSimulation(options, model, definitions) {
     console.log('\n[Shutdown] Stopping after the current batch finishes...');
     running = false;
     interrupted = true;
+    options.monitor?.phase('stopping', 'Finishing the current batch before shutdown');
   };
   process.on('SIGINT', onSignal);
   process.on('SIGTERM', onSignal);
@@ -1174,7 +1260,16 @@ export async function runContinuousSimulation(options, model, definitions) {
       }
 
       const currentBatchSize = Math.min(options.batchSize, options.totalTransactions - completedTransactions);
-      const batch = generator.generateBatch(currentBatchSize, new Date());
+      const batch = nextBatch || generator.generateBatch(currentBatchSize, new Date());
+      // Preview records become the actual next batch. Set event time on dispatch,
+      // so time-window rules do not use an earlier queue-preview timestamp.
+      const dispatchedAt = new Date().toISOString();
+      for (const transaction of batch) transaction.initiated_at = dispatchedAt;
+      if (options.monitor) {
+        const remaining = options.totalTransactions - completedTransactions - batch.length;
+        nextBatch = remaining > 0 ? generator.generateBatch(Math.min(options.batchSize, remaining)) : [];
+        options.monitor.queue(nextBatch);
+      }
       incompleteBatch = { objectIds: batch.map(transaction => transaction.object_id), stage: 'ingestion' };
       await ingestBatchWithRetry(options, tokenManager, 'transactions', batch);
       ingestedTransactions += batch.length;
@@ -1205,6 +1300,7 @@ export async function runContinuousSimulation(options, model, definitions) {
 
       if (running && completedTransactions < options.totalTransactions) {
         const delayMs = pacer.nextDelayMs(elapsed);
+        options.monitor?.queue(nextBatch || [], Date.now() + delayMs);
         await new Promise((r) => setTimeout(r, delayMs));
       }
     }
@@ -1233,6 +1329,124 @@ export async function runContinuousSimulation(options, model, definitions) {
   console.log(`================================================================`);
 }
 
+export async function runDashboardDemo(options, model, definitions) {
+  const monitor = options.monitor;
+  const total = Math.min(options.totalTransactions, 24);
+  monitor.target = total;
+  monitor.setScenarios(new Map(definitions.map((definition, i) => [definition.name, { scenario: { id: `demo-${i}`, name: definition.name } }])));
+  const generator = new RealisticTransactionGenerator(createEntityPool(model, options.runId), model, options.runId, options);
+  const transactions = generator.generateBatch(total);
+  monitor.phase('running', 'Offline preview · all responses below are simulated');
+  monitor.queue(transactions.slice(0, 4), Date.now() + 1500);
+  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+  await wait(1500);
+  for (let offset = 0; offset < transactions.length; offset += 4) {
+    const batch = transactions.slice(offset, offset + 4);
+    monitor.queue(transactions.slice(offset + 4, offset + 8));
+    monitor.event({ type: 'ingestion_started', transactions: batch });
+    await wait(550);
+    monitor.event({ type: 'ingested', transactions: batch });
+    await Promise.all(batch.map(async (transaction, index) => {
+      const objectId = transaction.object_id;
+      monitor.capture(objectId, 'evaluationRequest', { simulated: true, body: { object_id: objectId, object_type: 'transactions', fields: transaction } });
+      monitor.event({ type: 'evaluation_started', objectId });
+      await wait(350 + index * 150);
+      if (index === 2) {
+        monitor.event({ type: 'deferred', objectId, executionId: `demo-execution-${offset + index}` });
+        await wait(300);
+        monitor.event({ type: 'async_status', objectId, status: 'running' });
+        await wait(350);
+      }
+      if (offset === 4 && index === 3) {
+        monitor.event({ type: 'evaluation_error', objectId, httpStatus: 503, unknown: true,
+          message: 'Simulated timeout. This illustrates an unknown outcome; no real request was made.' });
+        return;
+      }
+      const outcome = ['approve', 'review', 'block_and_review', 'decline'][(offset / 4 + index) % 4];
+      const definition = definitions[3];
+      const hitIndexes = { approve: [], review: [0, 4], block_and_review: [0, 1], decline: [0, 1, 4] }[outcome];
+      const score = hitIndexes.reduce((sum, i) => sum + definition.rules[i].score_modifier, 0);
+      monitor.event({ type: 'evaluated', objectId, result: {
+        object_id: objectId,
+        results: [{ triggered: true, decision: { id: `demo-decision-${offset + index}`, scenario_id: 'demo-3', outcome, score },
+          rule_executions: definition.rules.map((rule, ruleIndex) => ({
+            rule_name: rule.name, score_modifier: rule.score_modifier,
+            outcome: hitIndexes.includes(ruleIndex) ? 'hit' : ruleIndex === 3 ? 'skipped' : 'no_hit',
+            skip_reason: ruleIndex === 3 ? 'Illustrative missing optional operand' : '',
+          })) }],
+      } });
+    }));
+    if (offset + 4 < transactions.length) {
+      monitor.queue(transactions.slice(offset + 4, offset + 8), Date.now() + 650);
+      await wait(650);
+    }
+  }
+  monitor.phase('completed', 'Offline preview complete · all transactions and responses were simulated');
+}
+
+export async function createDeterministicWorkbench(options, model, definitions) {
+  const monitor = options.monitor;
+  const tables = new Map(model.tables.map(table => [table.name, table]));
+  const tokenManager = options.demo ? null : new AuthTokenManager(options);
+  let live;
+  if (!options.demo) {
+    await checkExistingModel(options, tokenManager, model);
+    live = await checkScenarios(options, tokenManager, definitions);
+    monitor.setScenarios(live);
+  } else {
+    live = new Map(definitions.map((definition, i) => [definition.name, { scenario: { id: `demo-${i}`, name: definition.name }, rules: definition.rules.map(rule => ({ ...rule, id: rule.stable_rule_id })) }]));
+    monitor.setScenarios(live);
+  }
+  const lab = new DeterministicLab({
+    definitions, monitor, preview: options.demo,
+    generate: (definition, expectations) => generateDeterministicPlan({ definition, expectations, runId: options.runId, parameters: options,
+      makeRecord: (table, id, fields, now) => completeRecord(tables, table, id, fields, now) }),
+    verify: async scenarioName => {
+      if (!options.demo) {
+        await checkExistingModel(options, tokenManager, model);
+        live = await checkScenarios(options, tokenManager, definitions);
+        const definition = definitions.find(item => item.name === scenarioName);
+        const current = live.get(scenarioName);
+        if (canonicalJSON(current.iteration.trigger_formula) !== canonicalJSON(definition.trigger) ||
+            canonicalJSON([current.iteration.score_review_threshold, current.iteration.score_block_and_review_threshold, current.iteration.score_decline_threshold]) !== canonicalJSON(definition.thresholds) ||
+            current.rules.length !== definition.rules.length || definition.rules.some(rule => !current.rules.some(actual => actual.stable_rule_id === rule.stable_rule_id && actual.score_modifier === rule.score_modifier && canonicalJSON(actual.formula) === canonicalJSON(rule.formula)))) {
+          throw new LabError('The live scenario differs from these data recipes. Reconcile its formulas, thresholds and rule set before submitting this case.');
+        }
+      }
+      lab.liveRules = live.get(scenarioName).rules;
+    },
+    submitRecord: async record => {
+      monitor.event({ type: 'ingestion_started', transactions: [record.data] });
+      try {
+        if (options.demo) {
+          monitor.capture(record.data.object_id, 'ingestionRequest', { simulated: true, table: record.table, record: record.data });
+          monitor.capture(record.data.object_id, 'ingestionResponse', { simulated: true, httpStatus: 200, object_id: record.data.object_id });
+        } else await ingestBatchWithRetry({ ...options, trackTransactions: false }, tokenManager, record.table, [record.data]);
+        monitor.event({ type: 'fixture_accepted', objectId: record.data.object_id, role: record.role, target: record.role === 'target' });
+        return { object_id: record.data.object_id, httpStatus: 200, simulated: options.demo };
+      } catch (error) {
+        monitor.event({ type: 'ingestion_error', transactions: [record.data], message: error.message,
+          httpStatus: error.status, unknown: !(error instanceof HttpRequestError && error.status >= 400 && error.status < 500 && error.status !== 408) });
+        throw error;
+      }
+    },
+    evaluate: async plan => {
+      const scenario = live.get(plan.scenario).scenario;
+      const payload = plan.records.at(-1).data;
+      if (!options.demo) return getEvaluation(options, tokenManager, scenario, {
+        payload, scenario: { trigger_object_type: plan.objectType }, rule: { stable_rule_id: 'custom-case' },
+      });
+      monitor.capture(plan.targetId, 'evaluationRequest', { simulated: true, object_id: plan.targetId, object_type: plan.objectType, fields: payload });
+      return observeEvaluation(options, plan.targetId, async () => ({ simulated: true, triggered: true,
+        decision: { id: `demo-${plan.id}`, scenario_id: scenario.id, outcome: plan.predictedOutcome, score: plan.predictedScore },
+        rule_executions: plan.rules.map(rule => ({ rule_id: rule.id, rule_name: rule.name, outcome: rule.predicted, score_modifier: rule.scoreModifier })),
+      }));
+    },
+  });
+  lab.ready = true;
+  return lab;
+}
+
 async function main() {
   let options;
   try {
@@ -1249,11 +1463,43 @@ async function main() {
 
   const model = await loadModel(options.modelFile);
   const definitions = buildScenarioDefinitions(options.lateCallbackSeconds, options);
-
-  if (options.deterministic) {
-    await runDeterministic(options, model, definitions);
-  } else {
-    await runContinuousSimulation(options, model, definitions);
+  let dashboard;
+  let lab;
+  if (options.ui && (!options.dryRun || options.demo)) {
+    options.monitor = new SimulationMonitor(options);
+    if (options.deterministic) lab = await createDeterministicWorkbench(options, model, definitions);
+    dashboard = await startDashboard(options.monitor, { port: options.uiPort, host: options.uiHost, publicUrl: options.uiPublicUrl, lab });
+    console.log(`Browser dashboard: ${dashboard.url}`);
+    console.log(`Dashboard listens on ${options.uiHost}:${options.uiPort}. For direct remote access, use this machine’s address or set --ui-public-url.`);
+  }
+  try {
+    if (lab) options.monitor.phase('ready', 'Choose a scenario and desired rule outcomes, generate data, then submit when ready.');
+    else if (options.demo) await runDashboardDemo(options, model, definitions);
+    else if (options.deterministic) await runDeterministic(options, model, definitions);
+    else await runContinuousSimulation(options, model, definitions);
+    if (options.monitor && !options.demo && !lab) {
+      options.monitor.phase(process.exitCode === 130 ? 'stopped' : process.exitCode ? 'failed' : 'completed',
+        process.exitCode === 130 ? 'Run interrupted after finishing the current batch' : process.exitCode ? 'Run ended with failures or before reaching its target' : 'Run complete · select a transaction to inspect its response');
+    }
+  } catch (error) {
+    process.exitCode = 1;
+    options.monitor?.phase('failed', error.message);
+    console.error(`Fraud scenario simulation failed: ${error.message}`);
+  }
+  if (dashboard) {
+    if (process.exitCode === 130) await dashboard.close();
+    else {
+      console.log(`Dashboard remains available at ${dashboard.url}. Press Ctrl+C to close it.`);
+      await new Promise((resolve, reject) => {
+        const close = () => {
+          process.off('SIGINT', close);
+          process.off('SIGTERM', close);
+          dashboard.close().then(resolve, reject);
+        };
+        process.once('SIGINT', close);
+        process.once('SIGTERM', close);
+      });
+    }
   }
 }
 

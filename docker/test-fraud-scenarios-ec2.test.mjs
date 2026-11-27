@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { generateClientKeyPair } from '../backend/auth-service/scripts/client-proof.mjs';
 import { buildScenarioDefinitions, portableModel } from './provision-fraud-scenarios-ec2.mjs';
+import { SimulationMonitor } from './fraud-simulation-monitor.mjs';
 import {
   buildTestCases,
   parseArgs,
@@ -94,6 +95,20 @@ test('parses new 24-hour simulation arguments and duration options', () => {
 
   const parsedMinutes = parseArgs(['--dry-run', '--duration-minutes', '30']);
   assert.equal(parsedMinutes.durationMs, 30 * 60 * 1000);
+});
+
+test('dashboard options support offline demo and console-only automation', () => {
+  const demo = parseArgs(['--demo', '--ui-port', '9099']);
+  assert.equal(demo.demo, true);
+  assert.equal(demo.dryRun, true);
+  assert.equal(demo.ui, true);
+  assert.equal(demo.uiPort, 9099);
+  assert.equal(parseArgs(['--dry-run', '--no-ui']).ui, false);
+  assert.throws(() => parseArgs(['--demo', '--no-ui']), /do not combine/);
+  assert.equal(parseArgs(['--demo', '--deterministic']).deterministic, true);
+  assert.equal(parseArgs(['--dry-run', '--ui-host', '0.0.0.0']).uiHost, '0.0.0.0');
+  assert.equal(parseArgs(['--dry-run', '--ui-public-url', 'http://ec2.example:8099']).uiPublicUrl, 'http://ec2.example:8099');
+  assert.throws(() => parseArgs(['--dry-run', '--ui-port', '65536']), /--ui-port/);
 });
 
 test('generates isolated fire and no-fire fixtures for every provisioned rule (deterministic mode)', async () => {
@@ -209,7 +224,11 @@ test('evaluates every transaction with bounded concurrency, including deferred r
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     if (url.includes('/client-async-decision-executions/')) {
       return new Response(JSON.stringify({
-        async_decision_execution: { status: 'completed', result_body: { object_id: 'tx-0', results: [{ triggered: true }] } },
+        async_decision_execution: { status: 'completed', result_body: { object_id: 'tx-0', results: [{ triggered: true,
+          decision: { ID: 'decision-0', ScenarioID: 'scenario-1', Outcome: 'decline', Score: 100 },
+          rule_executions: [{ RuleName: 'A matched rule', Outcome: 'hit', ScoreModifier: 100 },
+            { RuleName: 'Optional rule', Outcome: 'skipped', ScoreModifier: 10, SkipReason: 'Null operand' }],
+        }] } },
       }), { status: 200 });
     }
     assert.match(url, /\/decisions\/all$/);
@@ -225,16 +244,29 @@ test('evaluates every transaction with bounded concurrency, including deferred r
     }
     return new Response(JSON.stringify({ result: { object_id: body.object_id, results: [{ triggered: false }] } }), { status: 200 });
   });
+  const monitor = new SimulationMonitor({ runId, totalTransactions: 8 });
+  for (const transaction of transactions) monitor.beginCase(transaction);
   const summary = await evaluateTransactionBatch(
-    { origin: 'http://localhost:8088', tenantId }, { getToken: async () => 'token' }, transactions,
+    { origin: 'http://localhost:8088', tenantId, monitor }, { getToken: async () => 'token' }, transactions,
   );
   assert.deepEqual(requested.sort(), transactions.map(tx => tx.object_id).sort());
   assert.ok(peak <= 5 && peak > 1);
   assert.deepEqual(summary, { completed: 8, triggered: 1 });
+  assert.equal(monitor.snapshot().counts.evaluated, 8);
+  assert.equal(monitor.snapshot().activeCount, 0);
+  assert.equal(monitor.snapshot().recent.find(row => row.id === 'tx-0').httpStatus, 202);
+  const asyncRow = monitor.snapshot().recent.find(row => row.id === 'tx-0');
+  assert.equal(asyncRow.outcome, 'decline');
+  assert.equal(asyncRow.responses[0].score, 100);
+  assert.equal(asyncRow.responses[0].rules[1].reason, 'Null operand');
+  assert.equal(monitor.snapshot().counts.flagged, 1);
+  assert.equal(monitor.snapshot().counts.hits, 1);
 });
 
 test('stops with transaction IDs when evaluations fail or have unknown outcomes', async (t) => {
   const requested = [];
+  const monitor = new SimulationMonitor({ runId, totalTransactions: 2 });
+  for (const id of ['tx-1', 'tx-2']) monitor.beginCase({ object_id: id });
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     const { object_id } = JSON.parse(options.body);
     requested.push(object_id);
@@ -243,15 +275,35 @@ test('stops with transaction IDs when evaluations fail or have unknown outcomes'
   });
   await assert.rejects(
     evaluateTransactionBatch(
-      { origin: 'http://localhost:8088', tenantId }, { getToken: async () => 'token' },
+      { origin: 'http://localhost:8088', tenantId, monitor }, { getToken: async () => 'token' },
       [{ object_id: 'tx-1' }, { object_id: 'tx-2' }],
     ),
     /1\/2 transaction evaluations completed; 1 failed or have an unknown outcome: tx-1:.*Do not retry without reconciliation/,
   );
   assert.deepEqual(requested.sort(), ['tx-1', 'tx-2']);
+  assert.equal(monitor.snapshot().counts.evaluated, 1);
+  assert.equal(monitor.snapshot().counts.errors, 1);
+  assert.equal(monitor.snapshot().recent.find(row => row.id === 'tx-1').outcome, 'unknown');
+});
+
+test('a polling rejection preserves async admission and leaves its decision outcome unknown', async (t) => {
+  const monitor = new SimulationMonitor({ runId, totalTransactions: 1 });
+  monitor.beginCase({ object_id: 'tx-poll' });
+  t.mock.method(globalThis, 'fetch', async url => url.endsWith('/decisions/all')
+    ? new Response(JSON.stringify({ async_decision_execution: { id: 'async-poll' } }), { status: 202 })
+    : new Response(JSON.stringify({ error: 'forbidden' }), { status: 403 }));
+  await assert.rejects(evaluateTransactionBatch(
+    { origin: 'http://localhost:8088', tenantId, monitor }, { getToken: async () => 'token' }, [{ object_id: 'tx-poll' }],
+  ), /HTTP 403/);
+  const snapshot = monitor.snapshot();
+  assert.equal(snapshot.counts.evaluated, 0);
+  assert.equal(snapshot.recent[0].outcome, 'unknown');
+  assert.equal(snapshot.recent[0].httpStatus, 202);
+  assert.equal(snapshot.recent[0].failureHttpStatus, 403);
 });
 
 test('continuous simulation can explicitly allow a mismatch and still evaluate every transaction', async (t) => {
+  t.mock.method(TrafficPacer.prototype, 'nextDelayMs', () => 0);
   const directory = await mkdtemp(path.join(os.tmpdir(), 'fraud-simulation-test-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const keyDir = path.join(directory, 'keys');
@@ -298,21 +350,36 @@ test('continuous simulation can explicitly allow a mismatch and still evaluate e
   });
   const options = parseArgs([
     '--host', 'localhost:8088', '--tenant-id', tenantId, '--client-id', clientId,
-    '--key-dir', keyDir, '--confirm-write', '--total-transactions', '3', '--batch-size', '3',
+    '--key-dir', keyDir, '--confirm-write', '--total-transactions', '5', '--batch-size', '3',
     '--allow-model-mismatch',
     '--duration-minutes', '1', '--checkpoint-file', path.join(directory, 'checkpoint.json'),
   ]);
+  options.monitor = new SimulationMonitor(options);
+  const previews = [];
+  const queue = options.monitor.queue.bind(options.monitor);
+  t.mock.method(options.monitor, 'queue', (transactions, dispatchAt) => {
+    previews.push(...transactions.map(({ object_id, amount }) => ({ object_id, amount })));
+    queue(transactions, dispatchAt);
+  });
   await runContinuousSimulation(options, model, definitions);
   assert.equal(warning.mock.callCount(), 1);
   assert.ok(logs.includes('Verified 5 live scenarios.'));
   assert.ok(!logs.some(line => line.includes('Verified data model')));
-  assert.equal(ingested.length, 3);
+  assert.equal(ingested.length, 5);
   assert.deepEqual(evaluated.sort(), ingested.sort());
   const checkpoint = JSON.parse(await readFile(options.checkpointFile, 'utf8'));
-  assert.equal(checkpoint.ingestedTransactions, 3);
-  assert.equal(checkpoint.evaluatedTransactions, 3);
-  assert.equal(checkpoint.triggeredScenarios, 3);
+  assert.equal(checkpoint.ingestedTransactions, 5);
+  assert.equal(checkpoint.evaluatedTransactions, 5);
+  assert.equal(checkpoint.triggeredScenarios, 5);
   assert.equal(checkpoint.incompleteBatch, null);
+  const snapshot = options.monitor.snapshot();
+  assert.equal(snapshot.counts.ingested, 5);
+  assert.equal(snapshot.counts.evaluated, 5);
+  assert.equal(snapshot.activeCount, 0);
+  assert.equal(snapshot.upcomingCount, 0);
+  assert.equal(snapshot.recent.length, 5);
+  assert.deepEqual([...new Set(previews.map(row => row.object_id))].sort(), ingested.slice(3).sort());
+  for (const preview of previews) assert.equal(snapshot.recent.find(row => row.id === preview.object_id).amount, preview.amount);
 });
 
 test('ingests simulation entities without metadata and within batch limits', async (t) => {
@@ -416,7 +483,14 @@ test('traffic pacer generates varying positive delays', () => {
   assert.ok(uniqueDelays.size > 10, 'Pacer must produce varied inter-arrival delays');
 });
 
-test('creates realistic entity pool and generates schema-conforming transactions with organic triggers', async () => {
+test('creates realistic entity pool and generates schema-conforming transactions with organic triggers', async (t) => {
+  // A random 200-record sample can legitimately omit a rare signal. Fix the
+  // test's random stream so assertions check generation rather than probability.
+  let seed = 123456;
+  t.mock.method(Math, 'random', () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 0x100000000;
+  });
   const model = await loadModel();
   const pool = createEntityPool(model, runId, { customerCount: 50, walletCount: 80, destinationCount: 20 });
 
