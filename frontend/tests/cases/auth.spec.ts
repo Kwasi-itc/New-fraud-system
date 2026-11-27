@@ -31,14 +31,14 @@ test("successful sign-in and invitation completion redirect to the dashboard", a
   expect((await context.cookies()).some(cookie => cookie.name === "case_test_session" || cookie.name === "fraud_login")).toBe(false);
 });
 
-test("product navigation hides excluded areas without removing their routes", async ({ page, context }) => {
+test("product navigation shows workspace links and keeps other routes accessible", async ({ page, context }) => {
   await login(context);
   await page.goto("/dashboard");
   const sidebar = page.locator("aside").first();
-  for (const label of ["Dashboard", "Your Data Model", "Scenarios", "Lists", "Decisions", "My Account"]) {
+  for (const label of ["Dashboard", "Your Data Model", "Scenarios", "Lists", "Decisions", "Case Management", "Screening", "My Account"]) {
     await expect(sidebar.getByRole("link", { name: label, exact: true })).toBeVisible();
   }
-  for (const label of ["Screening", "Case Manager", "Customer hub", "Settings"]) {
+  for (const label of ["Customer hub", "Settings"]) {
     await expect(sidebar.getByRole("link", { name: label, exact: true })).toHaveCount(0);
   }
   await expect(page.locator("main")).toHaveClass(/product-workspace/);
@@ -72,8 +72,8 @@ test("sidebar aligns detection links and places the data model above account", a
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 844 });
     const links = sidebar.locator('a[href]:not(:has(img))');
-    await expect(links).toHaveText(["Dashboard", "Scenarios", "Lists", "Decisions", "Your Data Model", "My Account"]);
-    const iconPositions = await Promise.all(["Dashboard", "Scenarios", "Lists", "Decisions", "Your Data Model", "My Account"].map(async name => {
+    await expect(links).toHaveText(["Dashboard", "Scenarios", "Lists", "Decisions", "Case Management", "Screening", "Your Data Model", "My Account"]);
+    const iconPositions = await Promise.all(["Dashboard", "Scenarios", "Lists", "Decisions", "Case Management", "Screening", "Your Data Model", "My Account"].map(async name => {
       const icon = sidebar.getByRole("link", { name, exact: true }).locator("svg");
       return (await icon.boundingBox())!.x;
     }));
@@ -89,6 +89,24 @@ test("sidebar aligns detection links and places the data model above account", a
   await sidebar.getByRole("link", { name: "Your Data Model", exact: true }).click();
   await expect(page).toHaveURL(/\/your-data$/);
   await expect(sidebar.getByRole("link", { name: "Your Data Model", exact: true })).toHaveAttribute("aria-current", "page");
+});
+
+test("case management and screening navigation open their pages and remain active on subpages", async ({ page, context }) => {
+  await login(context);
+  await page.goto("/dashboard");
+  const navigation = page.getByRole("navigation", { name: "Product navigation" });
+  for (const [label, path, subpage] of [
+    ["Case Management", "/cases", "/cases/inboxes"],
+    ["Screening", "/screening-search", "/screening-search/history"],
+  ] as const) {
+    const link = navigation.getByRole("link", { name: label, exact: true });
+    await expect(link).toHaveAttribute("href", path);
+    await link.click();
+    await expect(page).toHaveURL(new RegExp(`${path}$`));
+    await expect(link).toHaveAttribute("aria-current", "page");
+    await page.goto(subpage);
+    await expect(link).toHaveAttribute("aria-current", "page");
+  }
 });
 
 test("signed-out pages require login and account writes reject foreign origins", async ({ page }) => {

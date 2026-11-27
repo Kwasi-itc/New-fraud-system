@@ -50,6 +50,26 @@ test("multiple browser drafts, title placeholders and saved-rule deletion", asyn
   await expect(page.getByRole("form")).toHaveCount(0);
 });
 
+test("workflow rules can be saved when randomUUID is unavailable", async ({ context, page }) => {
+  await context.addCookies([{ name: "case_test_session", value: "fixture-workflow", domain: "127.0.0.1", path: "/" }]);
+  await page.addInitScript(() => { Object.defineProperty(Crypto.prototype, "randomUUID", { value: undefined }); });
+  await page.goto(`/detection/${scenario}/workflow`);
+  await page.getByRole("button", { name: "Create rule" }).click();
+  await page.getByLabel("Rule name", { exact: true }).fill("HTTP-compatible rule");
+  await page.getByRole("button", { name: "Choose action" }).click();
+  await page.getByRole("button", { name: "Do nothing", exact: false }).click();
+  await page.getByRole("button", { name: "Add Condition" }).click();
+  await page.getByRole("button", { name: "Always applies", exact: false }).click();
+  page.on("dialog", dialog => dialog.accept());
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Workflow saved");
+  const saved = (await (await page.request.get(url)).json()).rules;
+  expect(saved).toHaveLength(1);
+  expect(saved[0].id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  await page.reload();
+  await expect(page.getByLabel("Rule name", { exact: true })).toHaveValue("HTTP-compatible rule");
+});
+
 test("draft storage errors are visible and drafts are scoped to the signed-in user", async ({ context, page }) => {
   await context.addCookies([{ name: "case_test_session", value: "fixture-workflow", domain: "127.0.0.1", path: "/" }]);
   await page.goto(`/detection/${scenario}/workflow`);

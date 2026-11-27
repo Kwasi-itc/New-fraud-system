@@ -1,5 +1,7 @@
 "use client";
 
+import { createUuid } from "@/lib/create-uuid";
+
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, AlertCircle, X, Layers } from "lucide-react";
 import type { CaseRecord, Inbox } from "@/lib/case-manager-api";
@@ -105,7 +107,7 @@ export function BulkActionsModal({
           const submittedCaseIds = data.getAll("cases").map(String);
           const finalCaseIds = submittedCaseIds.length > 0 ? submittedCaseIds : internalSelectedIds;
           void run({
-            operation_id: crypto.randomUUID(),
+            operation_id: createUuid(),
             case_ids: finalCaseIds,
             action,
             assignee: data.get("assignee") || null,

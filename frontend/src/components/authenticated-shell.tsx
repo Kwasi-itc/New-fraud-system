@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, type ComponentType, type ReactNode } fro
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
+  BriefcaseBusiness,
   ChevronLeft,
   ChevronRight,
   Database,
@@ -11,6 +12,7 @@ import {
   List,
   Route,
   Scale,
+  ScanSearch,
   UserCircle2,
 } from "lucide-react";
 
@@ -27,6 +29,19 @@ const primaryLinks = [
     href: "/dashboard",
     label: "Dashboard",
     icon: LayoutDashboard,
+  },
+];
+
+const workspaceLinks = [
+  {
+    href: "/cases",
+    label: "Case Management",
+    icon: BriefcaseBusiness,
+  },
+  {
+    href: "/screening-search",
+    label: "Screening",
+    icon: ScanSearch,
   },
 ];
 
@@ -216,6 +231,9 @@ export function AuthenticatedShell({ children }: AuthenticatedShellProps) {
                 <Suspense fallback={null}>
                   <DetectionNavigation collapsed={collapsed} />
                 </Suspense>
+                {workspaceLinks.map((link) => (
+                  <NavLink key={link.href} collapsed={collapsed} {...link} />
+                ))}
               </div>
             </nav>
 

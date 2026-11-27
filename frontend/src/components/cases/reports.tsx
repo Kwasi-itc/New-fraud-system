@@ -1,5 +1,7 @@
 "use client";
 
+import { createUuid } from "@/lib/create-uuid";
+
 import { useState } from "react";
 import {
   AlertCircle,
@@ -146,7 +148,7 @@ export function CaseReports({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setDraftID(crypto.randomUUID())}
+              onClick={() => setDraftID(createUuid())}
               className="gap-1.5 text-sm font-medium"
             >
               <Plus className="size-3.5" />

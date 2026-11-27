@@ -1,10 +1,26 @@
 import { expect, test } from "@playwright/test";
+import { createUuid } from "../../src/lib/create-uuid";
 const first = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const tenant = "11111111-1111-4111-8111-111111111111";
 test.beforeEach(async ({ context, request }) => {
   await request.get("http://127.0.0.1:3199/reset");
   await request.get("http://127.0.0.1:3199/fixture/display");
   await context.addCookies([{ name: "case_test_session", value: "fixture-admin", domain: "127.0.0.1", path: "/" }]);
+});
+
+test("UUID generation uses secure bytes and sets the version and variant bits", () => {
+  const crypto = globalThis.crypto;
+  const previous = Object.getOwnPropertyDescriptor(crypto, "getRandomValues");
+  Object.defineProperty(crypto, "getRandomValues", {
+    configurable: true,
+    value: (bytes: Uint8Array) => { bytes.forEach((_, index) => { bytes[index] = index; }); return bytes; },
+  });
+  try {
+    expect(createUuid()).toBe("00010203-0405-4607-8809-0a0b0c0d0e0f");
+  } finally {
+    if (previous) Object.defineProperty(crypto, "getRandomValues", previous);
+    else Reflect.deleteProperty(crypto, "getRandomValues");
+  }
 });
 
 test("configure captions, linked labels and column order, then view them in Decisions", async ({ page }) => {
@@ -67,4 +83,35 @@ test("permission failure keeps the editor and unsaved changes visible", async ({
   await modal.getByRole("button", { name: "Save", exact: true }).click();
   await expect(modal.getByRole("alert")).toContainText("Platform administrator required");
   await expect(modal.getByLabel("Label for amount")).toHaveValue("Total amount");
+});
+
+test("direct and related columns save when randomUUID is unavailable", async ({ page }) => {
+  await page.addInitScript(() => { Object.defineProperty(Crypto.prototype, "randomUUID", { value: undefined }); });
+  await page.goto("/your-data");
+  await page.getByRole("button", { name: "Display settings for payment" }).click();
+  const modal = page.getByRole("dialog", { name: "Display settings" });
+  await modal.getByLabel("Add display column").selectOption({ label: "amount" });
+  await modal.getByLabel("Add display column").selectOption({ label: "customer.full_name" });
+  const save = page.waitForRequest(request => request.method() === "PUT" && request.url().endsWith("/display-settings"));
+  await modal.getByRole("button", { name: "Save", exact: true }).click();
+  const columns = (await save).postDataJSON().display_columns;
+  expect(columns.map((column: { type: string }) => column.type)).toEqual(["direct", "relation"]);
+  const ids = columns.map((column: { id: string }) => column.id);
+  expect(ids[0]).toMatch(/^col_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  expect(ids[1]).toMatch(/^col_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  expect(ids[0]).not.toBe(ids[1]);
+  await expect(modal).toHaveCount(0);
+  await page.getByRole("button", { name: "Display settings for payment" }).click();
+  await expect(modal.getByLabel("Label for amount")).toBeVisible();
+  await expect(modal.getByLabel("Label for customer.full_name")).toBeVisible();
+});
+
+test("display settings reports when secure randomness is unavailable", async ({ page }) => {
+  await page.goto("/your-data");
+  await page.getByRole("button", { name: "Display settings for payment" }).click();
+  const modal = page.getByRole("dialog", { name: "Display settings" });
+  await page.evaluate(() => { Object.defineProperty(Crypto.prototype, "getRandomValues", { value: undefined }); });
+  await modal.getByLabel("Add display column").selectOption({ label: "amount" });
+  await expect(modal.getByRole("alert")).toContainText("Secure random number generation is unavailable");
+  await expect(modal.getByLabel("Label for amount")).toHaveCount(0);
 });

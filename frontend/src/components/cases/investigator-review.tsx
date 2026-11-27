@@ -1,5 +1,7 @@
 "use client";
 
+import { createUuid } from "@/lib/create-uuid";
+
 import { useId, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, UserCheck } from "lucide-react";
@@ -137,7 +139,7 @@ export function InvestigatorReview({
                     };
                     const signature = JSON.stringify(payload);
                     if (operation.current?.signature !== signature)
-                      operation.current = { signature, id: crypto.randomUUID() };
+                      operation.current = { signature, id: createUuid() };
                     setBusy(true);
                     try {
                       const response = await fetch(path, {

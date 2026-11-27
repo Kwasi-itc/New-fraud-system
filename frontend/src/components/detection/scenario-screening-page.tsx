@@ -1,5 +1,7 @@
 "use client";
 
+import { createUuid } from "@/lib/create-uuid";
+
 import { WorkflowConditionEditor, conditionCount, validCondition, type WorkflowCondition } from "./workflow-condition-editor";
 import Link from "next/link";
 import { IdentifierFields } from "@/components/screening/identifier-fields";
@@ -29,7 +31,7 @@ async function request(scenario: string, rule?: Rule): Promise<ConfigurationPage
 }
 
 function emptyScreeningRule(): Rule {
-  return { id: crypto.randomUUID(), name: "", enabled: false, entity_type: "Person", name_field: "", address_field: "", birth_date_field: "", nationality_field: "", country_field: "", registration_number_field: "", outcomes: ["review"], inbox_id: "", updated_at: null };
+  return { id: createUuid(), name: "", enabled: false, entity_type: "Person", name_field: "", address_field: "", birth_date_field: "", nationality_field: "", country_field: "", registration_number_field: "", outcomes: ["review"], inbox_id: "", updated_at: null };
 }
 
 function OptionalSettings({ title, description, defaultOpen = false, children }: { title: string; description?: string; defaultOpen?: boolean; children: ReactNode }) {

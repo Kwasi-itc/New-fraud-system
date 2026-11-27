@@ -1,5 +1,7 @@
 "use client";
 
+import { createUuid } from "@/lib/create-uuid";
+
 import { Fragment, useEffect, useRef, useState, type FormEvent } from "react";
 import {
   Search,
@@ -406,7 +408,7 @@ export function ManualScreening({ scope }: { scope: string }) {
     if (!name.trim()) { setError("Enter a name to search."); return; }
     setRefining(false);
     void submit({
-      operation_id: crypto.randomUUID(),
+      operation_id: createUuid(),
       name: name.trim(),
       entity_type: entityType,
       threshold,

@@ -1,5 +1,7 @@
 "use client";
 
+import { createUuid } from "@/lib/create-uuid";
+
 import { useId, useRef, useState } from "react";
 import { ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -79,7 +81,7 @@ export function DecisionTransfer({
         }
         const signature = JSON.stringify([caseId, decisionId, target, reason.trim()]);
         if (operation.current?.signature !== signature)
-          operation.current = { signature, id: crypto.randomUUID() };
+          operation.current = { signature, id: createUuid() };
         try {
           await write.mutateAsync({
             path: `cases/${caseId}/decision-transfers`,

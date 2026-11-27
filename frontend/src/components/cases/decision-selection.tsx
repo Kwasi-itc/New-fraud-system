@@ -1,5 +1,7 @@
 "use client";
 
+import { createUuid } from "@/lib/create-uuid";
+
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -183,7 +185,7 @@ export function CreateDecisionCaseModal({
     if (inFlight.current) return;
     if (!request && (!name.trim() || !inbox || !selected.length)) return;
     const payload: CreateRequest = request ?? {
-      operation_id: crypto.randomUUID(),
+      operation_id: createUuid(),
       name: name.trim(),
       inbox_id: inbox,
       type: "decision",

@@ -12,6 +12,7 @@ import {
 import { dataModelApi, type DisplayColumn, type DisplaySettings } from "@/lib/data-model-api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { createUuid } from "@/lib/create-uuid";
 
 export function DisplaySettingsButton({
   tableId,
@@ -220,13 +221,17 @@ function DisplayForm({
       setError("At most 12 display columns are allowed.");
       return;
     }
+    if (!globalThis.crypto?.getRandomValues) {
+      setError("Secure random number generation is unavailable in this browser.");
+      return;
+    }
 
     if (val.startsWith("direct:")) {
       const fieldId = val.slice("direct:".length);
       const field = initial.fields.find((f) => f.id === fieldId);
       if (!field) return;
       const newCol: DisplayColumn = {
-        id: `col_${crypto.randomUUID()}`,
+        id: `col_${createUuid()}`,
         type: "direct",
         label: field.alias || field.name,
         field_id: field.id,
@@ -242,7 +247,7 @@ function DisplayForm({
       if (!link || !targetField) return;
 
       const newCol: DisplayColumn = {
-        id: `col_${crypto.randomUUID()}`,
+        id: `col_${createUuid()}`,
         type: "relation",
         label: targetField.alias || `${link.target_table}.${targetField.name}`,
         link_id: link.id,

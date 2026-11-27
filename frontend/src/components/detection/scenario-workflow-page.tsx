@@ -1,5 +1,7 @@
 "use client";
 
+import { createUuid } from "@/lib/create-uuid";
+
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
@@ -207,7 +209,7 @@ function WorkflowEditor({ scenarioId, page }: { scenarioId: string; page: UseQue
   }
   function createRule() {
     save.reset(); remove.reset();
-    change({ id: crypto.randomUUID(), name: "New Rule", enabled: false, outcomes: [], condition: { kind: "all", children: [] }, action_type: "do_nothing", inbox_id: "", title: "", tag_ids: [], updated_at: null });
+    change({ id: createUuid(), name: "New Rule", enabled: false, outcomes: [], condition: { kind: "all", children: [] }, action_type: "do_nothing", inbox_id: "", title: "", tag_ids: [], updated_at: null });
   }
   function submit(rule: CaseRule) {
     if (!valid(rule) || !editable || busy) return;

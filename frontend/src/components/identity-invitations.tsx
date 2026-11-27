@@ -1,5 +1,7 @@
 "use client";
 
+import { createUuid } from "@/lib/create-uuid";
+
 import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { identityRoleLabels } from "@/lib/identity-roles";
@@ -17,8 +19,8 @@ export function IdentityInvitations({ creating, onClose, onCreated, showList, sc
   async function mutate(action: "create" | "cancel" | "resend", item?: Invitation) {
     setBusy(true); setError(""); setNotice("");
     const key = JSON.stringify([email.trim(), roles]);
-    if (!request.current || request.current.key !== key) request.current = { key, id: crypto.randomUUID() };
     try {
+      if (!request.current || request.current.key !== key) request.current = { key, id: createUuid() };
       await accountRequest("invitations", { method: "POST", body: JSON.stringify(action === "create" ? { action, id: request.current.id, email: email.trim(), roles } : { action, id: item!.id, version: item!.version }) });
       setNotice(action === "cancel" ? "Invitation revoked." : "Invitation queued for email delivery. Check its delivery status below.");
       setConfirmation(null); setAfter("");

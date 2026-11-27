@@ -3,11 +3,14 @@ import { expect, test } from "@playwright/test";
 test("private list upload, separate review and version restore use the BFF", async ({ context, page, request }) => {
   await request.get("http://127.0.0.1:3199/reset");
   await context.addCookies([{ name: "case_test_session", value: "fixture-private-importer", domain: "127.0.0.1", path: "/" }]);
+  await page.addInitScript(() => { Object.defineProperty(Crypto.prototype, "randomUUID", { value: undefined }); });
   await page.goto("/screening-search/lists");
   await page.getByLabel("List name", { exact: true }).fill("Fictional review list");
   await page.getByLabel("Purpose", { exact: true }).fill("Test organization records");
   await page.getByLabel("Data usage authorization", { exact: true }).fill("Fictional data authored for test");
+  const create = page.waitForRequest(request => request.method() === "POST" && request.url().endsWith("/api/private-screening-lists"));
   await page.getByRole("button", { name: "Create list", exact: true }).click();
+  expect((await create).postDataJSON().operation_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   await expect(page.getByRole("heading", { name: "Fictional review list" })).toBeVisible();
   await page.getByLabel("CSV file", { exact: true }).setInputFiles({ name: "records.csv", mimeType: "text/csv", buffer: Buffer.from("record_id,name,entity_type,source_reference\n001,Fictional Company,Organization,own fixture\n") });
   await expect(page.getByRole("button", { name: "Submit for review" })).toBeDisabled();
