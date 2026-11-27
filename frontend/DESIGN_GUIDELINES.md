@@ -76,8 +76,8 @@ The sidebar should follow these rules:
 Current preferred navigation language:
 
 - `Dashboard`
-- `Your Data Model`
 - `Scenarios`, `Lists`, and `Decisions` under `Detection`
+- `Your Data Model` at the bottom, immediately above `My Account`
 - `My Account`
 
 Screening, Case Manager, Customer hub, and Settings remain available as routes but are not listed in the product sidebar.

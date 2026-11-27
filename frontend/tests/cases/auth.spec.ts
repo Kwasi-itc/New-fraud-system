@@ -59,6 +59,38 @@ test("product navigation hides excluded areas without removing their routes", as
   }
 });
 
+test("sidebar aligns detection links and places the data model above account", async ({ page, context }) => {
+  await login(context);
+  await page.goto("/dashboard");
+  const sidebar = page.locator("aside").first();
+  const navigation = sidebar.getByRole("navigation", { name: "Product navigation" });
+  const workspace = navigation.getByText("Workspace", { exact: true });
+  const detection = navigation.getByText("Detection", { exact: true });
+  await expect(detection.locator("svg")).toHaveCount(0);
+  await expect(detection).toHaveCSS("font-size", await workspace.evaluate(el => getComputedStyle(el).fontSize));
+
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    const links = sidebar.locator('a[href]:not(:has(img))');
+    await expect(links).toHaveText(["Dashboard", "Scenarios", "Lists", "Decisions", "Your Data Model", "My Account"]);
+    const iconPositions = await Promise.all(["Dashboard", "Scenarios", "Lists", "Decisions", "Your Data Model", "My Account"].map(async name => {
+      const icon = sidebar.getByRole("link", { name, exact: true }).locator("svg");
+      return (await icon.boundingBox())!.x;
+    }));
+    expect(new Set(iconPositions).size).toBe(1);
+  }
+
+  await page.setViewportSize({ width: 1280, height: 844 });
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  await expect(detection).toHaveClass(/sr-only/);
+  await expect(sidebar.getByRole("link", { name: "Your Data Model", exact: true })).toBeVisible();
+  await expect(sidebar.getByRole("link", { name: "My Account", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Expand sidebar" }).click();
+  await sidebar.getByRole("link", { name: "Your Data Model", exact: true }).click();
+  await expect(page).toHaveURL(/\/your-data$/);
+  await expect(sidebar.getByRole("link", { name: "Your Data Model", exact: true })).toHaveAttribute("aria-current", "page");
+});
+
 test("signed-out pages require login and account writes reject foreign origins", async ({ page }) => {
   await page.goto("/my-account"); await expect(page).toHaveURL(/\/login$/);
   for (const action of ["logout", "profile", "manage-sign-in"]) expect((await page.request.post(`/api/auth/${action}`, { headers: { Origin: "https://untrusted.example" }, data: { name: "Forged", version: 1 } })).status()).toBe(403);

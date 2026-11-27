@@ -11,7 +11,6 @@ import {
   List,
   Route,
   Scale,
-  Shield,
   UserCircle2,
 } from "lucide-react";
 
@@ -29,14 +28,14 @@ const primaryLinks = [
     label: "Dashboard",
     icon: LayoutDashboard,
   },
+];
+
+const secondaryLinks = [
   {
     href: "/your-data",
     label: "Your Data Model",
     icon: Database,
   },
-];
-
-const secondaryLinks = [
   {
     href: "/my-account",
     label: "My Account",
@@ -114,12 +113,11 @@ function DetectionNavigation({ collapsed }: { collapsed: boolean }) {
     <div className="space-y-1">
       <div
         className={cn(
-          "flex items-center gap-3 px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.13em] text-slate-400",
-          collapsed && "justify-center px-0"
+          "px-3 pb-2 pt-4 text-[10px] font-bold uppercase tracking-[0.09em] text-slate-400",
+          collapsed && "sr-only"
         )}
       >
-        <Shield className="size-4 shrink-0" />
-        <span className={cn(collapsed && "hidden")}>Detection</span>
+        Detection
       </div>
       {detectionLinks.map((link) => {
         const Icon = link.icon;
@@ -133,7 +131,7 @@ function DetectionNavigation({ collapsed }: { collapsed: boolean }) {
             title={collapsed ? link.label : undefined}
             className={cn(
               "flex items-center gap-3 rounded-[9px] px-3 py-2.5 text-sm font-medium transition-colors",
-              collapsed ? "justify-center px-0" : "pl-6",
+              collapsed && "justify-center px-0",
               active
                 ? "bg-[#eef4ff] text-[#1f4f96]"
                 : "text-[#526174] hover:bg-slate-100/90"
@@ -141,7 +139,7 @@ function DetectionNavigation({ collapsed }: { collapsed: boolean }) {
           >
             <Icon
               className={cn(
-                "size-[17px] shrink-0",
+                "size-[18px] shrink-0",
                 active ? "text-[#1f4f96]" : "text-[#71849e]"
               )}
             />
